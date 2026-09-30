@@ -265,14 +265,20 @@ class MockCardService implements ICardService {
     card.usage_status = 'USED';
 
     const cleanPublicUrl = publicUrl?.trim();
-    if (cleanPublicUrl && cleanPublicUrl.length > 0) {
-      card.public_url = cleanPublicUrl;
-    } else if (data.google_review_url && data.google_review_url.trim().length > 0) {
+    if (data.google_review_url && data.google_review_url.trim().length > 0) {
       card.public_url = data.google_review_url.trim();
     } else if (data.instapay_url && data.instapay_url.trim().length > 0) {
       card.public_url = data.instapay_url.trim();
     } else if (data.website_url && data.website_url.trim().length > 0) {
       card.public_url = data.website_url.trim();
+    } else if (data.instagram_url && data.instagram_url.trim().length > 0) {
+      card.public_url = data.instagram_url.trim();
+    } else if (data.facebook_url && data.facebook_url.trim().length > 0) {
+      card.public_url = data.facebook_url.trim();
+    } else if (data.tiktok_url && data.tiktok_url.trim().length > 0) {
+      card.public_url = data.tiktok_url.trim();
+    } else if (cleanPublicUrl && cleanPublicUrl.length > 0) {
+      card.public_url = cleanPublicUrl;
     }
 
     if (card.public_url) {

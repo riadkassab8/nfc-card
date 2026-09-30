@@ -22,8 +22,6 @@ import {
   Camera,
 } from 'lucide-react';
 
-import { getCardPublicUrl } from '../../utils/qrGenerator';
-
 export const AdminScanPage: React.FC = () => {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
@@ -33,7 +31,6 @@ export const AdminScanPage: React.FC = () => {
   const [searched, setSearched] = useState(false);
   const [resolvedCard, setResolvedCard] = useState<CardItem | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [customPublicUrl, setCustomPublicUrl] = useState('');
 
   // Business Data Form State
   const [formData, setFormData] = useState<BusinessData>({
@@ -76,7 +73,6 @@ export const AdminScanPage: React.FC = () => {
       const card = await cardService.resolveCardByPayload(term);
       setResolvedCard(card);
       if (card) {
-        setCustomPublicUrl(getCardPublicUrl(card));
         if (card.business_data) {
           setFormData({ ...card.business_data });
         } else {
@@ -118,7 +114,7 @@ export const AdminScanPage: React.FC = () => {
 
     setSaving(true);
     try {
-      const updatedCard = await cardService.saveCardBusinessData(resolvedCard.id, formData, customPublicUrl);
+      const updatedCard = await cardService.saveCardBusinessData(resolvedCard.id, formData);
       setResolvedCard(updatedCard);
       setToast({
         message: '🟢 تم حفظ وتفعيل بيانات البطاقة وتحديث الـ QR بنجاح!',
