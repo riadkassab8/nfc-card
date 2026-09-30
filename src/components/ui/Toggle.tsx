@@ -18,6 +18,7 @@ export const Toggle: React.FC<ToggleProps> = ({ checked, onChange, label, disabl
         opacity: disabled ? 0.6 : 1,
         userSelect: 'none',
         flexShrink: 0,
+        verticalAlign: 'middle',
       }}
     >
       <button
@@ -31,33 +32,40 @@ export const Toggle: React.FC<ToggleProps> = ({ checked, onChange, label, disabl
           if (!disabled) onChange(!checked);
         }}
         style={{
+          direction: 'ltr',
           position: 'relative',
-          width: '42px',
+          width: '44px',
           height: '24px',
           borderRadius: '9999px',
-          backgroundColor: checked ? '#22c55e' : 'var(--bg-surface-active)',
-          border: `1.5px solid ${checked ? '#22c55e' : 'var(--border-strong)'}`,
-          padding: '2px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: checked ? 'flex-end' : 'flex-start',
+          backgroundColor: checked ? '#10b981' : '#d4d4d8',
+          border: 'none',
+          padding: 0,
+          margin: 0,
           cursor: disabled ? 'not-allowed' : 'pointer',
-          transition: 'all 200ms ease',
+          transition: 'background-color 200ms cubic-bezier(0.4, 0, 0.2, 1)',
           boxSizing: 'border-box',
           flexShrink: 0,
           outline: 'none',
+          overflow: 'hidden',
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          boxShadow: checked ? '0 0 0 1px rgba(16, 185, 129, 0.2)' : 'inset 0 1px 2px rgba(0, 0, 0, 0.1)',
         }}
       >
         <span
           style={{
-            display: 'block',
-            width: '16px',
-            height: '16px',
+            position: 'absolute',
+            top: '2px',
+            left: '2px',
+            width: '20px',
+            height: '20px',
             borderRadius: '50%',
             backgroundColor: '#ffffff',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
-            transition: 'all 200ms ease',
-            flexShrink: 0,
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 1px rgba(0, 0, 0, 0.1)',
+            transform: checked ? 'translateX(20px)' : 'translateX(0px)',
+            transition: 'transform 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+            willChange: 'transform',
+            display: 'block',
           }}
         />
       </button>
@@ -65,3 +73,4 @@ export const Toggle: React.FC<ToggleProps> = ({ checked, onChange, label, disabl
     </label>
   );
 };
+

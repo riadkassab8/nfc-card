@@ -269,17 +269,17 @@ export const AdminInventoryPage: React.FC = () => {
       ) : (
         <Card padding="none" style={{ overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'start' }}>
+            <table style={{ width: '100%', minWidth: '980px', borderCollapse: 'collapse', textAlign: 'start' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-hover)', borderBottom: '1px solid var(--border-subtle)' }}>
-                  <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colStatus')}</th>
-                  <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>نوع المنتج</th>
-                  <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colCard')}</th>
-                  <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colQR')}</th>
-                  <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colNFC')}</th>
-                  <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colPublicCode')}</th>
-                  <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colBiz')}</th>
-                  <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)', textAlign: 'end' }}>{t('cards.colActions')}</th>
+                  <th className="text-label" style={{ width: '160px', minWidth: '160px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colStatus')}</th>
+                  <th className="text-label" style={{ width: '160px', minWidth: '160px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>نوع المنتج</th>
+                  <th className="text-label" style={{ width: '140px', minWidth: '140px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colCard')}</th>
+                  <th className="text-label" style={{ width: '120px', minWidth: '120px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colQR')}</th>
+                  <th className="text-label" style={{ width: '130px', minWidth: '130px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colNFC')}</th>
+                  <th className="text-label" style={{ width: '120px', minWidth: '120px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colPublicCode')}</th>
+                  <th className="text-label" style={{ width: '180px', minWidth: '180px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colBiz')}</th>
+                  <th className="text-label" style={{ width: '130px', minWidth: '130px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)', textAlign: 'end' }}>{t('cards.colActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -298,51 +298,51 @@ export const AdminInventoryPage: React.FC = () => {
 
                   return (
                     <tr key={card.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 150ms ease-out' }}>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)', minWidth: '160px' }}>
+                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '160px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
                           <Toggle
                             checked={isActive}
                             onChange={() => handleToggleStatus(card)}
                           />
-                          <Badge variant={isActive ? 'active' : 'warning'} style={{ flexShrink: 0, minWidth: '70px', textAlign: 'center' }}>
+                          <Badge variant={isActive ? 'active' : 'warning'} style={{ flexShrink: 0, minWidth: '64px', textAlign: 'center' }}>
                             {isActive ? t('cards.statusActive') : t('cards.statusInactive')}
                           </Badge>
                         </div>
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)' }}>
+                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '160px' }}>
                         <Badge variant="neutral">
                           <span style={{ marginInlineEnd: '4px' }}>{catMeta.icon}</span> {catMeta.label}
                         </Badge>
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)' }} className="text-body-medium">
+                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '140px' }} className="text-body-medium">
                         {card.card_code}
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)' }}>
+                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '120px' }}>
                         <span className="text-caption" style={{ fontFamily: 'monospace' }}>
                           {card.qr.id}
                         </span>
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)' }}>
+                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '130px' }}>
                         <span className="text-caption" style={{ fontFamily: 'monospace' }}>
                           {card.nfc.identifier}
                         </span>
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)' }}>
+                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '120px' }}>
                         <span className="text-caption" style={{ fontFamily: 'monospace', fontWeight: 600 }}>
                           {card.public_code}
                         </span>
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)' }} className="text-body">
-                        {isActive && bizName ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
+                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '180px' }} className="text-body">
+                        {bizName ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)', opacity: isActive ? 1 : 0.6 }}>
                             <Building2 size={14} style={{ color: 'var(--text-secondary)' }} />
                             <span>{bizName}</span>
                           </div>
                         ) : (
-                          <span style={{ color: 'var(--text-tertiary)' }}>لا توجد</span>
+                          <span style={{ color: 'var(--text-tertiary)' }}>غير معين</span>
                         )}
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)', textAlign: 'end' }}>
+                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '130px', textAlign: 'end' }}>
                         <div style={{ display: 'inline-flex', gap: 'var(--space-xs)' }}>
                           <Button
                             variant="ghost"
