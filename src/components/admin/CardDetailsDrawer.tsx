@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Drawer, Badge, Button } from '../ui';
+import { Drawer, Badge, Button, Input } from '../ui';
 import { CardItem } from '../../types';
-import { Download, Cpu, Building2, Calendar, Edit, Copy, Check, ShieldCheck, RefreshCw } from 'lucide-react';
-import { generateRealQRCode, decodeQRCodeDataUrl, getPublicUrl } from '../../utils/qrGenerator';
+import { Download, Cpu, Building2, Calendar, Edit, Copy, Check, ShieldCheck, RefreshCw, Save, Link as LinkIcon } from 'lucide-react';
+import { generateRealQRCode, decodeQRCodeDataUrl, getCardPublicUrl } from '../../utils/qrGenerator';
+import { cardService } from '../../services';
 
 export interface CardDetailsDrawerProps {
   isOpen: boolean;
@@ -21,26 +22,29 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrSvgString, setQrSvgString] = useState<string | null>(null);
   const [publicUrl, setPublicUrl] = useState<string>('');
+  const [isSavingUrl, setIsSavingUrl] = useState(false);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [decodedResult, setDecodedResult] = useState<{ success: boolean; decodedPayload: string | null } | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
+  const generateAndVerifyQR = async (targetUrl: string) => {
+    setIsVerifying(true);
+    const result = await generateRealQRCode(targetUrl);
+    setQrDataUrl(result.dataUrl);
+    setQrSvgString(result.svgString);
+
+    const decodeRes = await decodeQRCodeDataUrl(result.dataUrl);
+    setDecodedResult(decodeRes);
+    setIsVerifying(false);
+  };
+
   useEffect(() => {
     if (card && isOpen) {
-      const url = getPublicUrl(card.public_code);
-      setPublicUrl(url);
+      const initialUrl = getCardPublicUrl(card);
+      setPublicUrl(initialUrl);
       setDecodedResult(null);
-
-      // Programmatically generate real QR Code from exact Public URL
-      generateRealQRCode(card.public_code).then(async (result) => {
-        setQrDataUrl(result.dataUrl);
-        setQrSvgString(result.svgString);
-
-        // Programmatically decode and verify using jsQR
-        setIsVerifying(true);
-        const decodeRes = await decodeQRCodeDataUrl(result.dataUrl);
-        setDecodedResult(decodeRes);
-        setIsVerifying(false);
-      });
+      setSaveSuccessMsg(null);
+      generateAndVerifyQR(initialUrl);
     }
   }, [card, isOpen]);
 
@@ -48,6 +52,21 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
 
   const isActive = card.status === 'ACTIVE';
   const bizName = card.business_data?.name || card.business_name;
+
+  const handleSavePublicUrl = async () => {
+    if (!publicUrl.trim()) return;
+    setIsSavingUrl(true);
+    try {
+      const updatedCard = await cardService.updateCardPublicUrl(card.id, publicUrl.trim());
+      await generateAndVerifyQR(updatedCard.public_url || publicUrl.trim());
+      setSaveSuccessMsg('🟢 تم حفظ الـ URL وتوليد الـ QR الجديد بنجاح!');
+      setTimeout(() => setSaveSuccessMsg(null), 3000);
+    } catch (err) {
+      console.error('Failed to update card URL:', err);
+    } finally {
+      setIsSavingUrl(false);
+    }
+  };
 
   const downloadHDQRCode = () => {
     if (!qrSvgString) return;
@@ -69,7 +88,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   };
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title="تفاصيل هوية البطاقة والـ QR الفعلي" width="500px">
+    <Drawer isOpen={isOpen} onClose={onClose} title="تفاصيل هوية البطاقة والـ QR الفعلي" width="520px">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* Card Identity Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
@@ -95,6 +114,45 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
               }</span>
             </Badge>
           </div>
+        </div>
+
+        {/* DYNAMIC PUBLIC URL EDITABLE FIELD */}
+        <div
+          style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            borderRadius: '16px',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', fontWeight: 700, fontSize: '0.875rem' }}>
+            <LinkIcon size={18} style={{ color: '#4f46e5' }} />
+            <span>Public URL (الرابط المشفر بالـ QR والـ NFC)</span>
+          </div>
+
+          <Input
+            value={publicUrl}
+            onChange={(e) => setPublicUrl(e.target.value)}
+            placeholder="ادخل أي رابط مثل: https://example.com"
+          />
+
+          <Button
+            variant="primary"
+            fullWidth
+            isLoading={isSavingUrl}
+            onClick={handleSavePublicUrl}
+          >
+            <Save size={16} /> حفظ الرابط وتوليد QR جديد فوراً
+          </Button>
+
+          {saveSuccessMsg && (
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857', backgroundColor: '#d1fae5', padding: '6px 12px', borderRadius: '8px', textAlign: 'center' }}>
+              {saveSuccessMsg}
+            </div>
+          )}
         </div>
 
         {/* REAL PROGRAMMATICALLY GENERATED QR CODE CONTAINER */}

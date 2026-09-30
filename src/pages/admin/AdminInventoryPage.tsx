@@ -115,14 +115,14 @@ export const AdminInventoryPage: React.FC = () => {
     fetchInventory();
   }, []);
 
-  const downloadPNG = async (publicCode: string) => {
+  const downloadPNG = async (card: CardItem) => {
     try {
-      const result = await generateRealQRCode(publicCode);
+      const result = await generateRealQRCode(card);
       const blob = new Blob([result.svgString], { type: 'image/svg+xml' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `QR-CODE-${publicCode}.svg`;
+      a.download = `QR-CODE-${card.public_code}.svg`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -654,7 +654,7 @@ export const AdminInventoryPage: React.FC = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => downloadPNG(card.public_code)}
+                            onClick={() => downloadPNG(card)}
                             title="تحميل رمز QR"
                           >
                             <Download size={15} />

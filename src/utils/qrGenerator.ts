@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
+import { CardItem } from '../types';
 
 export interface GeneratedQRCodeData {
   publicCode: string;
@@ -9,6 +10,9 @@ export interface GeneratedQRCodeData {
 }
 
 export const getPublicUrl = (publicCode: string): string => {
+  if (publicCode.startsWith('http://') || publicCode.startsWith('https://')) {
+    return publicCode.trim();
+  }
   const origin =
     typeof window !== 'undefined' && window.location && window.location.origin
       ? window.location.origin
@@ -16,11 +20,28 @@ export const getPublicUrl = (publicCode: string): string => {
   return `${origin}/q/${publicCode.trim().toUpperCase()}`;
 };
 
+export const getCardPublicUrl = (card: CardItem): string => {
+  if (card.public_url && card.public_url.trim().length > 0) {
+    return card.public_url.trim();
+  }
+  return getPublicUrl(card.public_code);
+};
+
 /**
  * Programmatically generates a REAL 2D QR Code encoding the exact Public URL using 'qrcode' library.
+ * Accepts an explicit URL string (e.g. 'https://example.com') or a publicCode or CardItem.
  */
-export const generateRealQRCode = async (publicCode: string): Promise<GeneratedQRCodeData> => {
-  const publicUrl = getPublicUrl(publicCode);
+export const generateRealQRCode = async (target: string | CardItem): Promise<GeneratedQRCodeData> => {
+  let publicUrl = '';
+  let publicCode = '';
+
+  if (typeof target === 'string') {
+    publicUrl = getPublicUrl(target);
+    publicCode = target;
+  } else {
+    publicUrl = getCardPublicUrl(target);
+    publicCode = target.public_code;
+  }
 
   const dataUrl = await QRCode.toDataURL(publicUrl, {
     errorCorrectionLevel: 'H',

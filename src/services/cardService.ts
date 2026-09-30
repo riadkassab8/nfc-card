@@ -6,6 +6,7 @@ export interface ICardService {
   generateCardBatch(quantity: number, cardType?: CardProductType): Promise<{ batch: CardBatch; cards: CardItem[] }>;
   resolveCardByPayload(payload: string): Promise<CardItem | null>;
   saveCardBusinessData(cardId: string, data: BusinessData): Promise<CardItem>;
+  updateCardPublicUrl(cardId: string, publicUrl: string): Promise<CardItem>;
   getCardsByStatus(statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE'): Promise<CardItem[]>;
   resolvePublicCode(publicCode: string): Promise<{ card: CardItem; business: Business | null } | null>;
   assignCardToBusiness(cardId: string, businessId: string): Promise<CardItem>;
@@ -154,11 +155,13 @@ let nextBatchIndex = 2;
 class MockCardService implements ICardService {
   async getAllCards(): Promise<CardItem[]> {
     await this.simulateLatency();
+    this.loadFromLocalStorage();
     return mockCards.map((c) => ({ ...c }));
   }
 
   async getCardStats(): Promise<CardInventoryStats> {
     await this.simulateLatency();
+    this.loadFromLocalStorage();
     const total = mockCards.length;
     const active = mockCards.filter((c) => c.status === 'ACTIVE').length;
     const inactive = total - active;
@@ -262,19 +265,39 @@ class MockCardService implements ICardService {
     card.usage_status = 'USED';
     card.updated_at = new Date().toISOString();
 
+    this.saveToLocalStorage();
+    return { ...card };
+  }
+
+  async updateCardPublicUrl(cardId: string, publicUrl: string): Promise<CardItem> {
+    await this.simulateLatency();
+    const card = mockCards.find((c) => c.id === cardId);
+    if (!card) {
+      throw new Error('Card not found');
+    }
+
+    const cleanUrl = publicUrl.trim();
+    card.public_url = cleanUrl;
+    card.qr.public_url = cleanUrl;
+    card.nfc.public_url = cleanUrl;
+    card.updated_at = new Date().toISOString();
+
+    this.saveToLocalStorage();
     return { ...card };
   }
 
   async getCardsByStatus(statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE'): Promise<CardItem[]> {
     await this.simulateLatency();
+    this.loadFromLocalStorage();
     if (statusFilter === 'ALL') return this.getAllCards();
     return mockCards.filter((c) => c.status === statusFilter).map((c) => ({ ...c }));
   }
 
   async resolvePublicCode(publicCode: string): Promise<{ card: CardItem; business: Business | null } | null> {
     await this.simulateLatency();
+    this.loadFromLocalStorage();
     const clean = publicCode.trim().toUpperCase();
-    const card = mockCards.find((c) => c.public_code.toUpperCase() === clean);
+    const card = mockCards.find((c) => c.public_code.toUpperCase() === clean || c.public_url === publicCode);
     if (!card) return null;
 
     let business: Business | null = null;
@@ -320,6 +343,7 @@ class MockCardService implements ICardService {
     }
     card.status = card.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     card.updated_at = new Date().toISOString();
+    this.saveToLocalStorage();
     return { ...card };
   }
 
@@ -328,9 +352,37 @@ class MockCardService implements ICardService {
     const index = mockCards.findIndex((c) => c.id === cardId);
     if (index !== -1) {
       mockCards.splice(index, 1);
+      this.saveToLocalStorage();
       return true;
     }
     return false;
+  }
+
+  private saveToLocalStorage() {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('nfc_cards_inventory_v3', JSON.stringify(mockCards));
+      }
+    } catch (e) {
+      console.error('LocalStorage write error:', e);
+    }
+  }
+
+  private loadFromLocalStorage() {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = window.localStorage.getItem('nfc_cards_inventory_v3');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            mockCards.length = 0;
+            mockCards.push(...parsed);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('LocalStorage read error:', e);
+    }
   }
 
   private generateRandomCode(length = 6): string {

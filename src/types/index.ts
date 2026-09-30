@@ -160,15 +160,18 @@ export interface CardItem {
   card_code: string;
   public_code: string;
   card_type: CardProductType;
+  public_url?: string;
 
   qr: {
     id: string;
     public_code: string;
+    public_url?: string;
   };
 
   nfc: {
     id: string;
     identifier: string;
+    public_url?: string;
   };
 
   status: CardStatus; // 'ACTIVE' (🟢) | 'INACTIVE' (🔴)
