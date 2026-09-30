@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Upload, QrCode, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Camera, Upload, QrCode, CheckCircle2, AlertCircle, RefreshCw, Zap } from 'lucide-react';
 import { Button, Modal } from '../ui';
 import { useTranslation } from '../../i18n';
 import { cardService } from '../../services';
@@ -31,7 +31,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         setAvailableCards(
           cards.map((c) => ({
             public_code: c.public_code,
-            label: c.business_data?.name ? `${c.business_data.name} (${c.public_code})` : `Card ${c.public_code}`,
+            label: c.business_data?.name ? `${c.business_data.name} (${c.public_code})` : `بطاقة ${c.public_code}`,
           }))
         );
       });
@@ -78,14 +78,20 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     setTimeout(() => {
       onScanComplete(code);
       onClose();
-    }, 400);
+    }, 500);
+  };
+
+  const handleSimulateScan = () => {
+    const targetCode = availableCards.length > 0 ? availableCards[0].public_code : '7FJ2K9';
+    handleSelectCode(targetCode);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Pick first available card or simulate image payload reading
-      const targetCode = availableCards.length > 0 ? availableCards[0].public_code : '7FJ2K9';
+      // Pick first card or extract filename match
+      const matchedCard = availableCards.find(c => file.name.includes(c.public_code));
+      const targetCode = matchedCard ? matchedCard.public_code : (availableCards.length > 0 ? availableCards[0].public_code : '7FJ2K9');
       handleSelectCode(targetCode);
     }
   };
@@ -93,10 +99,10 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t('admin.scan.scanQRModalTitle')}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-        <p className="text-body-secondary" style={{ fontSize: '0.875rem' }}>
-          {t('admin.scan.scanQRModalDesc')}
+    <Modal isOpen={isOpen} onClose={onClose} title="مسح رمز QR أو اختيار كارت">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <p style={{ fontSize: '0.875rem', color: '#64748b' }}>
+          وجه كاميرا الجهاز نحو رمز QR المطبوع على البطاقة، أو اختر كارت للاختبار الفوري.
         </p>
 
         {/* Camera Scanner Viewport */}
@@ -105,13 +111,14 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             position: 'relative',
             width: '100%',
             height: '240px',
-            backgroundColor: '#09090b',
-            borderRadius: 'var(--radius-lg)',
+            backgroundColor: '#0f172a',
+            borderRadius: '16px',
             overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '2px solid var(--border-subtle)',
+            border: '2px solid #334155',
+            boxShadow: '0 8px 24px rgba(15, 23, 42, 0.2)',
           }}
         >
           {cameraState === 'active' ? (
@@ -128,57 +135,70 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 'var(--space-sm)',
-                color: 'var(--text-muted)',
-                padding: 'var(--space-md)',
+                gap: '12px',
+                color: '#94a3b8',
+                padding: '20px',
                 textAlign: 'center',
               }}
             >
-              {cameraState === 'denied' ? (
+              {cameraState === 'denied' || cameraState === 'unsupported' ? (
                 <>
-                  <AlertCircle size={36} style={{ color: 'var(--warning-text)' }} />
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                    {t('admin.scan.cameraPermissionDenied')}
-                  </span>
-                  <Button variant="outline" size="sm" onClick={startCamera}>
-                    <RefreshCw size={14} /> {t('admin.scan.startCamera')}
-                  </Button>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <AlertCircle size={24} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#f8fafc' }}>
+                      الكاميرا غير متصلة أو تم حجب الإذن
+                    </span>
+                    <span style={{ fontSize: '0.8125rem', color: '#94a3b8' }}>
+                      استخدم خيار المسح التلقائي التجريبي أو اختر بطاقة من القائمة أدناه
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                    <Button variant="outline" size="sm" onClick={startCamera}>
+                      <RefreshCw size={14} /> إعادة المحاولة
+                    </Button>
+                    <Button variant="gradient" size="sm" onClick={handleSimulateScan}>
+                      <Zap size={14} /> مسح تلقائي تجريبي
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
                   <Camera size={40} style={{ opacity: 0.5 }} />
-                  <span style={{ fontSize: '0.875rem' }}>{t('admin.scan.cameraActive')}</span>
+                  <span style={{ fontSize: '0.875rem' }}>جاري تشغيل كاميرا الماسح الضوئي...</span>
                 </>
               )}
             </div>
           )}
 
-          {/* Target Scanner Overlay Frame */}
-          <div
-            style={{
-              position: 'absolute',
-              width: '160px',
-              height: '160px',
-              border: '2px dashed #22c55e',
-              borderRadius: 'var(--radius-md)',
-              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.45)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              pointerEvents: 'none',
-            }}
-          >
-            {/* Animated Laser Scanning Line */}
+          {/* Target Scanner Overlay Frame (Visible when active) */}
+          {cameraState === 'active' && (
             <div
               style={{
-                width: '100%',
-                height: '2px',
-                backgroundColor: '#22c55e',
-                boxShadow: '0 0 8px #22c55e',
-                animation: 'pulse 1.5s infinite ease-in-out',
+                position: 'absolute',
+                width: '160px',
+                height: '160px',
+                border: '2px dashed #10b981',
+                borderRadius: '16px',
+                boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                pointerEvents: 'none',
               }}
-            />
-          </div>
+            >
+              <div
+                style={{
+                  width: '100%',
+                  height: '2px',
+                  backgroundColor: '#10b981',
+                  boxShadow: '0 0 10px #10b981',
+                  animation: 'pulse 1.5s infinite ease-in-out',
+                }}
+              />
+            </div>
+          )}
 
           {/* Success Overlay Flash */}
           {scanSuccessCode && (
@@ -186,20 +206,31 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
               style={{
                 position: 'absolute',
                 inset: 0,
-                backgroundColor: 'rgba(34, 197, 94, 0.9)',
+                backgroundColor: 'rgba(16, 185, 129, 0.95)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#ffffff',
-                gap: 'var(--space-xs)',
+                gap: '8px',
+                backdropFilter: 'blur(4px)',
+                zIndex: 10,
               }}
             >
               <CheckCircle2 size={48} />
-              <span style={{ fontWeight: 700, fontSize: '1.125rem' }}>QR Code Scanned!</span>
-              <span style={{ fontFamily: 'monospace', fontSize: '1rem' }}>{scanSuccessCode}</span>
+              <span style={{ fontWeight: 800, fontSize: '1.25rem' }}>تم تمييز كود QR بنجاح!</span>
+              <span style={{ fontFamily: 'monospace', fontSize: '1.125rem', backgroundColor: 'rgba(0, 0, 0, 0.2)', padding: '4px 16px', borderRadius: '9999px' }}>
+                {scanSuccessCode}
+              </span>
             </div>
           )}
+        </div>
+
+        {/* Action Button Strip */}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <Button variant="gradient" fullWidth onClick={handleSimulateScan}>
+            <Zap size={18} /> مسح عشوائي تجريبي (اختبار الكاميرا)
+          </Button>
         </div>
 
         {/* File Upload Drop Area */}
@@ -219,19 +250,19 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             }
           }}
           style={{
-            border: `2px dashed ${dragOver ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-md)',
+            border: `2px dashed ${dragOver ? '#6366f1' : '#cbd5e1'}`,
+            borderRadius: '12px',
+            padding: '14px',
             textAlign: 'center',
-            backgroundColor: dragOver ? 'var(--bg-surface-hover)' : 'var(--bg-app)',
+            backgroundColor: dragOver ? '#eef2ff' : '#f8fafc',
             cursor: 'pointer',
-            transition: 'all 150ms ease',
+            transition: 'all 150ms ease-out',
           }}
         >
-          <label style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-xs)' }}>
-            <Upload size={20} style={{ color: 'var(--text-secondary)' }} />
-            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>
-              {t('admin.scan.uploadQRImage')}
+          <label style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+            <Upload size={20} style={{ color: '#64748b' }} />
+            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>
+              أو قم بأسقاط / اختيار صورة رمز QR من جهازك
             </span>
             <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
           </label>
@@ -240,30 +271,32 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         {/* Quick Test Cards Selector */}
         {availableCards.length > 0 && (
           <div>
-            <span className="text-label" style={{ display: 'block', marginBottom: 'var(--space-xs)', color: 'var(--text-secondary)' }}>
-              {t('admin.scan.mockQRPicker')}
+            <span style={{ display: 'block', marginBottom: '8px', fontSize: '0.8125rem', fontWeight: 700, color: '#475569' }}>
+              أو اختر بطاقة مباشرة لقراءتها:
             </span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-xs)', maxHeight: '120px', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '130px', overflowY: 'auto' }}>
               {availableCards.map((card) => (
                 <button
                   key={card.public_code}
                   type="button"
                   onClick={() => handleSelectCode(card.public_code)}
                   style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: 'var(--space-xs) var(--space-sm)',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
                     fontSize: '0.75rem',
+                    fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    color: 'var(--text-primary)',
-                    transition: 'background-color 150ms ease',
+                    gap: '6px',
+                    color: '#0f172a',
+                    transition: 'all 150ms ease-out',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                   }}
                 >
-                  <QrCode size={12} /> {card.label}
+                  <QrCode size={13} style={{ color: '#6366f1' }} /> {card.label}
                 </button>
               ))}
             </div>
@@ -271,7 +304,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         )}
 
         {/* Modal Actions */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-sm)' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
           <Button variant="secondary" onClick={onClose}>
             {t('common.cancel')}
           </Button>
