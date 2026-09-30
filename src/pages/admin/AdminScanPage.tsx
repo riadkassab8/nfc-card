@@ -22,6 +22,8 @@ import {
   Camera,
 } from 'lucide-react';
 
+import { getCardPublicUrl } from '../../utils/qrGenerator';
+
 export const AdminScanPage: React.FC = () => {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
@@ -31,6 +33,7 @@ export const AdminScanPage: React.FC = () => {
   const [searched, setSearched] = useState(false);
   const [resolvedCard, setResolvedCard] = useState<CardItem | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [customPublicUrl, setCustomPublicUrl] = useState('');
 
   // Business Data Form State
   const [formData, setFormData] = useState<BusinessData>({
@@ -72,23 +75,26 @@ export const AdminScanPage: React.FC = () => {
     try {
       const card = await cardService.resolveCardByPayload(term);
       setResolvedCard(card);
-      if (card && card.business_data) {
-        setFormData({ ...card.business_data });
-      } else {
-        setFormData({
-          name: '',
-          description: '',
-          logo_url: '',
-          phone: '',
-          whatsapp: '',
-          address: '',
-          instagram_url: '',
-          tiktok_url: '',
-          facebook_url: '',
-          google_review_url: '',
-          instapay_url: '',
-          website_url: '',
-        });
+      if (card) {
+        setCustomPublicUrl(getCardPublicUrl(card));
+        if (card.business_data) {
+          setFormData({ ...card.business_data });
+        } else {
+          setFormData({
+            name: '',
+            description: '',
+            logo_url: '',
+            phone: '',
+            whatsapp: '',
+            address: '',
+            instagram_url: '',
+            tiktok_url: '',
+            facebook_url: '',
+            google_review_url: '',
+            instapay_url: '',
+            website_url: '',
+          });
+        }
       }
     } catch (err) {
       setToast({ message: t('common.error'), type: 'error' });
@@ -112,10 +118,10 @@ export const AdminScanPage: React.FC = () => {
 
     setSaving(true);
     try {
-      const updatedCard = await cardService.saveCardBusinessData(resolvedCard.id, formData);
+      const updatedCard = await cardService.saveCardBusinessData(resolvedCard.id, formData, customPublicUrl);
       setResolvedCard(updatedCard);
       setToast({
-        message: '🟢 تم حفظ وتفعيل بيانات البطاقة بنجاح!',
+        message: '🟢 تم حفظ وتفعيل بيانات البطاقة وتحديث الـ QR بنجاح!',
         type: 'success',
       });
     } catch (err) {

@@ -10,6 +10,7 @@ export interface CardDetailsDrawerProps {
   onClose: () => void;
   card: CardItem | null;
   onAssignRequest?: (card: CardItem) => void;
+  onCardUpdated?: (card: CardItem) => void;
 }
 
 export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
@@ -17,6 +18,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   onClose,
   card,
   onAssignRequest,
+  onCardUpdated,
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -59,6 +61,9 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
     try {
       const updatedCard = await cardService.updateCardPublicUrl(card.id, publicUrl.trim());
       await generateAndVerifyQR(updatedCard.public_url || publicUrl.trim());
+      if (onCardUpdated) {
+        onCardUpdated(updatedCard);
+      }
       setSaveSuccessMsg('🟢 تم حفظ الـ URL وتوليد الـ QR الجديد بنجاح!');
       setTimeout(() => setSaveSuccessMsg(null), 3000);
     } catch (err) {

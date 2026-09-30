@@ -5,7 +5,7 @@ export interface ICardService {
   getCardStats(): Promise<CardInventoryStats>;
   generateCardBatch(quantity: number, cardType?: CardProductType): Promise<{ batch: CardBatch; cards: CardItem[] }>;
   resolveCardByPayload(payload: string): Promise<CardItem | null>;
-  saveCardBusinessData(cardId: string, data: BusinessData): Promise<CardItem>;
+  saveCardBusinessData(cardId: string, data: BusinessData, publicUrl?: string): Promise<CardItem>;
   updateCardPublicUrl(cardId: string, publicUrl: string): Promise<CardItem>;
   getCardsByStatus(statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE'): Promise<CardItem[]>;
   resolvePublicCode(publicCode: string): Promise<{ card: CardItem; business: Business | null } | null>;
@@ -252,7 +252,7 @@ class MockCardService implements ICardService {
     return found ? { ...found } : null;
   }
 
-  async saveCardBusinessData(cardId: string, data: BusinessData): Promise<CardItem> {
+  async saveCardBusinessData(cardId: string, data: BusinessData, publicUrl?: string): Promise<CardItem> {
     await this.simulateLatency();
     const card = mockCards.find((c) => c.id === cardId);
     if (!card) {
@@ -263,6 +263,23 @@ class MockCardService implements ICardService {
     card.business_data = { ...data };
     card.business_name = data.name;
     card.usage_status = 'USED';
+
+    const cleanPublicUrl = publicUrl?.trim();
+    if (cleanPublicUrl && cleanPublicUrl.length > 0) {
+      card.public_url = cleanPublicUrl;
+    } else if (data.google_review_url && data.google_review_url.trim().length > 0) {
+      card.public_url = data.google_review_url.trim();
+    } else if (data.instapay_url && data.instapay_url.trim().length > 0) {
+      card.public_url = data.instapay_url.trim();
+    } else if (data.website_url && data.website_url.trim().length > 0) {
+      card.public_url = data.website_url.trim();
+    }
+
+    if (card.public_url) {
+      card.qr.public_url = card.public_url;
+      card.nfc.public_url = card.public_url;
+    }
+
     card.updated_at = new Date().toISOString();
 
     this.saveToLocalStorage();

@@ -699,6 +699,10 @@ export const AdminInventoryPage: React.FC = () => {
         onAssignRequest={(cardToAssign) => {
           navigate(`/admin/scan?payload=${cardToAssign.public_code}`);
         }}
+        onCardUpdated={(updated) => {
+          setSelectedCard(updated);
+          fetchInventory();
+        }}
       />
 
       {/* Single Delete Dialog */}
