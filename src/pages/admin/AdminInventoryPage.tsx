@@ -7,6 +7,7 @@ import { CardItem, CardInventoryStats, CardProductType } from '../../types';
 import { useTranslation } from '../../i18n';
 import { Plus, CreditCard, Eye, Download, Building2, Edit, Trash2, Power, Layers, CheckCircle2, AlertCircle, Copy, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { generateRealQRCode } from '../../utils/qrGenerator';
 
 export const AdminInventoryPage: React.FC = () => {
   const { t, formatNumber } = useTranslation();
@@ -114,27 +115,21 @@ export const AdminInventoryPage: React.FC = () => {
     fetchInventory();
   }, []);
 
-  const downloadPNG = (publicCode: string) => {
-    const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
-      <rect width="300" height="300" fill="#ffffff"/>
-      <rect x="30" y="30" width="80" height="80" fill="#0f172a"/>
-      <rect x="50" y="50" width="40" height="40" fill="#ffffff"/>
-      <rect x="190" y="30" width="80" height="80" fill="#0f172a"/>
-      <rect x="210" y="50" width="40" height="40" fill="#ffffff"/>
-      <rect x="30" y="190" width="80" height="80" fill="#0f172a"/>
-      <rect x="50" y="210" width="40" height="40" fill="#ffffff"/>
-      <text x="150" y="280" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#0f172a">${publicCode}</text>
-    </svg>`;
-
-    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `CARD-${publicCode}.svg`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const downloadPNG = async (publicCode: string) => {
+    try {
+      const result = await generateRealQRCode(publicCode);
+      const blob = new Blob([result.svgString], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `QR-CODE-${publicCode}.svg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error generating QR code for download:', err);
+    }
   };
 
   const copyToClipboard = (text: string, label: string) => {

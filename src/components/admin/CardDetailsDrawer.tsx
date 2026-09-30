@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Drawer, Badge, Button } from '../ui';
 import { CardItem } from '../../types';
-import { Download, Cpu, Building2, Calendar, Edit, Copy, Check } from 'lucide-react';
+import { Download, Cpu, Building2, Calendar, Edit, Copy, Check, ShieldCheck, RefreshCw } from 'lucide-react';
+import { generateRealQRCode, decodeQRCodeDataUrl, getPublicUrl } from '../../utils/qrGenerator';
 
 export interface CardDetailsDrawerProps {
   isOpen: boolean;
@@ -17,67 +18,40 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   onAssignRequest,
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrSvgString, setQrSvgString] = useState<string | null>(null);
+  const [publicUrl, setPublicUrl] = useState<string>('');
+  const [decodedResult, setDecodedResult] = useState<{ success: boolean; decodedPayload: string | null } | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  useEffect(() => {
+    if (card && isOpen) {
+      const url = getPublicUrl(card.public_code);
+      setPublicUrl(url);
+      setDecodedResult(null);
+
+      // Programmatically generate real QR Code from exact Public URL
+      generateRealQRCode(card.public_code).then(async (result) => {
+        setQrDataUrl(result.dataUrl);
+        setQrSvgString(result.svgString);
+
+        // Programmatically decode and verify using jsQR
+        setIsVerifying(true);
+        const decodeRes = await decodeQRCodeDataUrl(result.dataUrl);
+        setDecodedResult(decodeRes);
+        setIsVerifying(false);
+      });
+    }
+  }, [card, isOpen]);
 
   if (!card) return null;
 
   const isActive = card.status === 'ACTIVE';
   const bizName = card.business_data?.name || card.business_name;
-  const publicUrl = `${window.location.origin}/q/${card.public_code}`;
 
   const downloadHDQRCode = () => {
-    const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500">
-      <rect width="500" height="500" fill="#ffffff" rx="24"/>
-      <!-- Outer Border Frame -->
-      <rect x="20" y="20" width="460" height="460" fill="none" stroke="#0f172a" stroke-width="4" rx="20"/>
-      
-      <!-- Top Left Finder Pattern -->
-      <rect x="50" y="50" width="110" height="110" fill="#0f172a" rx="12"/>
-      <rect x="70" y="70" width="70" height="70" fill="#ffffff" rx="6"/>
-      <rect x="85" y="85" width="40" height="40" fill="#0f172a" rx="4"/>
-      
-      <!-- Top Right Finder Pattern -->
-      <rect x="340" y="50" width="110" height="110" fill="#0f172a" rx="12"/>
-      <rect x="360" y="70" width="70" height="70" fill="#ffffff" rx="6"/>
-      <rect x="375" y="85" width="40" height="40" fill="#0f172a" rx="4"/>
-      
-      <!-- Bottom Left Finder Pattern -->
-      <rect x="50" y="340" width="110" height="110" fill="#0f172a" rx="12"/>
-      <rect x="70" y="360" width="70" height="70" fill="#ffffff" rx="6"/>
-      <rect x="85" y="375" width="40" height="40" fill="#0f172a" rx="4"/>
-
-      <!-- Timing patterns & Data Modules Matrix -->
-      <rect x="180" y="50" width="20" height="20" fill="#0f172a"/>
-      <rect x="220" y="50" width="20" height="20" fill="#0f172a"/>
-      <rect x="260" y="50" width="20" height="20" fill="#0f172a"/>
-      <rect x="300" y="50" width="20" height="20" fill="#0f172a"/>
-
-      <rect x="180" y="90" width="40" height="20" fill="#0f172a"/>
-      <rect x="240" y="90" width="20" height="40" fill="#0f172a"/>
-      <rect x="280" y="90" width="40" height="20" fill="#0f172a"/>
-
-      <rect x="50" y="180" width="20" height="20" fill="#0f172a"/>
-      <rect x="90" y="180" width="40" height="20" fill="#0f172a"/>
-      <rect x="150" y="180" width="20" height="40" fill="#0f172a"/>
-
-      <rect x="200" y="160" width="100" height="100" fill="#0f172a" rx="8"/>
-      <rect x="220" y="180" width="60" height="60" fill="#ffffff" rx="4"/>
-      <circle cx="250" cy="210" r="18" fill="#4f46e5"/>
-
-      <rect x="340" y="180" width="40" height="20" fill="#0f172a"/>
-      <rect x="400" y="180" width="50" height="20" fill="#0f172a"/>
-      <rect x="370" y="220" width="30" height="40" fill="#0f172a"/>
-
-      <rect x="180" y="340" width="40" height="40" fill="#0f172a"/>
-      <rect x="240" y="340" width="20" height="60" fill="#0f172a"/>
-      <rect x="280" y="380" width="60" height="20" fill="#0f172a"/>
-      <rect x="360" y="340" width="40" height="40" fill="#0f172a"/>
-      <rect x="420" y="340" width="30" height="80" fill="#0f172a"/>
-
-      <!-- Label Badge Footer -->
-      <text x="250" y="475" font-family="monospace" font-size="20" font-weight="bold" text-anchor="middle" fill="#0f172a">Public Code: ${card.public_code}</text>
-    </svg>`;
-
-    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    if (!qrSvgString) return;
+    const blob = new Blob([qrSvgString], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -95,7 +69,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   };
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title="تفاصيل هوية البطاقة" width="480px">
+    <Drawer isOpen={isOpen} onClose={onClose} title="تفاصيل هوية البطاقة والـ QR الفعلي" width="500px">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* Card Identity Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
@@ -123,95 +97,121 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
           </div>
         </div>
 
-        {/* LARGE & CLEAR QR CODE CONTAINER */}
+        {/* REAL PROGRAMMATICALLY GENERATED QR CODE CONTAINER */}
         <div
           style={{
             backgroundColor: '#ffffff',
-            border: '2px solid #e2e8f0',
+            border: '2px solid #6366f1',
             borderRadius: '20px',
             padding: '24px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             gap: '16px',
-            boxShadow: '0 8px 20px rgba(15, 23, 42, 0.06)',
+            boxShadow: '0 10px 30px rgba(99, 102, 241, 0.12)',
             textAlign: 'center',
           }}
         >
-          <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>رمز QR المزدوج عالي الدقة HD</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#0f172a' }}>
+              رمز QR الفعلي توليد برمجي (Real Programmatic QR)
+            </span>
+            <span style={{ backgroundColor: '#e0e7ff', color: '#4338ca', fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '9999px' }}>
+              qrcode v1.5
+            </span>
           </div>
 
-          {/* Rendered SVG QR Code (220px x 220px) */}
+          {/* Rendered PNG DataURL Image from qrcode library */}
           <div
             style={{
               padding: '16px',
               backgroundColor: '#ffffff',
               borderRadius: '16px',
               border: '1px solid #cbd5e1',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.08)',
               display: 'inline-flex',
               justifyContent: 'center',
               alignItems: 'center',
+              minWidth: '220px',
+              minHeight: '220px',
             }}
           >
-            <svg width="220" height="220" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
-              <rect width="300" height="300" fill="#ffffff" rx="16"/>
-              {/* Outer Border */}
-              <rect x="10" y="10" width="280" height="280" fill="none" stroke="#0f172a" strokeWidth="3" rx="12"/>
-
-              {/* Finder Top Left */}
-              <rect x="30" y="30" width="70" height="70" fill="#0f172a" rx="8"/>
-              <rect x="42" y="42" width="46" height="46" fill="#ffffff" rx="4"/>
-              <rect x="52" y="52" width="26" height="26" fill="#0f172a" rx="2"/>
-
-              {/* Finder Top Right */}
-              <rect x="200" y="30" width="70" height="70" fill="#0f172a" rx="8"/>
-              <rect x="212" y="42" width="46" height="46" fill="#ffffff" rx="4"/>
-              <rect x="222" y="52" width="26" height="26" fill="#0f172a" rx="2"/>
-
-              {/* Finder Bottom Left */}
-              <rect x="30" y="200" width="70" height="70" fill="#0f172a" rx="8"/>
-              <rect x="42" y="212" width="46" height="46" fill="#ffffff" rx="4"/>
-              <rect x="52" y="222" width="26" height="26" fill="#0f172a" rx="2"/>
-
-              {/* Data Modules Grid */}
-              <rect x="115" y="30" width="14" height="14" fill="#0f172a"/>
-              <rect x="140" y="30" width="14" height="14" fill="#0f172a"/>
-              <rect x="165" y="30" width="14" height="14" fill="#0f172a"/>
-
-              <rect x="115" y="55" width="28" height="14" fill="#0f172a"/>
-              <rect x="155" y="55" width="14" height="28" fill="#0f172a"/>
-
-              <rect x="30" y="115" width="14" height="14" fill="#0f172a"/>
-              <rect x="55" y="115" width="28" height="14" fill="#0f172a"/>
-              <rect x="95" y="115" width="14" height="28" fill="#0f172a"/>
-
-              {/* Center Accent Badge */}
-              <rect x="120" y="120" width="60" height="60" fill="#0f172a" rx="6"/>
-              <rect x="132" y="132" width="36" height="36" fill="#ffffff" rx="4"/>
-              <circle cx="150" cy="150" r="10" fill="#4f46e5"/>
-
-              <rect x="200" y="115" width="28" height="14" fill="#0f172a"/>
-              <rect x="240" y="115" width="30" height="14" fill="#0f172a"/>
-              <rect x="220" y="140" width="20" height="28" fill="#0f172a"/>
-
-              <rect x="115" y="200" width="28" height="28" fill="#0f172a"/>
-              <rect x="155" y="200" width="14" height="40" fill="#0f172a"/>
-              <rect x="180" y="228" width="40" height="14" fill="#0f172a"/>
-              <rect x="230" y="200" width="28" height="28" fill="#0f172a"/>
-
-              <text x="150" y="284" font-family="monospace" font-size="14" font-weight="bold" text-anchor="middle" fill="#0f172a">{card.public_code}</text>
-            </svg>
+            {qrDataUrl ? (
+              <img
+                src={qrDataUrl}
+                alt={`QR Code for ${card.public_code}`}
+                style={{ width: '220px', height: '220px', display: 'block' }}
+              />
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b' }}>
+                <RefreshCw size={20} className="spin" />
+                <span>جاري توليد الـ QR...</span>
+              </div>
+            )}
           </div>
 
+          {/* Embedded Public URL */}
+          <div
+            style={{
+              width: '100%',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              padding: '10px 14px',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+            }}
+          >
+            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>الرابط المشفر بالداخل:</span>
+            <span style={{ fontSize: '0.8125rem', fontFamily: 'monospace', fontWeight: 700, color: '#4f46e5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr' }}>
+              {publicUrl}
+            </span>
+          </div>
+
+          {/* Live Decode Verification Test Result (jsQR) */}
+          <div
+            style={{
+              width: '100%',
+              backgroundColor: decodedResult?.success ? '#ecfdf5' : '#fffbeb',
+              border: `1px solid ${decodedResult?.success ? '#a7f3d0' : '#fde68a'}`,
+              borderRadius: '12px',
+              padding: '12px 16px',
+              textAlign: 'start',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <ShieldCheck size={18} style={{ color: decodedResult?.success ? '#047857' : '#b45309' }} />
+              <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: decodedResult?.success ? '#047857' : '#b45309' }}>
+                {isVerifying
+                  ? 'جاري فحص وتفكيك تشفير الـ QR...'
+                  : decodedResult?.success
+                  ? '✓ نتيجة الفك وتدقيق الـ QR (jsQR Decode Verification):'
+                  : 'تعذر فك التشفير تلقائياً'}
+              </span>
+            </div>
+
+            {decodedResult && (
+              <div style={{ fontSize: '0.75rem', color: decodedResult.success ? '#065f46' : '#92400e', marginTop: '4px' }}>
+                <div>القيمة المستخرجة فعلياً: <code style={{ fontWeight: 700, direction: 'ltr', display: 'inline-block' }}>{decodedResult.decodedPayload}</code></div>
+                <div style={{ fontWeight: 700, marginTop: '2px' }}>
+                  {decodedResult.decodedPayload === publicUrl
+                    ? '🎯 القيمة المشفرة تطابق رابط الكارت 100% بدون أي اختلاف!'
+                    : '⚠️ يوجد اختلاف في القيمة!'}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <Button variant="primary" fullWidth onClick={downloadHDQRCode}>
-              <Download size={16} /> تحميل رمز QR عالي الدقة HD
+              <Download size={16} /> تحميل رمز QR الأصلي HD (SVG)
             </Button>
             <Button variant="outline" fullWidth onClick={copyPublicLink}>
               {copiedLink ? <Check size={16} /> : <Copy size={16} />}
-              {copiedLink ? 'تم نسخ رابط المسح المباشر!' : 'نسخ رابط المسح المباشر (URL)'}
+              {copiedLink ? 'تم نسخ الرابط!' : 'نسخ رابط الكارت المباشر'}
             </Button>
           </div>
         </div>
