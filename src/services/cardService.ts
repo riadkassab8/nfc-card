@@ -9,6 +9,8 @@ export interface ICardService {
   getCardsByStatus(statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE'): Promise<CardItem[]>;
   resolvePublicCode(publicCode: string): Promise<{ card: CardItem; business: Business | null } | null>;
   assignCardToBusiness(cardId: string, businessId: string): Promise<CardItem>;
+  toggleCardStatus(cardId: string): Promise<CardItem>;
+  deleteCard(cardId: string): Promise<boolean>;
 }
 
 // Initial mock cards database with distinct Product Types
@@ -308,6 +310,27 @@ class MockCardService implements ICardService {
     return this.saveCardBusinessData(cardId, {
       name: `Assigned Business (${businessId})`,
     });
+  }
+
+  async toggleCardStatus(cardId: string): Promise<CardItem> {
+    await this.simulateLatency();
+    const card = mockCards.find((c) => c.id === cardId);
+    if (!card) {
+      throw new Error('Card not found');
+    }
+    card.status = card.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    card.updated_at = new Date().toISOString();
+    return { ...card };
+  }
+
+  async deleteCard(cardId: string): Promise<boolean> {
+    await this.simulateLatency();
+    const index = mockCards.findIndex((c) => c.id === cardId);
+    if (index !== -1) {
+      mockCards.splice(index, 1);
+      return true;
+    }
+    return false;
   }
 
   private generateRandomCode(length = 6): string {

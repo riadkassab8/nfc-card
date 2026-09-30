@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Input, Button, Badge, Skeleton, Toast, ToastType, EmptyState, ErrorState } from '../../components/ui';
+import { Card, Input, Button, Badge, Skeleton, Toast, ToastType, EmptyState, ErrorState, ConfirmDialog, Toggle } from '../../components/ui';
 import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCardsModal';
 import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { cardService } from '../../services';
 import { CardItem, CardInventoryStats, CardProductType } from '../../types';
 import { useTranslation } from '../../i18n';
-import { Plus, CreditCard, Eye, Download, Building2, Edit } from 'lucide-react';
+import { Plus, CreditCard, Eye, Download, Building2, Edit, Trash2, Power } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const AdminInventoryPage: React.FC = () => {
@@ -23,9 +23,35 @@ export const AdminInventoryPage: React.FC = () => {
   const [isBatchOpen, setIsBatchOpen] = useState<boolean>(false);
   const [selectedCard, setSelectedCard] = useState<CardItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+  const [cardToDelete, setCardToDelete] = useState<CardItem | null>(null);
 
   const [toast, setToast] = useState<{ type: ToastType; message: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const handleToggleStatus = async (card: CardItem) => {
+    try {
+      const updated = await cardService.toggleCardStatus(card.id);
+      setToast({
+        type: 'success',
+        message: updated.status === 'ACTIVE' ? `🟢 تم تفعيل البطاقة (${card.card_code})` : `🔴 تم تعطيل البطاقة (${card.card_code})`,
+      });
+      fetchInventory();
+    } catch (err) {
+      setToast({ type: 'error', message: 'فشل تغيير حالة البطاقة' });
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!cardToDelete) return;
+    try {
+      await cardService.deleteCard(cardToDelete.id);
+      setToast({ type: 'success', message: `🗑️ تم حذف البطاقة (${cardToDelete.card_code}) بنجاح` });
+      setCardToDelete(null);
+      fetchInventory();
+    } catch (err) {
+      setToast({ type: 'error', message: 'فشل حذف البطاقة' });
+    }
+  };
 
   const fetchInventory = async () => {
     setLoading(true);
@@ -273,8 +299,11 @@ export const AdminInventoryPage: React.FC = () => {
                   return (
                     <tr key={card.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 150ms ease-out' }}>
                       <td style={{ padding: 'var(--space-md) var(--space-lg)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
-                          <span style={{ fontSize: '14px' }}>{isActive ? '🟢' : '🔴'}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                          <Toggle
+                            checked={isActive}
+                            onChange={() => handleToggleStatus(card)}
+                          />
                           <Badge variant={isActive ? 'active' : 'warning'}>
                             {isActive ? t('cards.statusActive') : t('cards.statusInactive')}
                           </Badge>
@@ -318,6 +347,15 @@ export const AdminInventoryPage: React.FC = () => {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => handleToggleStatus(card)}
+                            title={isActive ? 'تعطيل البطاقة' : 'تفعيل البطاقة'}
+                          >
+                            <Power size={16} style={{ color: isActive ? 'var(--success-text)' : 'var(--text-tertiary)' }} />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => {
                               setSelectedCard(card);
                               setIsDrawerOpen(true);
@@ -345,6 +383,15 @@ export const AdminInventoryPage: React.FC = () => {
                             title={t('common.download')}
                           >
                             <Download size={16} />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setCardToDelete(card)}
+                            title="حذف البطاقة"
+                          >
+                            <Trash2 size={16} style={{ color: 'var(--error-text)' }} />
                           </Button>
                         </div>
                       </td>
@@ -378,6 +425,20 @@ export const AdminInventoryPage: React.FC = () => {
           navigate(`/admin/scan?payload=${cardToAssign.public_code}`);
         }}
       />
+
+      {/* Confirmation Dialog for Delete */}
+      {cardToDelete && (
+        <ConfirmDialog
+          isOpen={!!cardToDelete}
+          onClose={() => setCardToDelete(null)}
+          onConfirm={handleConfirmDelete}
+          title="تأكيد حذف البطاقة"
+          message={`هل أنت تأكد من رغبتك في حذف البطاقة (${cardToDelete.card_code}) ذات الكود العام [${cardToDelete.public_code}]؟ هذا الإجراء سيقوم بإزالة البطاقة نهائياً من النظام.`}
+          confirmLabel="حذف البطاقة"
+          cancelLabel="إلغاء"
+          isDanger
+        />
+      )}
     </div>
   );
 };
