@@ -13,10 +13,11 @@ export const Toggle: React.FC<ToggleProps> = ({ checked, onChange, label, disabl
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 'var(--space-md)',
+        gap: 'var(--space-sm)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.6 : 1,
         userSelect: 'none',
+        flexShrink: 0,
       }}
     >
       <button
@@ -24,33 +25,43 @@ export const Toggle: React.FC<ToggleProps> = ({ checked, onChange, label, disabl
         role="switch"
         aria-checked={checked}
         disabled={disabled}
-        onClick={() => !disabled && onChange(!checked)}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!disabled) onChange(!checked);
+        }}
         style={{
           position: 'relative',
-          width: '44px',
+          width: '42px',
           height: '24px',
           borderRadius: '9999px',
-          backgroundColor: checked ? 'var(--primary-bg)' : 'var(--bg-surface-active)',
-          border: 'none',
+          backgroundColor: checked ? '#22c55e' : 'var(--bg-surface-active)',
+          border: `1.5px solid ${checked ? '#22c55e' : 'var(--border-strong)'}`,
           padding: '2px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: checked ? 'flex-end' : 'flex-start',
           cursor: disabled ? 'not-allowed' : 'pointer',
-          transition: 'background-color 150ms ease-out',
+          transition: 'all 200ms ease',
+          boxSizing: 'border-box',
+          flexShrink: 0,
+          outline: 'none',
         }}
       >
         <span
           style={{
             display: 'block',
-            width: '20px',
-            height: '20px',
+            width: '16px',
+            height: '16px',
             borderRadius: '50%',
-            backgroundColor: 'var(--bg-surface)',
-            transform: checked ? 'translateX(20px)' : 'translateX(0px)',
-            transition: 'transform 150ms ease-out',
-            boxShadow: 'var(--shadow-subtle)',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+            transition: 'all 200ms ease',
+            flexShrink: 0,
           }}
         />
       </button>
-      {label && <span className="text-body-medium">{label}</span>}
+      {label && <span className="text-body-medium" style={{ whiteSpace: 'nowrap' }}>{label}</span>}
     </label>
   );
 };

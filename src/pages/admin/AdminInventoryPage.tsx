@@ -298,13 +298,13 @@ export const AdminInventoryPage: React.FC = () => {
 
                   return (
                     <tr key={card.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 150ms ease-out' }}>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)' }}>
+                      <td style={{ padding: 'var(--space-md) var(--space-lg)', minWidth: '160px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
                           <Toggle
                             checked={isActive}
                             onChange={() => handleToggleStatus(card)}
                           />
-                          <Badge variant={isActive ? 'active' : 'warning'}>
+                          <Badge variant={isActive ? 'active' : 'warning'} style={{ flexShrink: 0, minWidth: '70px', textAlign: 'center' }}>
                             {isActive ? t('cards.statusActive') : t('cards.statusInactive')}
                           </Badge>
                         </div>

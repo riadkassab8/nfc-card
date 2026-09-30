@@ -4,9 +4,10 @@ import { useTranslation } from '../../i18n';
 export interface BadgeProps {
   variant?: 'active' | 'disabled' | 'archived' | 'neutral' | 'success' | 'warning' | 'error';
   children: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ variant = 'neutral', children }) => {
+export const Badge: React.FC<BadgeProps> = ({ variant = 'neutral', children, style }) => {
   const { formatStatus } = useTranslation();
 
   const getVariantStyles = () => {
@@ -55,6 +56,7 @@ export const Badge: React.FC<BadgeProps> = ({ variant = 'neutral', children }) =
         borderRadius: 'var(--radius-full)',
         fontWeight: 500,
         ...getVariantStyles(),
+        ...style,
       }}
     >
       {content}
