@@ -138,10 +138,6 @@ export type CardUsageStatus = 'UNUSED' | 'USED';
 export type CardProductType =
   | 'GOOGLE_REVIEW'
   | 'INSTAPAY'
-  | 'TIKTOK'
-  | 'INSTAGRAM'
-  | 'FACEBOOK'
-  | 'WHATSAPP'
   | 'UNIFIED_SOCIAL';
 
 export interface BusinessData {

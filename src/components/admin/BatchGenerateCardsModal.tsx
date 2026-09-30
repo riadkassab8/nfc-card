@@ -87,10 +87,6 @@ export const BatchGenerateCardsModal: React.FC<BatchGenerateCardsModalProps> = (
             options={[
               { value: 'GOOGLE_REVIEW', label: '🌟 بطاقة تقييمات جوجل (Google Review Card)' },
               { value: 'INSTAPAY', label: '💳 بطاقة إنستا باي (InstaPay Card)' },
-              { value: 'TIKTOK', label: '🎵 بطاقة تيك توك (TikTok Card)' },
-              { value: 'INSTAGRAM', label: '📸 بطاقة إنستجرام (Instagram Card)' },
-              { value: 'FACEBOOK', label: '📘 بطاقة فيسبوك (Facebook Card)' },
-              { value: 'WHATSAPP', label: '💬 بطاقة واتساب (WhatsApp Card)' },
               { value: 'UNIFIED_SOCIAL', label: '🌐 بطاقة السوشيال الموحدة (Unified Social Card)' },
             ]}
           />

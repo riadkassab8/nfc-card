@@ -71,12 +71,8 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                 {
                   GOOGLE_REVIEW: '🌟 Google Review',
                   INSTAPAY: '💳 InstaPay',
-                  TIKTOK: '🎵 TikTok',
-                  INSTAGRAM: '📸 Instagram',
-                  FACEBOOK: '📘 Facebook',
-                  WHATSAPP: '💬 WhatsApp',
-                  UNIFIED_SOCIAL: '🌐 Unified Social',
-                }[card.card_type || 'GOOGLE_REVIEW']
+                  UNIFIED_SOCIAL: '🌐 السوشيال الموحدة',
+                }[card.card_type || 'GOOGLE_REVIEW'] || '🌐 السوشيال الموحدة'
               }</span>
             </Badge>
           </div>

@@ -41,7 +41,10 @@ export const AdminScanPage: React.FC = () => {
     whatsapp: '',
     address: '',
     instagram_url: '',
+    tiktok_url: '',
+    facebook_url: '',
     google_review_url: '',
+    instapay_url: '',
     website_url: '',
   });
   const [saving, setSaving] = useState(false);
@@ -80,7 +83,10 @@ export const AdminScanPage: React.FC = () => {
           whatsapp: '',
           address: '',
           instagram_url: '',
+          tiktok_url: '',
+          facebook_url: '',
           google_review_url: '',
+          instapay_url: '',
           website_url: '',
         });
       }
@@ -100,7 +106,7 @@ export const AdminScanPage: React.FC = () => {
     if (!resolvedCard) return;
 
     if (!formData.name.trim()) {
-      setToast({ message: `${t('dashboard.profile.bizName')} *`, type: 'error' });
+      setToast({ message: 'يرجى كتابة اسم النشاط التجاري', type: 'error' });
       return;
     }
 
@@ -109,7 +115,7 @@ export const AdminScanPage: React.FC = () => {
       const updatedCard = await cardService.saveCardBusinessData(resolvedCard.id, formData);
       setResolvedCard(updatedCard);
       setToast({
-        message: t('cards.saveCardDataSuccess'),
+        message: '🟢 تم حفظ وتفعيل بيانات البطاقة بنجاح!',
         type: 'success',
       });
     } catch (err) {
@@ -120,9 +126,10 @@ export const AdminScanPage: React.FC = () => {
   };
 
   const isActive = resolvedCard?.status === 'ACTIVE';
+  const cardType = resolvedCard?.card_type || 'UNIFIED_SOCIAL';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {toast && (
         <Toast
           message={toast.message}
@@ -133,19 +140,21 @@ export const AdminScanPage: React.FC = () => {
 
       {/* Page Header */}
       <div>
-        <h1 className="text-page-title">{t('admin.scan.title')}</h1>
-        <p className="text-body-secondary" style={{ marginTop: 'var(--space-xs)' }}>
-          {t('admin.scan.subtitle')}
+        <h1 className="text-page-title" style={{ fontSize: '1.5rem', fontWeight: 800 }}>
+          فحص وتجهيز البطاقة (Card Provisioning)
+        </h1>
+        <p className="text-body-secondary" style={{ marginTop: '4px', color: '#64748b' }}>
+          قم بمسح كود البطاقة أو ادخاله، وستظهر لك الحقول المخصصة لنوع هذا الكارت فقط.
         </p>
       </div>
 
       {/* Input / Scanner Simulation Form */}
       <Card padding="lg">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <h2 className="text-title">{t('admin.scan.cardTitle')}</h2>
-            <p className="text-caption" style={{ color: 'var(--text-tertiary)' }}>
-              {t('admin.scan.cardSubtitle')}
+            <h2 className="text-title" style={{ fontSize: '1.125rem' }}>إدخال أو مسح كود البطاقة</h2>
+            <p className="text-caption" style={{ color: '#64748b' }}>
+              أدخل الكود العام (Public Code)، رقم البطاقة، أو رمز QR/NFC
             </p>
           </div>
 
@@ -154,27 +163,27 @@ export const AdminScanPage: React.FC = () => {
               e.preventDefault();
               handleResolve();
             }}
-            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
           >
-            <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center' }}>
-              <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: '260px' }}>
                 <Input
-                  label={t('admin.scan.inputLabel')}
-                  placeholder={t('admin.scan.inputPlaceholder')}
+                  label="كود العام / رقم QR / معرف NFC"
+                  placeholder="مثال: 7FJ2K9 أو CARD-0001"
                   value={payloadInput}
                   onChange={(e) => setPayloadInput(e.target.value)}
                 />
               </div>
-              <div style={{ alignSelf: 'flex-end', marginBottom: '2px', display: 'flex', gap: 'var(--space-sm)' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={() => setIsScannerOpen(true)}
                 >
-                  <Camera size={16} /> {t('admin.scan.scanQRBtn')}
+                  <Camera size={16} /> مسح QR بالقارئ
                 </Button>
                 <Button type="submit" variant="primary" isLoading={loading}>
-                  <Search size={16} /> {t('admin.scan.resolveBtn')}
+                  <Search size={16} /> فحص الكارت
                 </Button>
               </div>
             </div>
@@ -187,7 +196,6 @@ export const AdminScanPage: React.FC = () => {
                 handleResolve(code);
               }}
             />
-
           </form>
         </div>
       </Card>
@@ -195,7 +203,7 @@ export const AdminScanPage: React.FC = () => {
       {/* Resolution Result Section */}
       {loading ? (
         <Card padding="lg">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <Skeleton width="40%" height="24px" />
             <Skeleton width="100%" height="60px" />
             <Skeleton width="60%" height="36px" />
@@ -204,8 +212,8 @@ export const AdminScanPage: React.FC = () => {
       ) : searched && !resolvedCard ? (
         <Card padding="lg">
           <EmptyState
-            title={t('admin.scan.noAssetTitle')}
-            description={t('admin.scan.noAssetDesc', { payload: payloadInput })}
+            title="لم يتم العثور على بطاقة مطابقة"
+            description={`الكود [${payloadInput}] غير موجود في قاعدة بيانات البطاقات`}
             action={
               <Button
                 variant="secondary"
@@ -215,7 +223,7 @@ export const AdminScanPage: React.FC = () => {
                   setPayloadInput('');
                 }}
               >
-                {t('admin.scan.resetBtn')}
+                إعادة المحاولة
               </Button>
             }
           />
@@ -223,17 +231,21 @@ export const AdminScanPage: React.FC = () => {
       ) : resolvedCard ? (
         <Card padding="lg">
           {/* Card Meta Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
-              <h2 className="text-title">{resolvedCard.card_code}</h2>
-              <p className="text-caption" style={{ color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>
-                Public Code: <strong>{resolvedCard.public_code}</strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{resolvedCard.card_code}</h2>
+                <Badge variant={cardType === 'GOOGLE_REVIEW' ? 'amber' : cardType === 'INSTAPAY' ? 'purple' : 'info'}>
+                  {cardType === 'GOOGLE_REVIEW' ? '🌟 Google Review' : cardType === 'INSTAPAY' ? '💳 InstaPay' : '🌐 السوشيال الموحدة'}
+                </Badge>
+              </div>
+              <p style={{ fontSize: '0.8125rem', color: '#64748b', fontFamily: 'monospace', marginTop: '2px' }}>
+                Public Code: <strong style={{ color: '#4f46e5' }}>{resolvedCard.public_code}</strong>
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '14px' }}>{isActive ? '🟢' : '🔴'}</span>
-              <Badge variant={isActive ? 'active' : 'warning'}>
-                {isActive ? t('cards.statusActive') : t('cards.statusInactive')}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Badge variant={isActive ? 'active' : 'disabled'} showDot>
+                {isActive ? 'نشطة ومتصلة' : 'معطلة / في الانتظار'}
               </Badge>
             </div>
           </div>
@@ -243,121 +255,177 @@ export const AdminScanPage: React.FC = () => {
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: 'var(--space-lg)',
-              backgroundColor: 'var(--bg-surface-hover)',
-              padding: 'var(--space-lg)',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: 'var(--space-xl)',
+              gap: '16px',
+              backgroundColor: '#f8fafc',
+              padding: '16px',
+              borderRadius: '12px',
+              marginBottom: '24px',
+              border: '1px solid #e2e8f0',
             }}
           >
             <div>
-              <div className="text-caption" style={{ color: 'var(--text-tertiary)' }}>Card ID</div>
-              <div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{resolvedCard.id}</div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>معرف البطاقة</div>
+              <div style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '0.875rem' }}>{resolvedCard.id}</div>
             </div>
 
             <div>
-              <div className="text-caption" style={{ color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <QrCode size={12} /> Paired QR ID
+              <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <QrCode size={12} /> كود QR المرتبط
               </div>
-              <div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{resolvedCard.qr.id}</div>
+              <div style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '0.875rem' }}>{resolvedCard.qr.id}</div>
             </div>
 
             <div>
-              <div className="text-caption" style={{ color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Cpu size={12} /> Paired NFC Identifier
+              <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Cpu size={12} /> شريحة NFC المرتبطة
               </div>
-              <div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{resolvedCard.nfc.identifier}</div>
+              <div style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '0.875rem' }}>{resolvedCard.nfc.identifier}</div>
             </div>
 
             <div>
-              <div className="text-caption" style={{ color: 'var(--text-tertiary)' }}>{t('cards.colBiz')}</div>
-              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
-                <Store size={16} style={{ color: 'var(--text-secondary)' }} />
-                {isActive && resolvedCard.business_data ? resolvedCard.business_data.name : t('cards.drawer.notAssigned')}
+              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>النشاط التجاري الحالي</div>
+              <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.875rem' }}>
+                <Store size={14} style={{ color: '#64748b' }} />
+                {isActive && resolvedCard.business_data ? resolvedCard.business_data.name : 'غير معين'}
               </div>
             </div>
           </div>
 
-          {/* Business Data Form (Save directly on Card) */}
-          <form onSubmit={handleSaveData} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-lg)' }}>
-            <div>
-              <h3 style={{ fontSize: 'var(--font-size-md)', fontWeight: 600 }}>
-                {isActive ? t('cards.scanFormEditTitle') : t('cards.scanFormTitle')}
+          {/* Contextual Form Rendered Specifically based on cardType */}
+          <form onSubmit={handleSaveData} style={{ display: 'flex', flexDirection: 'column', gap: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+            <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '14px 18px', borderRadius: '12px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e40af' }}>
+                {cardType === 'GOOGLE_REVIEW' && '🌟 نموذج كارت تقييمات جوجل (Google Review Card)'}
+                {cardType === 'INSTAPAY' && '💳 نموذج كارت انستا باي (InstaPay Card)'}
+                {cardType === 'UNIFIED_SOCIAL' && '🌐 نموذج كارت السوشيال الموحدة (Unified Social Card)'}
               </h3>
-              <p className="text-caption" style={{ color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                Both QR ({resolvedCard.qr.id}) & NFC ({resolvedCard.nfc.identifier}) will point to this card data.
+              <p style={{ fontSize: '0.8125rem', color: '#3b82f6', marginTop: '4px' }}>
+                {cardType === 'GOOGLE_REVIEW' && 'أدخل اسم النشاط ورابط تقييم جوجل المباشر فقط.'}
+                {cardType === 'INSTAPAY' && 'أدخل اسم صاحب الحساب وعنوان InstaPay IPA.'}
+                {cardType === 'UNIFIED_SOCIAL' && 'أدخل اللينكات المتاحة فقط. الحقول التي تقوم بملئها هي فقط التي ستظهر للعميل بعد المسح!'}
               </p>
             </div>
 
-            <Input
-              label={`${t('dashboard.profile.bizName')} *`}
-              value={formData.name}
-              onChange={(e) => handleFormChange('name', e.target.value)}
-              placeholder="e.g. Acme Coffee Bar"
-              required
-            />
+            {/* 1. GOOGLE REVIEW FORM FIELDS */}
+            {cardType === 'GOOGLE_REVIEW' && (
+              <>
+                <Input
+                  label="اسم النشاط التجاري / المحل *"
+                  value={formData.name}
+                  onChange={(e) => handleFormChange('name', e.target.value)}
+                  placeholder="مثال: مطعم الفيروز / Acme Coffee"
+                  required
+                />
+                <Input
+                  label="رابط تقييمات جوجل المباشر (Google Review Link) *"
+                  value={formData.google_review_url || ''}
+                  onChange={(e) => handleFormChange('google_review_url', e.target.value)}
+                  placeholder="https://search.google.com/local/writereview?placeid=..."
+                  required
+                />
+              </>
+            )}
 
-            <Input
-              label={t('dashboard.profile.description')}
-              value={formData.description || ''}
-              onChange={(e) => handleFormChange('description', e.target.value)}
-              placeholder="Artisanal espresso, fresh bakery items, and cozy seating"
-            />
+            {/* 2. INSTAPAY FORM FIELDS */}
+            {cardType === 'INSTAPAY' && (
+              <>
+                <Input
+                  label="اسم المستفيد / صاحب حساب InstaPay *"
+                  value={formData.name}
+                  onChange={(e) => handleFormChange('name', e.target.value)}
+                  placeholder="مثال: أحمد محمود / متجر الأمل"
+                  required
+                />
+                <Input
+                  label="عنوان أو رابط InstaPay IPA (Handle) *"
+                  value={formData.instapay_url || ''}
+                  onChange={(e) => handleFormChange('instapay_url', e.target.value)}
+                  placeholder="مثال: name@instapay أو 01001234567@instapay"
+                  required
+                />
+                <Input
+                  label="رقم الهاتف المرتبط بالحساب (اختياري)"
+                  value={formData.phone || ''}
+                  onChange={(e) => handleFormChange('phone', e.target.value)}
+                  placeholder="مثال: +201001234567"
+                />
+              </>
+            )}
 
-            <Input
-              label={t('dashboard.profile.logoUrl')}
-              value={formData.logo_url || ''}
-              onChange={(e) => handleFormChange('logo_url', e.target.value)}
-              placeholder="https://example.com/logo.png"
-            />
+            {/* 3. UNIFIED SOCIAL FORM FIELDS */}
+            {cardType === 'UNIFIED_SOCIAL' && (
+              <>
+                <Input
+                  label="اسم النشاط التجاري / المكان *"
+                  value={formData.name}
+                  onChange={(e) => handleFormChange('name', e.target.value)}
+                  placeholder="مثال: Vibe Fashion Store"
+                  required
+                />
 
-            <Input
-              label={t('dashboard.profile.address')}
-              value={formData.address || ''}
-              onChange={(e) => handleFormChange('address', e.target.value)}
-              placeholder="123 Main Street, Suite 100, San Francisco, CA"
-            />
+                <Input
+                  label="نبذة / وصف النشاط (اختياري)"
+                  value={formData.description || ''}
+                  onChange={(e) => handleFormChange('description', e.target.value)}
+                  placeholder="مثال: أرقى صيحات الموضة والملابس الجاهزة"
+                />
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-lg)' }}>
-              <Input
-                label={t('dashboard.profile.whatsapp')}
-                value={formData.whatsapp || ''}
-                onChange={(e) => handleFormChange('whatsapp', e.target.value)}
-                placeholder="+14155552671"
-              />
+                <Input
+                  label="رابط صورة الشعار / اللوجو (اختياري)"
+                  value={formData.logo_url || ''}
+                  onChange={(e) => handleFormChange('logo_url', e.target.value)}
+                  placeholder="https://example.com/logo.png"
+                />
 
-              <Input
-                label={t('dashboard.profile.phone')}
-                value={formData.phone || ''}
-                onChange={(e) => handleFormChange('phone', e.target.value)}
-                placeholder="+14155552671"
-              />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                  <Input
+                    label="رابط صفحة فيسبوك (Facebook URL) (اختياري)"
+                    value={formData.facebook_url || ''}
+                    onChange={(e) => handleFormChange('facebook_url', e.target.value)}
+                    placeholder="https://facebook.com/yourpage"
+                  />
 
-              <Input
-                label={t('dashboard.profile.instagram')}
-                value={formData.instagram_url || ''}
-                onChange={(e) => handleFormChange('instagram_url', e.target.value)}
-                placeholder="https://instagram.com/acmecoffee"
-              />
+                  <Input
+                    label="حساب / رابط إنستجرام (Instagram URL) (اختياري)"
+                    value={formData.instagram_url || ''}
+                    onChange={(e) => handleFormChange('instagram_url', e.target.value)}
+                    placeholder="https://instagram.com/yourhandle"
+                  />
 
-              <Input
-                label={t('dashboard.profile.googleReviewUrl')}
-                value={formData.google_review_url || ''}
-                onChange={(e) => handleFormChange('google_review_url', e.target.value)}
-                placeholder="https://search.google.com/local/writereview?placeid=..."
-              />
+                  <Input
+                    label="حساب / رابط تيك توك (TikTok URL) (اختياري)"
+                    value={formData.tiktok_url || ''}
+                    onChange={(e) => handleFormChange('tiktok_url', e.target.value)}
+                    placeholder="https://tiktok.com/@yourusername"
+                  />
 
-              <Input
-                label={t('dashboard.profile.website')}
-                value={formData.website_url || ''}
-                onChange={(e) => handleFormChange('website_url', e.target.value)}
-                placeholder="https://acmecoffee.example.com"
-              />
-            </div>
+                  <Input
+                    label="رابط الموقع الإلكتروني الرسمي (Website URL) (اختياري)"
+                    value={formData.website_url || ''}
+                    onChange={(e) => handleFormChange('website_url', e.target.value)}
+                    placeholder="https://yourwebsite.com"
+                  />
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
-              <Button type="submit" variant="primary" size="lg" isLoading={saving}>
-                <Save size={18} /> {t('cards.saveCardData')}
+                  <Input
+                    label="رقم / رابط الواتساب (WhatsApp) (اختياري)"
+                    value={formData.whatsapp || ''}
+                    onChange={(e) => handleFormChange('whatsapp', e.target.value)}
+                    placeholder="+201001234567"
+                  />
+
+                  <Input
+                    label="رقم الهاتف للتواصل المباشر (Phone) (اختياري)"
+                    value={formData.phone || ''}
+                    onChange={(e) => handleFormChange('phone', e.target.value)}
+                    placeholder="+201001234567"
+                  />
+                </div>
+              </>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+              <Button type="submit" variant="gradient" size="lg" isLoading={saving}>
+                <Save size={18} /> حفظ وتفعيل بيانات البطاقة
               </Button>
             </div>
           </form>

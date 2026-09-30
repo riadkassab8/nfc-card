@@ -77,7 +77,7 @@ const mockCards: CardItem[] = [
     id: 'card-3',
     card_code: 'CARD-0003',
     public_code: '9ZZ9X1',
-    card_type: 'INSTAGRAM',
+    card_type: 'UNIFIED_SOCIAL',
     qr: {
       id: 'QR-0003',
       public_code: '9ZZ9X1',
@@ -96,7 +96,7 @@ const mockCards: CardItem[] = [
     id: 'card-4',
     card_code: 'CARD-0004',
     public_code: '4TK8W2',
-    card_type: 'TIKTOK',
+    card_type: 'UNIFIED_SOCIAL',
     qr: {
       id: 'QR-0004',
       public_code: '4TK8W2',
@@ -120,7 +120,7 @@ const mockCards: CardItem[] = [
     id: 'card-5',
     card_code: 'CARD-0005',
     public_code: '5WA9P1',
-    card_type: 'WHATSAPP',
+    card_type: 'UNIFIED_SOCIAL',
     qr: {
       id: 'QR-0005',
       public_code: '5WA9P1',

@@ -302,7 +302,7 @@ export const AdminInventoryPage: React.FC = () => {
             <div>
               <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>أقسام المنتجات</span>
               <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#7e22ce', lineHeight: 1.1, marginTop: '2px' }}>
-                7 تصنيفات
+                3 تصنيفات
               </h3>
             </div>
           </div>
@@ -361,10 +361,6 @@ export const AdminInventoryPage: React.FC = () => {
                 { key: 'ALL', label: 'الكل', icon: '📦' },
                 { key: 'GOOGLE_REVIEW', label: 'Google Review', icon: '🌟' },
                 { key: 'INSTAPAY', label: 'InstaPay', icon: '💳' },
-                { key: 'TIKTOK', label: 'TikTok', icon: '🎵' },
-                { key: 'INSTAGRAM', label: 'Instagram', icon: '📸' },
-                { key: 'FACEBOOK', label: 'Facebook', icon: '📘' },
-                { key: 'WHATSAPP', label: 'WhatsApp', icon: '💬' },
                 { key: 'UNIFIED_SOCIAL', label: 'السوشيال الموحدة', icon: '🌐' },
               ] as const
             ).map((cat) => {
@@ -523,12 +519,8 @@ export const AdminInventoryPage: React.FC = () => {
                   const catMeta = {
                     GOOGLE_REVIEW: { label: 'Google Review', icon: '🌟', badgeVariant: 'amber' as const },
                     INSTAPAY: { label: 'InstaPay', icon: '💳', badgeVariant: 'purple' as const },
-                    TIKTOK: { label: 'TikTok', icon: '🎵', badgeVariant: 'info' as const },
-                    INSTAGRAM: { label: 'Instagram', icon: '📸', badgeVariant: 'warning' as const },
-                    FACEBOOK: { label: 'Facebook', icon: '📘', badgeVariant: 'info' as const },
-                    WHATSAPP: { label: 'WhatsApp', icon: '💬', badgeVariant: 'success' as const },
-                    UNIFIED_SOCIAL: { label: 'السوشيال الموحدة', icon: '🌐', badgeVariant: 'neutral' as const },
-                  }[card.card_type || 'GOOGLE_REVIEW'];
+                    UNIFIED_SOCIAL: { label: 'السوشيال الموحدة', icon: '🌐', badgeVariant: 'info' as const },
+                  }[card.card_type || 'GOOGLE_REVIEW'] || { label: 'السوشيال الموحدة', icon: '🌐', badgeVariant: 'info' as const };
 
                   return (
                     <tr
