@@ -59,10 +59,25 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px' }}>{isActive ? '🟢' : '🔴'}</span>
-            <Badge variant={isActive ? 'active' : 'warning'}>
-              {isActive ? t('cards.statusActive') : t('cards.statusInactive')}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '12px' }}>{isActive ? '🟢' : '🔴'}</span>
+              <Badge variant={isActive ? 'active' : 'warning'}>
+                {isActive ? t('cards.statusActive') : t('cards.statusInactive')}
+              </Badge>
+            </div>
+            <Badge variant="neutral">
+              <span>{
+                {
+                  GOOGLE_REVIEW: '🌟 Google Review',
+                  INSTAPAY: '💳 InstaPay',
+                  TIKTOK: '🎵 TikTok',
+                  INSTAGRAM: '📸 Instagram',
+                  FACEBOOK: '📘 Facebook',
+                  WHATSAPP: '💬 WhatsApp',
+                  UNIFIED_SOCIAL: '🌐 Unified Social',
+                }[card.card_type || 'GOOGLE_REVIEW']
+              }</span>
             </Badge>
           </div>
         </div>

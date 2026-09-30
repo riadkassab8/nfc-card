@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Modal, Input, Button } from '../ui';
+import { Modal, Input, Button, Select } from '../ui';
 import { cardService } from '../../services';
-import { CardItem } from '../../types';
+import { CardItem, CardProductType } from '../../types';
 import { useTranslation } from '../../i18n';
 import { Layers, CheckCircle2 } from 'lucide-react';
 
@@ -18,6 +18,7 @@ export const BatchGenerateCardsModal: React.FC<BatchGenerateCardsModalProps> = (
 }) => {
   const { t } = useTranslation();
   const [quantity, setQuantity] = useState<string>('10');
+  const [cardType, setCardType] = useState<CardProductType>('GOOGLE_REVIEW');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [createdCount, setCreatedCount] = useState<number | null>(null);
@@ -36,7 +37,7 @@ export const BatchGenerateCardsModal: React.FC<BatchGenerateCardsModalProps> = (
 
     setIsSubmitting(true);
     try {
-      const result = await cardService.generateCardBatch(numVal);
+      const result = await cardService.generateCardBatch(numVal, cardType);
       setCreatedCount(numVal);
       onSuccess(result.cards);
     } catch (err) {
@@ -79,6 +80,21 @@ export const BatchGenerateCardsModal: React.FC<BatchGenerateCardsModalProps> = (
         </div>
       ) : (
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+          <Select
+            label="نوع الكارت / المنتج (Product Category)"
+            value={cardType}
+            onChange={(e) => setCardType(e.target.value as CardProductType)}
+            options={[
+              { value: 'GOOGLE_REVIEW', label: '🌟 بطاقة تقييمات جوجل (Google Review Card)' },
+              { value: 'INSTAPAY', label: '💳 بطاقة إنستا باي (InstaPay Card)' },
+              { value: 'TIKTOK', label: '🎵 بطاقة تيك توك (TikTok Card)' },
+              { value: 'INSTAGRAM', label: '📸 بطاقة إنستجرام (Instagram Card)' },
+              { value: 'FACEBOOK', label: '📘 بطاقة فيسبوك (Facebook Card)' },
+              { value: 'WHATSAPP', label: '💬 بطاقة واتساب (WhatsApp Card)' },
+              { value: 'UNIFIED_SOCIAL', label: '🌐 بطاقة السوشيال الموحدة (Unified Social Card)' },
+            ]}
+          />
+
           <Input
             label={`${t('cards.batchModal.countLabel')} *`}
             type="number"

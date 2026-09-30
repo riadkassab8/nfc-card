@@ -3,7 +3,7 @@ import { Card, Input, Button, Badge, Skeleton, Toast, ToastType, EmptyState, Err
 import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCardsModal';
 import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { cardService } from '../../services';
-import { CardItem, CardInventoryStats } from '../../types';
+import { CardItem, CardInventoryStats, CardProductType } from '../../types';
 import { useTranslation } from '../../i18n';
 import { Plus, CreditCard, Eye, Download, Building2, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +17,7 @@ export const AdminInventoryPage: React.FC = () => {
   const [stats, setStats] = useState<CardInventoryStats>({ total_cards: 0, active_cards: 0, inactive_cards: 0 });
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+  const [categoryFilter, setCategoryFilter] = useState<'ALL' | CardProductType>('ALL');
   
   // Modals & Drawers
   const [isBatchOpen, setIsBatchOpen] = useState<boolean>(false);
@@ -81,10 +82,13 @@ export const AdminInventoryPage: React.FC = () => {
       c.nfc.identifier.toLowerCase().includes(query) ||
       bizName.toLowerCase().includes(query);
 
-    const matchesFilter =
+    const matchesStatus =
       statusFilter === 'ALL' || c.status === statusFilter;
 
-    return matchesSearch && matchesFilter;
+    const matchesCategory =
+      categoryFilter === 'ALL' || c.card_type === categoryFilter;
+
+    return matchesSearch && matchesStatus && matchesCategory;
   });
 
   return (
@@ -156,30 +160,60 @@ export const AdminInventoryPage: React.FC = () => {
 
       {/* Filter & Search Controls */}
       <Card padding="sm">
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'center' }}>
-          <div style={{ flex: 1, minWidth: '240px' }}>
-            <Input
-              placeholder={t('cards.searchPlaceholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
-            {(['ALL', 'ACTIVE', 'INACTIVE'] as const).map((filterKey) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          {/* Category Tabs Row */}
+          <div style={{ display: 'flex', gap: 'var(--space-xs)', flexWrap: 'wrap', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-xs)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-tertiary)', alignSelf: 'center', marginInlineEnd: 'var(--space-xs)' }}>
+              قسم المنتجات:
+            </span>
+            {(
+              [
+                { key: 'ALL', label: 'الكل', icon: '📦' },
+                { key: 'GOOGLE_REVIEW', label: 'Google Review', icon: '🌟' },
+                { key: 'INSTAPAY', label: 'InstaPay', icon: '💳' },
+                { key: 'TIKTOK', label: 'TikTok', icon: '🎵' },
+                { key: 'INSTAGRAM', label: 'Instagram', icon: '📸' },
+                { key: 'FACEBOOK', label: 'Facebook', icon: '📘' },
+                { key: 'WHATSAPP', label: 'WhatsApp', icon: '💬' },
+                { key: 'UNIFIED_SOCIAL', label: 'السوشيال الموحدة', icon: '🌐' },
+              ] as const
+            ).map((cat) => (
               <Button
-                key={filterKey}
-                variant={statusFilter === filterKey ? 'primary' : 'ghost'}
+                key={cat.key}
+                variant={categoryFilter === cat.key ? 'primary' : 'ghost'}
                 size="sm"
-                onClick={() => setStatusFilter(filterKey)}
+                onClick={() => setCategoryFilter(cat.key as any)}
               >
-                {filterKey === 'ALL'
-                  ? t('cards.filterAll')
-                  : filterKey === 'ACTIVE'
-                  ? `🟢 ${t('cards.statusActive')}`
-                  : `🔴 ${t('cards.statusInactive')}`}
+                <span>{cat.icon}</span> {cat.label}
               </Button>
             ))}
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'center' }}>
+            <div style={{ flex: 1, minWidth: '240px' }}>
+              <Input
+                placeholder={t('cards.searchPlaceholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
+              {(['ALL', 'ACTIVE', 'INACTIVE'] as const).map((filterKey) => (
+                <Button
+                  key={filterKey}
+                  variant={statusFilter === filterKey ? 'primary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setStatusFilter(filterKey)}
+                >
+                  {filterKey === 'ALL'
+                    ? t('cards.filterAll')
+                    : filterKey === 'ACTIVE'
+                    ? `🟢 ${t('cards.statusActive')}`
+                    : `🔴 ${t('cards.statusInactive')}`}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
       </Card>
@@ -213,6 +247,7 @@ export const AdminInventoryPage: React.FC = () => {
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-hover)', borderBottom: '1px solid var(--border-subtle)' }}>
                   <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colStatus')}</th>
+                  <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>نوع المنتج</th>
                   <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colCard')}</th>
                   <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colQR')}</th>
                   <th className="text-label" style={{ padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colNFC')}</th>
@@ -225,6 +260,15 @@ export const AdminInventoryPage: React.FC = () => {
                 {filteredCards.map((card) => {
                   const isActive = card.status === 'ACTIVE';
                   const bizName = card.business_data?.name || card.business_name;
+                  const catMeta = {
+                    GOOGLE_REVIEW: { label: 'Google Review', icon: '🌟' },
+                    INSTAPAY: { label: 'InstaPay', icon: '💳' },
+                    TIKTOK: { label: 'TikTok', icon: '🎵' },
+                    INSTAGRAM: { label: 'Instagram', icon: '📸' },
+                    FACEBOOK: { label: 'Facebook', icon: '📘' },
+                    WHATSAPP: { label: 'WhatsApp', icon: '💬' },
+                    UNIFIED_SOCIAL: { label: 'السوشيال الموحدة', icon: '🌐' },
+                  }[card.card_type || 'GOOGLE_REVIEW'];
 
                   return (
                     <tr key={card.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 150ms ease-out' }}>
@@ -235,6 +279,11 @@ export const AdminInventoryPage: React.FC = () => {
                             {isActive ? t('cards.statusActive') : t('cards.statusInactive')}
                           </Badge>
                         </div>
+                      </td>
+                      <td style={{ padding: 'var(--space-md) var(--space-lg)' }}>
+                        <Badge variant="neutral">
+                          <span style={{ marginInlineEnd: '4px' }}>{catMeta.icon}</span> {catMeta.label}
+                        </Badge>
                       </td>
                       <td style={{ padding: 'var(--space-md) var(--space-lg)' }} className="text-body-medium">
                         {card.card_code}

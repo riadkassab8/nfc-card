@@ -70,7 +70,8 @@ export const PublicBusinessPage: React.FC = () => {
             updated_at: cardResult.card.created_at,
           },
           business: cardResult.business,
-        });
+          cardType: cardResult.card.card_type,
+        } as any);
         setPageState('loading');
       } catch (err) {
         if (isMounted) {
@@ -139,7 +140,7 @@ export const PublicBusinessPage: React.FC = () => {
             }}
           >
             <PublicBusinessHeader business={resolution.business} />
-            <PublicBusinessActions business={resolution.business} qrId={resolution.qr.id} />
+            <PublicBusinessActions business={resolution.business} qrId={resolution.qr.id} cardType={(resolution as any).cardType} />
           </div>
         ) : (
           <PublicBusinessState state="error" />

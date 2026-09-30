@@ -25,7 +25,10 @@ export interface Business {
   latitude?: number;
   longitude?: number;
   instagram_url?: string;
+  tiktok_url?: string;
+  facebook_url?: string;
   google_review_url?: string;
+  instapay_url?: string;
   website_url?: string;
   status: BusinessStatus;
   created_at: string;
@@ -132,6 +135,15 @@ export interface UnifiedAsset {
 export type CardStatus = 'ACTIVE' | 'INACTIVE';
 export type CardUsageStatus = 'UNUSED' | 'USED';
 
+export type CardProductType =
+  | 'GOOGLE_REVIEW'
+  | 'INSTAPAY'
+  | 'TIKTOK'
+  | 'INSTAGRAM'
+  | 'FACEBOOK'
+  | 'WHATSAPP'
+  | 'UNIFIED_SOCIAL';
+
 export interface BusinessData {
   name: string;
   description?: string;
@@ -140,7 +152,10 @@ export interface BusinessData {
   whatsapp?: string;
   address?: string;
   instagram_url?: string;
+  tiktok_url?: string;
+  facebook_url?: string;
   google_review_url?: string;
+  instapay_url?: string;
   website_url?: string;
 }
 
@@ -148,6 +163,7 @@ export interface CardItem {
   id: string;
   card_code: string;
   public_code: string;
+  card_type: CardProductType;
 
   qr: {
     id: string;

@@ -1,9 +1,9 @@
-import { CardItem, CardBatch, CardInventoryStats, BusinessData, Business } from '../types';
+import { CardItem, CardBatch, CardInventoryStats, BusinessData, Business, CardProductType } from '../types';
 
 export interface ICardService {
   getAllCards(): Promise<CardItem[]>;
   getCardStats(): Promise<CardInventoryStats>;
-  generateCardBatch(quantity: number): Promise<{ batch: CardBatch; cards: CardItem[] }>;
+  generateCardBatch(quantity: number, cardType?: CardProductType): Promise<{ batch: CardBatch; cards: CardItem[] }>;
   resolveCardByPayload(payload: string): Promise<CardItem | null>;
   saveCardBusinessData(cardId: string, data: BusinessData): Promise<CardItem>;
   getCardsByStatus(statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE'): Promise<CardItem[]>;
@@ -11,12 +11,13 @@ export interface ICardService {
   assignCardToBusiness(cardId: string, businessId: string): Promise<CardItem>;
 }
 
-// Initial mock cards database
+// Initial mock cards database with distinct Product Types
 const mockCards: CardItem[] = [
   {
     id: 'card-1',
     card_code: 'CARD-0001',
     public_code: '7FJ2K9',
+    card_type: 'GOOGLE_REVIEW',
     qr: {
       id: 'QR-0001',
       public_code: '7FJ2K9',
@@ -45,6 +46,7 @@ const mockCards: CardItem[] = [
     id: 'card-2',
     card_code: 'CARD-0002',
     public_code: '3MX9P2',
+    card_type: 'INSTAPAY',
     qr: {
       id: 'QR-0002',
       public_code: '3MX9P2',
@@ -60,6 +62,7 @@ const mockCards: CardItem[] = [
       phone: '+14155559812',
       whatsapp: '+14155559812',
       address: '456 Market St, San Francisco, CA',
+      instapay_url: 'apexbarbers@instapay',
       instagram_url: 'https://instagram.com/apexbarbers',
       google_review_url: 'https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY5',
     },
@@ -72,6 +75,7 @@ const mockCards: CardItem[] = [
     id: 'card-3',
     card_code: 'CARD-0003',
     public_code: '9ZZ9X1',
+    card_type: 'INSTAGRAM',
     qr: {
       id: 'QR-0003',
       public_code: '9ZZ9X1',
@@ -86,17 +90,63 @@ const mockCards: CardItem[] = [
     business_id: null,
     created_at: '2026-02-01T10:00:00Z',
   },
+  {
+    id: 'card-4',
+    card_code: 'CARD-0004',
+    public_code: '4TK8W2',
+    card_type: 'TIKTOK',
+    qr: {
+      id: 'QR-0004',
+      public_code: '4TK8W2',
+    },
+    nfc: {
+      id: 'NFC-0004',
+      identifier: 'NFC-4TK8W2',
+    },
+    status: 'ACTIVE',
+    business_data: {
+      name: 'Vibe Fashion Store',
+      description: 'Trending streetwear and fashion outfits.',
+      tiktok_url: 'https://tiktok.com/@vibefashion',
+      instagram_url: 'https://instagram.com/vibefashion',
+      whatsapp: '+14155557788',
+    },
+    usage_status: 'USED',
+    created_at: '2026-02-10T12:00:00Z',
+  },
+  {
+    id: 'card-5',
+    card_code: 'CARD-0005',
+    public_code: '5WA9P1',
+    card_type: 'WHATSAPP',
+    qr: {
+      id: 'QR-0005',
+      public_code: '5WA9P1',
+    },
+    nfc: {
+      id: 'NFC-0005',
+      identifier: 'NFC-5WA9P1',
+    },
+    status: 'ACTIVE',
+    business_data: {
+      name: 'Quick Support Hotline',
+      whatsapp: '+201001234567',
+      phone: '+201001234567',
+    },
+    usage_status: 'USED',
+    created_at: '2026-02-12T14:00:00Z',
+  },
 ];
 
 const mockBatches: CardBatch[] = [
   {
     id: 'BATCH-0001',
-    quantity: 3,
+    quantity: 5,
     created_at: '2026-01-15T08:00:00Z',
   },
 ];
 
-let nextCardIndex = 4;
+let nextCardIndex = 6;
 let nextBatchIndex = 2;
 
 class MockCardService implements ICardService {
@@ -119,7 +169,7 @@ class MockCardService implements ICardService {
     };
   }
 
-  async generateCardBatch(quantity: number): Promise<{ batch: CardBatch; cards: CardItem[] }> {
+  async generateCardBatch(quantity: number, cardType: CardProductType = 'GOOGLE_REVIEW'): Promise<{ batch: CardBatch; cards: CardItem[] }> {
     await this.simulateLatency();
     if (quantity < 1 || quantity > 500) {
       throw new Error('Quantity must be between 1 and 500');
@@ -149,6 +199,7 @@ class MockCardService implements ICardService {
         id: cardId,
         card_code: cardCode,
         public_code: publicCode,
+        card_type: cardType,
         qr: {
           id: qrId,
           public_code: publicCode,
@@ -236,7 +287,10 @@ class MockCardService implements ICardService {
         whatsapp: card.business_data.whatsapp,
         address: card.business_data.address,
         instagram_url: card.business_data.instagram_url,
+        tiktok_url: card.business_data.tiktok_url,
+        facebook_url: card.business_data.facebook_url,
         google_review_url: card.business_data.google_review_url,
+        instapay_url: card.business_data.instapay_url,
         website_url: card.business_data.website_url,
         status: 'ACTIVE',
         created_at: card.created_at,
