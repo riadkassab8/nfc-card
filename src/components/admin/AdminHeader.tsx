@@ -5,9 +5,10 @@ import { LanguageSwitcher } from '../ui';
 export interface AdminHeaderProps {
   title: string;
   onOpenMobileMenu: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
-export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMenu }) => {
+export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMenu, onOpenCommandPalette }) => {
   return (
     <header
       style={{
@@ -58,22 +59,24 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         {/* Quick Search Pill */}
         <div
+          onClick={onOpenCommandPalette}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #cbd5e1',
             borderRadius: '10px',
             padding: '6px 14px',
             fontSize: '0.8125rem',
             color: '#64748b',
             cursor: 'pointer',
             minWidth: '220px',
+            transition: 'all 150ms ease-out',
           }}
         >
-          <Search size={15} style={{ color: '#94a3b8' }} />
-          <span>بحث سريع...</span>
+          <Search size={15} style={{ color: '#6366f1' }} />
+          <span>بحث سريع بالأوامر...</span>
           <span style={{ marginInlineStart: 'auto', backgroundColor: '#e2e8f0', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, color: '#475569' }}>
             ⌘K
           </span>

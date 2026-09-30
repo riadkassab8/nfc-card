@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
+import { CommandPaletteModal } from './CommandPaletteModal';
 import { Drawer } from '../ui';
 
 export interface AdminShellProps {
@@ -10,6 +11,19 @@ export interface AdminShellProps {
 
 export const AdminShell: React.FC<AdminShellProps> = ({ title, children }) => {
   const [isMobileOpen, setIsMobileOpen] = useState<boolean>(false);
+  const [isCmdPaletteOpen, setIsCmdPaletteOpen] = useState<boolean>(false);
+
+  // Global Cmd+K / Ctrl+K keyboard shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCmdPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--bg-app)' }}>
@@ -28,9 +42,19 @@ export const AdminShell: React.FC<AdminShellProps> = ({ title, children }) => {
         <AdminSidebar onLinkClick={() => setIsMobileOpen(false)} />
       </Drawer>
 
+      {/* Command Palette Modal (⌘K) */}
+      <CommandPaletteModal
+        isOpen={isCmdPaletteOpen}
+        onClose={() => setIsCmdPaletteOpen(false)}
+      />
+
       {/* Main Content Area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <AdminHeader title={title} onOpenMobileMenu={() => setIsMobileOpen(true)} />
+        <AdminHeader
+          title={title}
+          onOpenMobileMenu={() => setIsMobileOpen(true)}
+          onOpenCommandPalette={() => setIsCmdPaletteOpen(true)}
+        />
 
         <main
           style={{

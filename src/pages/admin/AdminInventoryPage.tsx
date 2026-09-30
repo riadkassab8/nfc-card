@@ -5,7 +5,7 @@ import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { cardService } from '../../services';
 import { CardItem, CardInventoryStats, CardProductType } from '../../types';
 import { useTranslation } from '../../i18n';
-import { Plus, CreditCard, Eye, Download, Building2, Edit, Trash2, Power, Layers, CheckCircle2, AlertCircle, Copy } from 'lucide-react';
+import { Plus, CreditCard, Eye, Download, Building2, Edit, Trash2, Power, Layers, CheckCircle2, AlertCircle, Copy, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const AdminInventoryPage: React.FC = () => {
@@ -19,11 +19,15 @@ export const AdminInventoryPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | CardProductType>('ALL');
   
+  // Selection State for Bulk Batch Actions
+  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+
   // Modals & Drawers
   const [isBatchOpen, setIsBatchOpen] = useState<boolean>(false);
   const [selectedCard, setSelectedCard] = useState<CardItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [cardToDelete, setCardToDelete] = useState<CardItem | null>(null);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState<boolean>(false);
 
   const [toast, setToast] = useState<{ type: ToastType; message: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +54,43 @@ export const AdminInventoryPage: React.FC = () => {
       fetchInventory();
     } catch (err) {
       setToast({ type: 'error', message: 'فشل حذف البطاقة' });
+    }
+  };
+
+  const handleBulkStatusChange = async (targetStatus: 'ACTIVE' | 'INACTIVE') => {
+    try {
+      await Promise.all(
+        selectedCardIds.map((id) => {
+          const c = cards.find((item) => item.id === id);
+          if (c && c.status !== targetStatus) {
+            return cardService.toggleCardStatus(id);
+          }
+          return Promise.resolve();
+        })
+      );
+      setToast({
+        type: 'success',
+        message: `تم تحديث حالة (${selectedCardIds.length}) بطاقة بنجاح`,
+      });
+      setSelectedCardIds([]);
+      fetchInventory();
+    } catch (err) {
+      setToast({ type: 'error', message: 'فشل تنفيذ التغيير الجماعي' });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await Promise.all(selectedCardIds.map((id) => cardService.deleteCard(id)));
+      setToast({
+        type: 'success',
+        message: `🗑️ تم حذف (${selectedCardIds.length}) بطاقة بنجاح`,
+      });
+      setSelectedCardIds([]);
+      setIsBulkDeleteOpen(false);
+      fetchInventory();
+    } catch (err) {
+      setToast({ type: 'error', message: 'فشل تنفيذ الحذف الجماعي' });
     }
   };
 
@@ -127,6 +168,24 @@ export const AdminInventoryPage: React.FC = () => {
     return cards.filter((c) => c.card_type === type).length;
   };
 
+  const isAllSelected = filteredCards.length > 0 && filteredCards.every((c) => selectedCardIds.includes(c.id));
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedCardIds([]);
+    } else {
+      setSelectedCardIds(filteredCards.map((c) => c.id));
+    }
+  };
+
+  const toggleSelectCard = (id: string) => {
+    if (selectedCardIds.includes(id)) {
+      setSelectedCardIds(selectedCardIds.filter((item) => item !== id));
+    } else {
+      setSelectedCardIds([...selectedCardIds, id]);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {toast && (
@@ -179,7 +238,7 @@ export const AdminInventoryPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Inventory Metric Cards */}
+      {/* Interactive Stat Cards Grid (Click to filter) */}
       <div
         style={{
           display: 'grid',
@@ -187,47 +246,53 @@ export const AdminInventoryPage: React.FC = () => {
           gap: '16px',
         }}
       >
-        <Card hoverable padding="lg">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CreditCard size={24} />
+        <div onClick={() => { setStatusFilter('ALL'); setCategoryFilter('ALL'); }} style={{ cursor: 'pointer' }}>
+          <Card hoverable padding="lg" style={{ border: statusFilter === 'ALL' ? '2px solid #6366f1' : '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CreditCard size={24} />
+              </div>
+              <div>
+                <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>إجمالي البطاقات (انقر للإظهار)</span>
+                <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginTop: '2px' }}>
+                  {formatNumber(stats.total_cards)}
+                </h3>
+              </div>
             </div>
-            <div>
-              <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>إجمالي البطاقات</span>
-              <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginTop: '2px' }}>
-                {formatNumber(stats.total_cards)}
-              </h3>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
-        <Card hoverable padding="lg">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#d1fae5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircle2 size={24} />
+        <div onClick={() => setStatusFilter('ACTIVE')} style={{ cursor: 'pointer' }}>
+          <Card hoverable padding="lg" style={{ border: statusFilter === 'ACTIVE' ? '2px solid #10b981' : '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#d1fae5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle2 size={24} />
+              </div>
+              <div>
+                <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>البطاقات النشطة (انقر للفلترة)</span>
+                <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#047857', lineHeight: 1.1, marginTop: '2px' }}>
+                  {formatNumber(stats.active_cards)}
+                </h3>
+              </div>
             </div>
-            <div>
-              <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>البطاقات النشطة</span>
-              <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#047857', lineHeight: 1.1, marginTop: '2px' }}>
-                {formatNumber(stats.active_cards)}
-              </h3>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
-        <Card hoverable padding="lg">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <AlertCircle size={24} />
+        <div onClick={() => setStatusFilter('INACTIVE')} style={{ cursor: 'pointer' }}>
+          <Card hoverable padding="lg" style={{ border: statusFilter === 'INACTIVE' ? '2px solid #f59e0b' : '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AlertCircle size={24} />
+              </div>
+              <div>
+                <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>البطاقات المعطلة (انقر للفلترة)</span>
+                <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#b45309', lineHeight: 1.1, marginTop: '2px' }}>
+                  {formatNumber(stats.inactive_cards)}
+                </h3>
+              </div>
             </div>
-            <div>
-              <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>البطاقات المعطلة</span>
-              <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#b45309', lineHeight: 1.1, marginTop: '2px' }}>
-                {formatNumber(stats.inactive_cards)}
-              </h3>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
         <Card hoverable padding="lg">
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -243,6 +308,48 @@ export const AdminInventoryPage: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Floating Bulk Action Bar (When cards are selected) */}
+      {selectedCardIds.length > 0 && (
+        <div
+          style={{
+            position: 'sticky',
+            top: '80px',
+            zIndex: 70,
+            backgroundColor: '#0f172a',
+            color: '#ffffff',
+            borderRadius: '16px',
+            padding: '14px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 12px 32px rgba(15, 23, 42, 0.3)',
+            animation: 'fadeIn 200ms ease-out',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ backgroundColor: '#6366f1', color: '#ffffff', padding: '2px 10px', borderRadius: '9999px', fontWeight: 800, fontSize: '0.875rem' }}>
+              {selectedCardIds.length}
+            </span>
+            <span style={{ fontWeight: 700, fontSize: '0.9375rem' }}>تم تحديد بطاقات للإجراء المجمع</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Button size="sm" variant="secondary" onClick={() => handleBulkStatusChange('ACTIVE')}>
+              🟢 تفعيل الكل
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => handleBulkStatusChange('INACTIVE')}>
+              🔴 تعطيل الكل
+            </Button>
+            <Button size="sm" variant="danger" onClick={() => setIsBulkDeleteOpen(true)}>
+              🗑️ حذف المحددة
+            </Button>
+            <Button size="sm" variant="ghost" style={{ color: '#94a3b8' }} onClick={() => setSelectedCardIds([])}>
+              إلغاء التحديد
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Filter & Search Controls */}
       <Card padding="md">
@@ -373,6 +480,15 @@ export const AdminInventoryPage: React.FC = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'start' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ width: '40px', padding: '14px 16px', textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#6366f1' }}
+                      title="تحديد الكل"
+                    />
+                  </th>
                   <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     حالة البطاقة
                   </th>
@@ -402,6 +518,7 @@ export const AdminInventoryPage: React.FC = () => {
               <tbody>
                 {filteredCards.map((card) => {
                   const isActive = card.status === 'ACTIVE';
+                  const isSelected = selectedCardIds.includes(card.id);
                   const bizName = card.business_data?.name || card.business_name;
                   const catMeta = {
                     GOOGLE_REVIEW: { label: 'Google Review', icon: '🌟', badgeVariant: 'amber' as const },
@@ -418,10 +535,20 @@ export const AdminInventoryPage: React.FC = () => {
                       key={card.id}
                       style={{
                         borderBottom: '1px solid #e2e8f0',
-                        backgroundColor: '#ffffff',
+                        backgroundColor: isSelected ? '#f5f3ff' : '#ffffff',
                         transition: 'background-color 150ms ease-out',
                       }}
                     >
+                      {/* Checkbox Select */}
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectCard(card.id)}
+                          style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#6366f1' }}
+                        />
+                      </td>
+
                       {/* Status & Toggle */}
                       <td style={{ padding: '14px 20px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -475,9 +602,19 @@ export const AdminInventoryPage: React.FC = () => {
 
                       {/* Public Code */}
                       <td style={{ padding: '14px 20px' }}>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.875rem', color: '#4f46e5', backgroundColor: '#eef2ff', padding: '2px 8px', borderRadius: '6px' }}>
-                          {card.public_code}
-                        </span>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.875rem', color: '#4f46e5', backgroundColor: '#eef2ff', padding: '2px 8px', borderRadius: '6px' }}>
+                            {card.public_code}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => window.open(`/q/${card.public_code}`, '_blank')}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6366f1', padding: '2px' }}
+                            title="فتح صفحة العميل العامة"
+                          >
+                            <ExternalLink size={13} />
+                          </button>
+                        </div>
                       </td>
 
                       {/* Business */}
@@ -577,7 +714,7 @@ export const AdminInventoryPage: React.FC = () => {
         }}
       />
 
-      {/* Confirmation Dialog for Delete */}
+      {/* Single Delete Dialog */}
       {cardToDelete && (
         <ConfirmDialog
           isOpen={!!cardToDelete}
@@ -586,6 +723,20 @@ export const AdminInventoryPage: React.FC = () => {
           title="تأكيد حذف البطاقة"
           message={`هل أنت تأكد من رغبتك في حذف البطاقة (${cardToDelete.card_code}) ذات الكود العام [${cardToDelete.public_code}]؟ هذا الإجراء سيقوم بإزالة البطاقة نهائياً من النظام.`}
           confirmLabel="حذف البطاقة"
+          cancelLabel="إلغاء"
+          isDanger
+        />
+      )}
+
+      {/* Bulk Delete Dialog */}
+      {isBulkDeleteOpen && (
+        <ConfirmDialog
+          isOpen={isBulkDeleteOpen}
+          onClose={() => setIsBulkDeleteOpen(false)}
+          onConfirm={handleBulkDelete}
+          title="تأكيد الحذف الجماعي"
+          message={`هل أنت تأكد من رغبتك في حذف (${selectedCardIds.length}) بطاقات دفعة واحدة؟ لا يمكن التراجع عن هذا الإجراء.`}
+          confirmLabel={`حذف (${selectedCardIds.length}) بطاقات`}
           cancelLabel="إلغاء"
           isDanger
         />
