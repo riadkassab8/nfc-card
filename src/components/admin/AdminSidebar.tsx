@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CreditCard, Scan, BarChart3, Settings, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Scan, BarChart3, Settings, Sparkles } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 export interface AdminSidebarProps {
@@ -21,13 +21,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLinkClick }) => {
   return (
     <aside
       style={{
-        width: '240px',
-        backgroundColor: 'var(--bg-surface)',
-        borderInlineEnd: '1px solid var(--border-subtle)',
+        width: '260px',
+        backgroundColor: '#0f172a',
+        color: '#f8fafc',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        padding: 'var(--space-lg) var(--space-md)',
+        padding: 'var(--space-xl) var(--space-md)',
+        boxSizing: 'border-box',
+        boxShadow: '4px 0 24px rgba(15, 23, 42, 0.12)',
       }}
     >
       {/* Brand Header */}
@@ -35,38 +37,50 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLinkClick }) => {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 'var(--space-sm)',
+          gap: 'var(--space-md)',
           padding: 'var(--space-xs) var(--space-md)',
           marginBottom: 'var(--space-2xl)',
         }}
       >
         <div
           style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--error-bg)',
-            color: 'var(--error-text)',
-            border: '1px solid var(--error-border)',
+            width: '40px',
+            height: '40px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+            color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
           }}
         >
-          <ShieldAlert size={18} />
+          <Sparkles size={22} />
         </div>
         <div>
-          <span className="text-section" style={{ fontSize: '1rem', display: 'block' }}>
-            DynamicQR
+          <span
+            style={{
+              fontSize: '1.125rem',
+              fontWeight: 800,
+              display: 'block',
+              letterSpacing: '-0.02em',
+              color: '#ffffff',
+              fontFamily: 'var(--font-family-arabic)',
+            }}
+          >
+            DynamicQR Pro
           </span>
-          <span className="text-caption" style={{ color: 'var(--error-text)', fontWeight: 600 }}>
+          <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>
             {t('common.adminDashboard')}
           </span>
         </div>
       </div>
 
       {/* Navigation List */}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)', flex: 1 }}>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+        <div style={{ padding: '0 12px 6px', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          القائمة الرئيسية
+        </div>
         {adminSidebarItems.map((item) => (
           <NavLink
             key={item.path}
@@ -76,34 +90,40 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLinkClick }) => {
             style={({ isActive }) => ({
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--space-md)',
-              padding: 'var(--space-md) var(--space-lg)',
-              borderRadius: 'var(--radius-md)',
+              gap: '12px',
+              padding: '10px 14px',
+              borderRadius: '10px',
               textDecoration: 'none',
-              fontSize: 'var(--font-size-body)',
-              fontWeight: isActive ? 600 : 500,
-              backgroundColor: isActive ? 'var(--bg-surface-hover)' : 'transparent',
-              color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-              borderInlineStart: isActive ? '3px solid var(--primary-bg)' : '3px solid transparent',
-              transition: 'all 150ms ease-out',
+              fontSize: '0.875rem',
+              fontWeight: isActive ? 700 : 500,
+              backgroundColor: isActive ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+              color: isActive ? '#ffffff' : '#94a3b8',
+              borderInlineStart: isActive ? '3px solid #6366f1' : '3px solid transparent',
+              transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
             })}
           >
-            {item.icon}
+            <span style={{ display: 'inline-flex', opacity: 0.9 }}>{item.icon}</span>
             <span>{item.label}</span>
           </NavLink>
         ))}
       </nav>
 
-      {/* Workspace Footer */}
+      {/* Workspace Footer Card */}
       <div
         style={{
-          padding: 'var(--space-md)',
-          borderTop: '1px solid var(--border-subtle)',
+          padding: '14px',
+          borderRadius: '12px',
+          backgroundColor: 'rgba(255, 255, 255, 0.04)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
           marginTop: 'auto',
         }}
       >
-        <span className="text-caption" style={{ color: 'var(--text-muted)' }}>
-          {t('common.adminDashboard')}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#e2e8f0' }}>النظام يعمل بنجاح</span>
+        </div>
+        <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>
+          إصدار المنصة: 2.5.0 HD
         </span>
       </div>
     </aside>

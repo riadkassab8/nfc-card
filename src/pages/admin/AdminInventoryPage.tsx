@@ -5,7 +5,7 @@ import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { cardService } from '../../services';
 import { CardItem, CardInventoryStats, CardProductType } from '../../types';
 import { useTranslation } from '../../i18n';
-import { Plus, CreditCard, Eye, Download, Building2, Edit, Trash2, Power } from 'lucide-react';
+import { Plus, CreditCard, Eye, Download, Building2, Edit, Trash2, Power, Layers, CheckCircle2, AlertCircle, Copy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const AdminInventoryPage: React.FC = () => {
@@ -76,13 +76,13 @@ export const AdminInventoryPage: React.FC = () => {
   const downloadPNG = (publicCode: string) => {
     const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
       <rect width="300" height="300" fill="#ffffff"/>
-      <rect x="30" y="30" width="80" height="80" fill="#18181b"/>
+      <rect x="30" y="30" width="80" height="80" fill="#0f172a"/>
       <rect x="50" y="50" width="40" height="40" fill="#ffffff"/>
-      <rect x="190" y="30" width="80" height="80" fill="#18181b"/>
+      <rect x="190" y="30" width="80" height="80" fill="#0f172a"/>
       <rect x="210" y="50" width="40" height="40" fill="#ffffff"/>
-      <rect x="30" y="190" width="80" height="80" fill="#18181b"/>
+      <rect x="30" y="190" width="80" height="80" fill="#0f172a"/>
       <rect x="50" y="210" width="40" height="40" fill="#ffffff"/>
-      <text x="150" y="280" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#18181b">${publicCode}</text>
+      <text x="150" y="280" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#0f172a">${publicCode}</text>
     </svg>`;
 
     const blob = new Blob([svgContent], { type: 'image/svg+xml' });
@@ -94,6 +94,11 @@ export const AdminInventoryPage: React.FC = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setToast({ type: 'info', message: `📋 تم نسخ ${label}: ${text}` });
   };
 
   const filteredCards = cards.filter((c) => {
@@ -117,81 +122,133 @@ export const AdminInventoryPage: React.FC = () => {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
+  const getCategoryCount = (type: string) => {
+    if (type === 'ALL') return cards.length;
+    return cards.filter((c) => c.card_type === type).length;
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {toast && (
-        <div style={{ position: 'fixed', top: 'var(--space-2xl)', insetInlineEnd: 'var(--space-2xl)', zIndex: 1100 }}>
+        <div style={{ position: 'fixed', top: '24px', insetInlineEnd: '24px', zIndex: 1100 }}>
           <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />
         </div>
       )}
 
-      {/* Header Action Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
-        <div>
-          <h2 className="text-title">{t('cards.title')}</h2>
-          <p className="text-body" style={{ color: 'var(--text-secondary)' }}>
-            {t('cards.subtitle')}
+      {/* Hero Header Card */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+          borderRadius: '20px',
+          padding: '28px 32px',
+          color: '#ffffff',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '20px',
+          boxShadow: '0 10px 30px -5px rgba(15, 23, 42, 0.2)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ position: 'absolute', right: '-40px', bottom: '-40px', width: '200px', height: '200px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+        <div style={{ zIndex: 1, maxWidth: '640px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+            <span style={{ backgroundColor: 'rgba(99, 102, 241, 0.25)', color: '#818cf8', padding: '3px 12px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+              إدارة المخزون والمنتجات
+            </span>
+          </div>
+          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '6px', letterSpacing: '-0.02em', color: '#ffffff' }}>
+            بطاقات NFC & QR الفائقة 💳
+          </h2>
+          <p style={{ fontSize: '0.9375rem', color: '#94a3b8', lineHeight: 1.5 }}>
+            تحكم كامل في كروت تقييمات Google Review وInstaPay وتطبيقات التواصل الموحدة مع إمكانية التفعيل الفوري والربط المباشر.
           </p>
         </div>
 
-        <Button variant="primary" onClick={() => setIsBatchOpen(true)}>
-          <Plus size={18} /> {t('cards.generateBatchBtn')}
-        </Button>
+        <div style={{ zIndex: 1 }}>
+          <Button
+            variant="gradient"
+            size="lg"
+            onClick={() => setIsBatchOpen(true)}
+          >
+            <Plus size={20} /> إنشاء مجموعة بطاقات جديدة
+          </Button>
+        </div>
       </div>
 
       {/* Inventory Metric Cards */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: 'var(--space-lg)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '16px',
         }}
       >
-        <Card>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-            <div style={{ padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface-hover)' }}>
-              <CreditCard size={24} style={{ color: 'var(--text-primary)' }} />
+        <Card hoverable padding="lg">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CreditCard size={24} />
             </div>
             <div>
-              <span className="text-label" style={{ color: 'var(--text-secondary)' }}>{t('cards.totalCards')}</span>
-              <h3 className="text-title" style={{ fontSize: '1.5rem' }}>{formatNumber(stats.total_cards)}</h3>
+              <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>إجمالي البطاقات</span>
+              <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginTop: '2px' }}>
+                {formatNumber(stats.total_cards)}
+              </h3>
             </div>
           </div>
         </Card>
 
-        <Card>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-            <div style={{ padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--success-bg)' }}>
-              <span style={{ fontSize: '20px' }}>🟢</span>
+        <Card hoverable padding="lg">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#d1fae5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle2 size={24} />
             </div>
             <div>
-              <span className="text-label" style={{ color: 'var(--text-secondary)' }}>{t('cards.statusActive')}</span>
-              <h3 className="text-title" style={{ fontSize: '1.5rem' }}>{formatNumber(stats.active_cards)}</h3>
+              <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>البطاقات النشطة</span>
+              <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#047857', lineHeight: 1.1, marginTop: '2px' }}>
+                {formatNumber(stats.active_cards)}
+              </h3>
             </div>
           </div>
         </Card>
 
-        <Card>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-            <div style={{ padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--warning-bg)' }}>
-              <span style={{ fontSize: '20px' }}>🔴</span>
+        <Card hoverable padding="lg">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertCircle size={24} />
             </div>
             <div>
-              <span className="text-label" style={{ color: 'var(--text-secondary)' }}>{t('cards.statusInactive')}</span>
-              <h3 className="text-title" style={{ fontSize: '1.5rem' }}>{formatNumber(stats.inactive_cards)}</h3>
+              <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>البطاقات المعطلة</span>
+              <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#b45309', lineHeight: 1.1, marginTop: '2px' }}>
+                {formatNumber(stats.inactive_cards)}
+              </h3>
+            </div>
+          </div>
+        </Card>
+
+        <Card hoverable padding="lg">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#f3e8ff', color: '#7e22ce', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Layers size={24} />
+            </div>
+            <div>
+              <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>أقسام المنتجات</span>
+              <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#7e22ce', lineHeight: 1.1, marginTop: '2px' }}>
+                7 تصنيفات
+              </h3>
             </div>
           </div>
         </Card>
       </div>
 
       {/* Filter & Search Controls */}
-      <Card padding="sm">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-          {/* Category Tabs Row */}
-          <div style={{ display: 'flex', gap: 'var(--space-xs)', flexWrap: 'wrap', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-xs)' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-tertiary)', alignSelf: 'center', marginInlineEnd: 'var(--space-xs)' }}>
-              قسم المنتجات:
-            </span>
+      <Card padding="md">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Category Pills Bar */}
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px', scrollbarWidth: 'none' }}>
             {(
               [
                 { key: 'ALL', label: 'الكل', icon: '📦' },
@@ -203,42 +260,86 @@ export const AdminInventoryPage: React.FC = () => {
                 { key: 'WHATSAPP', label: 'WhatsApp', icon: '💬' },
                 { key: 'UNIFIED_SOCIAL', label: 'السوشيال الموحدة', icon: '🌐' },
               ] as const
-            ).map((cat) => (
-              <Button
-                key={cat.key}
-                variant={categoryFilter === cat.key ? 'primary' : 'ghost'}
-                size="sm"
-                onClick={() => setCategoryFilter(cat.key as any)}
-              >
-                <span>{cat.icon}</span> {cat.label}
-              </Button>
-            ))}
+            ).map((cat) => {
+              const isSelected = categoryFilter === cat.key;
+              const count = getCategoryCount(cat.key);
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setCategoryFilter(cat.key as any)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '9999px',
+                    fontSize: '0.8125rem',
+                    fontWeight: isSelected ? 700 : 500,
+                    backgroundColor: isSelected ? '#0f172a' : '#f1f5f9',
+                    color: isSelected ? '#ffffff' : '#475569',
+                    border: 'none',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 150ms ease-out',
+                    boxShadow: isSelected ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+                  }}
+                >
+                  <span>{cat.icon}</span>
+                  <span>{cat.label}</span>
+                  <span style={{
+                    backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0',
+                    color: isSelected ? '#ffffff' : '#64748b',
+                    padding: '1px 6px',
+                    borderRadius: '9999px',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                  }}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', alignItems: 'center' }}>
-            <div style={{ flex: 1, minWidth: '240px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
+            <div style={{ flex: 1, minWidth: '280px' }}>
               <Input
-                placeholder={t('cards.searchPlaceholder')}
+                placeholder="بحث برقم البطاقة، الكود العام، QR، أو اسم النشاط..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
-            <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
-              {(['ALL', 'ACTIVE', 'INACTIVE'] as const).map((filterKey) => (
-                <Button
-                  key={filterKey}
-                  variant={statusFilter === filterKey ? 'primary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setStatusFilter(filterKey)}
-                >
-                  {filterKey === 'ALL'
-                    ? t('cards.filterAll')
-                    : filterKey === 'ACTIVE'
-                    ? `🟢 ${t('cards.statusActive')}`
-                    : `🔴 ${t('cards.statusInactive')}`}
-                </Button>
-              ))}
+            <div style={{ display: 'flex', gap: '6px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
+              {(['ALL', 'ACTIVE', 'INACTIVE'] as const).map((filterKey) => {
+                const isSelected = statusFilter === filterKey;
+                return (
+                  <button
+                    key={filterKey}
+                    type="button"
+                    onClick={() => setStatusFilter(filterKey)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      fontSize: '0.8125rem',
+                      fontWeight: isSelected ? 700 : 500,
+                      backgroundColor: isSelected ? '#ffffff' : 'transparent',
+                      color: isSelected ? '#0f172a' : '#64748b',
+                      border: 'none',
+                      cursor: 'pointer',
+                      boxShadow: isSelected ? '0 2px 6px rgba(0, 0, 0, 0.06)' : 'none',
+                      transition: 'all 150ms ease-out',
+                    }}
+                  >
+                    {filterKey === 'ALL'
+                      ? t('cards.filterAll')
+                      : filterKey === 'ACTIVE'
+                      ? `🟢 ${t('cards.statusActive')}`
+                      : `🔴 ${t('cards.statusInactive')}`}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -249,10 +350,10 @@ export const AdminInventoryPage: React.FC = () => {
         <ErrorState message={error} onRetry={() => window.location.reload()} />
       ) : loading ? (
         <Card padding="lg">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-            <Skeleton height="44px" />
-            <Skeleton height="44px" />
-            <Skeleton height="44px" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Skeleton height="48px" />
+            <Skeleton height="48px" />
+            <Skeleton height="48px" />
           </div>
         </Card>
       ) : filteredCards.length === 0 ? (
@@ -267,19 +368,35 @@ export const AdminInventoryPage: React.FC = () => {
           }
         />
       ) : (
-        <Card padding="none" style={{ overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', minWidth: '980px', borderCollapse: 'collapse', textAlign: 'start' }}>
+        <Card padding="none" style={{ overflow: 'hidden', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+          <div style={{ width: '100%', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'start' }}>
               <thead>
-                <tr style={{ backgroundColor: 'var(--bg-surface-hover)', borderBottom: '1px solid var(--border-subtle)' }}>
-                  <th className="text-label" style={{ width: '160px', minWidth: '160px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colStatus')}</th>
-                  <th className="text-label" style={{ width: '160px', minWidth: '160px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>نوع المنتج</th>
-                  <th className="text-label" style={{ width: '140px', minWidth: '140px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colCard')}</th>
-                  <th className="text-label" style={{ width: '120px', minWidth: '120px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colQR')}</th>
-                  <th className="text-label" style={{ width: '130px', minWidth: '130px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colNFC')}</th>
-                  <th className="text-label" style={{ width: '120px', minWidth: '120px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colPublicCode')}</th>
-                  <th className="text-label" style={{ width: '180px', minWidth: '180px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)' }}>{t('cards.colBiz')}</th>
-                  <th className="text-label" style={{ width: '130px', minWidth: '130px', padding: 'var(--space-md) var(--space-lg)', color: 'var(--text-secondary)', textAlign: 'end' }}>{t('cards.colActions')}</th>
+                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    حالة البطاقة
+                  </th>
+                  <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    نوع المنتج
+                  </th>
+                  <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    كود البطاقة
+                  </th>
+                  <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    رمز QR
+                  </th>
+                  <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    معرف NFC
+                  </th>
+                  <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    الكود العام
+                  </th>
+                  <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    النشاط التجاري المرتبط
+                  </th>
+                  <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'end' }}>
+                    الإجراءات
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -287,70 +404,106 @@ export const AdminInventoryPage: React.FC = () => {
                   const isActive = card.status === 'ACTIVE';
                   const bizName = card.business_data?.name || card.business_name;
                   const catMeta = {
-                    GOOGLE_REVIEW: { label: 'Google Review', icon: '🌟' },
-                    INSTAPAY: { label: 'InstaPay', icon: '💳' },
-                    TIKTOK: { label: 'TikTok', icon: '🎵' },
-                    INSTAGRAM: { label: 'Instagram', icon: '📸' },
-                    FACEBOOK: { label: 'Facebook', icon: '📘' },
-                    WHATSAPP: { label: 'WhatsApp', icon: '💬' },
-                    UNIFIED_SOCIAL: { label: 'السوشيال الموحدة', icon: '🌐' },
+                    GOOGLE_REVIEW: { label: 'Google Review', icon: '🌟', badgeVariant: 'amber' as const },
+                    INSTAPAY: { label: 'InstaPay', icon: '💳', badgeVariant: 'purple' as const },
+                    TIKTOK: { label: 'TikTok', icon: '🎵', badgeVariant: 'info' as const },
+                    INSTAGRAM: { label: 'Instagram', icon: '📸', badgeVariant: 'warning' as const },
+                    FACEBOOK: { label: 'Facebook', icon: '📘', badgeVariant: 'info' as const },
+                    WHATSAPP: { label: 'WhatsApp', icon: '💬', badgeVariant: 'success' as const },
+                    UNIFIED_SOCIAL: { label: 'السوشيال الموحدة', icon: '🌐', badgeVariant: 'neutral' as const },
                   }[card.card_type || 'GOOGLE_REVIEW'];
 
                   return (
-                    <tr key={card.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 150ms ease-out' }}>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '160px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                    <tr
+                      key={card.id}
+                      style={{
+                        borderBottom: '1px solid #e2e8f0',
+                        backgroundColor: '#ffffff',
+                        transition: 'background-color 150ms ease-out',
+                      }}
+                    >
+                      {/* Status & Toggle */}
+                      <td style={{ padding: '14px 20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <Toggle
                             checked={isActive}
                             onChange={() => handleToggleStatus(card)}
                           />
-                          <Badge variant={isActive ? 'active' : 'warning'} style={{ flexShrink: 0, minWidth: '64px', textAlign: 'center' }}>
-                            {isActive ? t('cards.statusActive') : t('cards.statusInactive')}
+                          <Badge variant={isActive ? 'active' : 'disabled'} showDot>
+                            {isActive ? 'نشطة' : 'معطلة'}
                           </Badge>
                         </div>
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '160px' }}>
-                        <Badge variant="neutral">
+
+                      {/* Product Type Category */}
+                      <td style={{ padding: '14px 20px' }}>
+                        <Badge variant={catMeta.badgeVariant}>
                           <span style={{ marginInlineEnd: '4px' }}>{catMeta.icon}</span> {catMeta.label}
                         </Badge>
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '140px' }} className="text-body-medium">
-                        {card.card_code}
+
+                      {/* Card Code */}
+                      <td style={{ padding: '14px 20px' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '8px' }}>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8125rem', color: '#0f172a' }}>
+                            {card.card_code}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(card.card_code, 'كود البطاقة')}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0 }}
+                            title="نسخ كود البطاقة"
+                          >
+                            <Copy size={12} />
+                          </button>
+                        </div>
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '120px' }}>
-                        <span className="text-caption" style={{ fontFamily: 'monospace' }}>
+
+                      {/* QR Code */}
+                      <td style={{ padding: '14px 20px' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: '#64748b' }}>
                           {card.qr.id}
                         </span>
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '130px' }}>
-                        <span className="text-caption" style={{ fontFamily: 'monospace' }}>
+
+                      {/* NFC Identifier */}
+                      <td style={{ padding: '14px 20px' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: '#64748b' }}>
                           {card.nfc.identifier}
                         </span>
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '120px' }}>
-                        <span className="text-caption" style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+
+                      {/* Public Code */}
+                      <td style={{ padding: '14px 20px' }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.875rem', color: '#4f46e5', backgroundColor: '#eef2ff', padding: '2px 8px', borderRadius: '6px' }}>
                           {card.public_code}
                         </span>
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '180px' }} className="text-body">
+
+                      {/* Business */}
+                      <td style={{ padding: '14px 20px' }}>
                         {bizName ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)', opacity: isActive ? 1 : 0.6 }}>
-                            <Building2 size={14} style={{ color: 'var(--text-secondary)' }} />
-                            <span>{bizName}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: isActive ? 1 : 0.6 }}>
+                            <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: '#f1f5f9', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Building2 size={13} />
+                            </div>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>{bizName}</span>
                           </div>
                         ) : (
-                          <span style={{ color: 'var(--text-tertiary)' }}>غير معين</span>
+                          <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>غير معين</span>
                         )}
                       </td>
-                      <td style={{ padding: 'var(--space-md) var(--space-lg)', width: '130px', textAlign: 'end' }}>
-                        <div style={{ display: 'inline-flex', gap: 'var(--space-xs)' }}>
+
+                      {/* Actions Group */}
+                      <td style={{ padding: '14px 20px', textAlign: 'end' }}>
+                        <div style={{ display: 'inline-flex', gap: '4px' }}>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleToggleStatus(card)}
                             title={isActive ? 'تعطيل البطاقة' : 'تفعيل البطاقة'}
                           >
-                            <Power size={16} style={{ color: isActive ? 'var(--success-text)' : 'var(--text-tertiary)' }} />
+                            <Power size={15} style={{ color: isActive ? '#10b981' : '#94a3b8' }} />
                           </Button>
 
                           <Button
@@ -360,29 +513,27 @@ export const AdminInventoryPage: React.FC = () => {
                               setSelectedCard(card);
                               setIsDrawerOpen(true);
                             }}
-                            title={t('cards.viewDetails')}
+                            title="عرض التفاصيل"
                           >
-                            <Eye size={16} />
+                            <Eye size={15} />
                           </Button>
 
                           <Button
-                            variant={isActive ? 'ghost' : 'outline'}
+                            variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              navigate(`/admin/scan?payload=${card.public_code}`);
-                            }}
-                            title={t('cards.assignCard')}
+                            onClick={() => navigate(`/admin/scan?payload=${card.public_code}`)}
+                            title="تعيين / ربط البطاقة"
                           >
-                            <Edit size={14} />
+                            <Edit size={15} />
                           </Button>
 
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => downloadPNG(card.public_code)}
-                            title={t('common.download')}
+                            title="تحميل رمز QR"
                           >
-                            <Download size={16} />
+                            <Download size={15} />
                           </Button>
 
                           <Button
@@ -391,7 +542,7 @@ export const AdminInventoryPage: React.FC = () => {
                             onClick={() => setCardToDelete(card)}
                             title="حذف البطاقة"
                           >
-                            <Trash2 size={16} style={{ color: 'var(--error-text)' }} />
+                            <Trash2 size={15} style={{ color: '#ef4444' }} />
                           </Button>
                         </div>
                       </td>

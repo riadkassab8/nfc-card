@@ -1,49 +1,61 @@
 /* ==========================================================================
-   DYNAMIC QR & NFC PLATFORM — DESIGN SYSTEM TOKENS & STYLES (src/index.css)
+   DYNAMIC QR & NFC PLATFORM — ULTRA-PREMIUM DESIGN SYSTEM (src/index.css)
    ========================================================================== */
 
 :root {
-  /* Surface & Background */
-  --bg-app: #fcfcfd;
+  /* Core Surface & Background Token System */
+  --bg-app: #f8fafc;
   --bg-surface: #ffffff;
-  --bg-surface-hover: #f4f4f5;
-  --bg-surface-active: #e4e4e7;
+  --bg-surface-hover: #f1f5f9;
+  --bg-surface-active: #e2e8f0;
   --bg-elevated: #ffffff;
-  --bg-overlay: rgba(9, 9, 11, 0.4);
+  --bg-overlay: rgba(15, 23, 42, 0.5);
+  --bg-glass: rgba(255, 255, 255, 0.85);
 
   /* Text & Typography */
-  --text-primary: #09090b;
-  --text-secondary: #71717a;
-  --text-muted: #a1a1aa;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --text-muted: #94a3b8;
   --text-on-primary: #ffffff;
 
   /* Borders & Dividers */
-  --border-subtle: #e4e4e7;
-  --border-strong: #d4d4d8;
-  --border-focus: #18181b;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-focus: #4f46e5;
 
-  /* Primary Brand Action (Sleek Dark Accent) */
-  --primary-bg: #18181b;
-  --primary-bg-hover: #27272a;
-  --primary-bg-active: #09090b;
+  /* Brand Colors & Vibrant Accents */
+  --primary-bg: #0f172a;
+  --primary-bg-hover: #1e293b;
+  --primary-bg-active: #020617;
+  --accent-indigo: #6366f1;
+  --accent-purple: #8b5cf6;
+  --accent-pink: #ec4899;
+  --accent-amber: #f59e0b;
+  --accent-emerald: #10b981;
+  --accent-cyan: #06b6d4;
 
   /* Semantic Messaging Colors */
   --success-bg: #ecfdf5;
-  --success-text: #065f46;
+  --success-text: #047857;
   --success-border: #a7f3d0;
 
   --warning-bg: #fffbeb;
-  --warning-text: #92400e;
+  --warning-text: #b45309;
   --warning-border: #fde68a;
 
   --error-bg: #fef2f2;
-  --error-text: #991b1b;
+  --error-text: #b91c1c;
   --error-border: #fecaca;
 
-  /* Focus Indicator Ring */
-  --focus-ring: 0 0 0 2px #ffffff, 0 0 0 4px #18181b;
+  --info-bg: #eff6ff;
+  --info-text: #1d4ed8;
+  --info-border: #bfdbfe;
 
-  /* Spacing Scale (4px base grid) */
+  /* Focus Indicator Ring */
+  --focus-ring: 0 0 0 2px #ffffff, 0 0 0 4px #6366f1;
+
+  /* Spacing Scale */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
@@ -52,35 +64,34 @@
   --space-2xl: 24px;
   --space-3xl: 32px;
   --space-4xl: 40px;
-  --space-5xl: 48px;
-  --space-6xl: 64px;
 
   /* Border Radii */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 10px;
-  --radius-xl: 12px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 
   /* Shadows */
   --shadow-none: none;
-  --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-elevated: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --shadow-overlay: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-subtle: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.02);
+  --shadow-elevated: 0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 8px 10px -6px rgba(15, 23, 42, 0.03);
+  --shadow-glow: 0 0 20px -3px rgba(99, 102, 241, 0.25);
+  --shadow-overlay: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
 
   /* Typography */
-  --font-family-base: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-family-arabic: 'Segoe UI Arabic', 'Tahoma', 'Cairo', 'Inter', system-ui, sans-serif;
-  --font-size-display: 2rem;       /* 32px */
+  --font-family-base: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family-arabic: 'Cairo', 'Segoe UI Arabic', 'Tahoma', system-ui, sans-serif;
+  --font-size-display: 2.25rem;    /* 36px */
   --font-size-title: 1.5rem;       /* 24px */
   --font-size-section: 1.125rem;   /* 18px */
-  --font-size-card: 0.9375rem;     /* 15px */
+  --font-size-card: 1rem;          /* 16px */
   --font-size-body: 0.875rem;      /* 14px */
   --font-size-label: 0.8125rem;    /* 13px */
   --font-size-caption: 0.75rem;    /* 12px */
 }
 
-/* Base Reset & Typography Setup */
+/* Base Reset & Smooth Rendering Setup */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -89,7 +100,7 @@
 
 html, body {
   height: 100%;
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-arabic);
   font-size: 16px;
   background-color: var(--bg-app);
   color: var(--text-primary);
@@ -97,19 +108,29 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-html[dir="rtl"], html[dir="rtl"] body {
-  font-family: var(--font-family-arabic);
-}
-
-/* RTL Directional Icon Flip */
-[dir="rtl"] .icon-flip-rtl {
-  transform: scaleX(-1);
-}
-
 #root {
   min-height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* Accessibility Focus Indicator */
@@ -121,27 +142,27 @@ html[dir="rtl"], html[dir="rtl"] body {
 /* Typography Utility Classes */
 .text-display {
   font-size: var(--font-size-display);
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.2;
   letter-spacing: -0.02em;
 }
 
 .text-title {
   font-size: var(--font-size-title);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.3;
   letter-spacing: -0.01em;
 }
 
 .text-section {
   font-size: var(--font-size-section);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.4;
 }
 
 .text-card {
   font-size: var(--font-size-card);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.4;
 }
 
@@ -153,21 +174,58 @@ html[dir="rtl"], html[dir="rtl"] body {
 
 .text-body-medium {
   font-size: var(--font-size-body);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.5;
 }
 
 .text-label {
   font-size: var(--font-size-label);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.4;
 }
 
 .text-caption {
   font-size: var(--font-size-caption);
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.4;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
+}
+
+/* Custom UI Polish Classes */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.card-hover-effect {
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover-effect:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.04);
+}
+
+.glow-pill {
+  position: relative;
+  overflow: hidden;
+}
+
+.glow-pill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 600ms ease;
+}
+
+.glow-pill:hover::after {
+  left: 100%;
 }
 
 /* Reduced Motion Preference Support */

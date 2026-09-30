@@ -1,7 +1,7 @@
 import React, { ButtonHTMLAttributes } from 'react';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'gradient';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   fullWidth?: boolean;
@@ -16,38 +16,47 @@ export const Button: React.FC<ButtonProps> = ({
   children,
   disabled,
   className = '',
+  style: userStyle,
   ...props
 }) => {
-  const getVariantStyles = () => {
+  const getVariantStyles = (): React.CSSProperties => {
     switch (variant) {
       case 'primary':
         return {
-          backgroundColor: 'var(--primary-bg)',
-          color: 'var(--text-on-primary)',
-          border: '1px solid var(--primary-bg)',
+          backgroundColor: '#0f172a',
+          color: '#ffffff',
+          border: '1px solid #0f172a',
+          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+        };
+      case 'gradient':
+        return {
+          background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+          color: '#ffffff',
+          border: 'none',
+          boxShadow: '0 4px 14px rgba(79, 70, 229, 0.3)',
         };
       case 'secondary':
         return {
-          backgroundColor: 'var(--bg-surface-hover)',
-          color: 'var(--text-primary)',
-          border: '1px solid var(--border-subtle)',
+          backgroundColor: '#f1f5f9',
+          color: '#0f172a',
+          border: '1px solid #e2e8f0',
         };
       case 'outline':
         return {
           backgroundColor: 'transparent',
-          color: 'var(--text-primary)',
-          border: '1px solid var(--border-strong)',
+          color: '#334155',
+          border: '1px solid #cbd5e1',
         };
       case 'danger':
         return {
-          backgroundColor: 'var(--error-bg)',
-          color: 'var(--error-text)',
-          border: '1px solid var(--error-border)',
+          backgroundColor: '#fef2f2',
+          color: '#dc2626',
+          border: '1px solid #fecaca',
         };
       case 'ghost':
         return {
           backgroundColor: 'transparent',
-          color: 'var(--text-secondary)',
+          color: '#475569',
           border: '1px solid transparent',
         };
       default:
@@ -55,39 +64,41 @@ export const Button: React.FC<ButtonProps> = ({
     }
   };
 
-  const getSizeStyles = () => {
+  const getSizeStyles = (): React.CSSProperties => {
     switch (size) {
       case 'sm':
-        return { padding: 'var(--space-xs) var(--space-md)', fontSize: 'var(--font-size-label)', minHeight: '36px' };
+        return { padding: '6px 12px', fontSize: '0.8125rem', borderRadius: '8px', minHeight: '34px' };
       case 'lg':
-        return { padding: 'var(--space-md) var(--space-2xl)', fontSize: 'var(--font-size-card)', minHeight: '54px' };
+        return { padding: '12px 24px', fontSize: '1rem', borderRadius: '12px', minHeight: '50px' };
       case 'md':
       default:
-        return { padding: 'var(--space-sm) var(--space-lg)', fontSize: 'var(--font-size-body)', minHeight: '44px' };
+        return { padding: '8px 16px', fontSize: '0.875rem', borderRadius: '10px', minHeight: '40px' };
     }
   };
 
-  const style: React.CSSProperties = {
+  const combinedStyle: React.CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 'var(--space-sm)',
-    fontWeight: 500,
-    borderRadius: 'var(--radius-md)',
+    gap: '8px',
+    fontWeight: 600,
     cursor: disabled || isLoading ? 'not-allowed' : 'pointer',
     opacity: disabled || isLoading ? 0.6 : 1,
-    transition: 'all 150ms ease-out',
+    transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
     width: fullWidth ? '100%' : 'auto',
-    fontFamily: 'var(--font-family-base)',
+    fontFamily: 'inherit',
+    userSelect: 'none',
+    whiteSpace: 'nowrap',
     ...getVariantStyles(),
     ...getSizeStyles(),
+    ...userStyle,
   };
 
   return (
     <button
       disabled={disabled || isLoading}
-      style={style}
-      className={className}
+      style={combinedStyle}
+      className={`${className} glow-pill`}
       {...props}
     >
       {isLoading && (

@@ -13,8 +13,8 @@ export const AdminShell: React.FC<AdminShellProps> = ({ title, children }) => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--bg-app)' }}>
-      {/* Desktop Sidebar (240px) */}
-      <div className="admin-desktop-sidebar-container" style={{ height: '100vh', position: 'sticky', top: 0 }}>
+      {/* Desktop Sidebar (260px) */}
+      <div className="admin-desktop-sidebar-container" style={{ height: '100vh', position: 'sticky', top: 0, zIndex: 90 }}>
         <AdminSidebar />
       </div>
 
@@ -22,7 +22,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({ title, children }) => {
       <Drawer
         isOpen={isMobileOpen}
         onClose={() => setIsMobileOpen(false)}
-        title="Admin Navigation"
+        title="القائمة الرئيسية"
         width="280px"
       >
         <AdminSidebar onLinkClick={() => setIsMobileOpen(false)} />
@@ -36,9 +36,10 @@ export const AdminShell: React.FC<AdminShellProps> = ({ title, children }) => {
           style={{
             flex: 1,
             width: '100%',
-            maxWidth: '1200px',
+            maxWidth: '1440px',
             margin: '0 auto',
-            padding: 'var(--space-3xl) var(--space-2xl)',
+            padding: 'var(--space-2xl)',
+            boxSizing: 'border-box',
           }}
         >
           {children}
@@ -46,7 +47,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({ title, children }) => {
       </div>
 
       <style>{`
-        @media (max-width: 768px) {
+        @media (max-width: 992px) {
           .admin-desktop-sidebar-container {
             display: none !important;
           }

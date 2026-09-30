@@ -11,12 +11,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || (label ? `input-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)', width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
         {label && (
           <label
             htmlFor={inputId}
-            className="text-label"
-            style={{ color: 'var(--text-primary)', fontWeight: 500 }}
+            style={{ color: '#0f172a', fontWeight: 600, fontSize: '0.8125rem' }}
           >
             {label}
           </label>
@@ -24,17 +23,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           id={inputId}
           ref={ref}
-          className={`text-body ${className}`}
+          className={className}
           style={{
             width: '100%',
-            padding: 'var(--space-md)',
-            borderRadius: 'var(--radius-sm)',
-            border: `1px solid ${error ? 'var(--error-border)' : 'var(--border-subtle)'}`,
-            backgroundColor: 'var(--bg-surface)',
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-family-base)',
-            minHeight: '44px',
-            transition: 'border-color 150ms ease-out, box-shadow 150ms ease-out',
+            padding: '10px 14px',
+            borderRadius: '10px',
+            border: `1px solid ${error ? '#fecaca' : '#cbd5e1'}`,
+            backgroundColor: '#ffffff',
+            color: '#0f172a',
+            fontFamily: 'inherit',
+            fontSize: '0.875rem',
+            minHeight: '42px',
+            transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+            boxSizing: 'border-box',
+            outline: 'none',
             ...style,
           }}
           aria-invalid={Boolean(error)}
@@ -44,15 +46,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {error && (
           <span
             id={`${inputId}-error`}
-            className="text-caption"
-            style={{ color: 'var(--error-text)', fontWeight: 500 }}
+            style={{ color: '#dc2626', fontWeight: 500, fontSize: '0.75rem' }}
             role="alert"
           >
             {error}
           </span>
         )}
         {!error && helperText && (
-          <span id={`${inputId}-helper`} className="text-caption">
+          <span id={`${inputId}-helper`} style={{ color: '#64748b', fontSize: '0.75rem' }}>
             {helperText}
           </span>
         )}
