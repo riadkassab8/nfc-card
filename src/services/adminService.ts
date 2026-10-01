@@ -1,5 +1,8 @@
+/* ==========================================================================
+   REAL ADMIN SERVICE (src/services/adminService.ts)
+   ========================================================================== */
+
 import { Business, UnifiedAsset, AdminStats } from '../types';
-import { mockBusinesses } from './mockData';
 import { cardService } from './cardService';
 
 export interface IAdminService {
@@ -11,46 +14,46 @@ export interface IAdminService {
   resolveAssetPayload(payload: string): Promise<UnifiedAsset | null>;
 }
 
-class MockAdminService implements IAdminService {
+class RealAdminService implements IAdminService {
   async provisionNewNFC(label: string): Promise<any> {
-    await this.simulateLatency();
     const batchRes = await cardService.generateCardBatch(1);
     const newCard = batchRes.cards[0];
     return {
-      id: newCard.nfc.id,
-      public_code: newCard.public_code,
+      id: newCard?.nfc?.id || `NFC-${Date.now()}`,
+      public_code: newCard?.public_code || 'NEW',
       label,
       status: 'ACTIVE',
-      created_at: newCard.created_at,
+      created_at: newCard?.created_at || new Date().toISOString(),
     };
   }
 
   async associateCodeWithBusiness(publicCode: string, businessId: string): Promise<{ success: boolean; message: string }> {
-    await this.simulateLatency();
-    const business = mockBusinesses.find((b) => b.id === businessId);
-    if (!business) {
-      return { success: false, message: 'Target business not found.' };
-    }
-
     const card = await cardService.resolveCardByPayload(publicCode);
     if (card) {
       await cardService.assignCardToBusiness(card.id, businessId);
       return {
         success: true,
-        message: `Card "${card.card_code}" (${card.public_code}) associated with "${business.name}" successfully.`,
+        message: `Card "${card.card_code}" (${card.public_code}) updated successfully.`,
       };
     }
-
-    return { success: false, message: 'Card not found for payload.' };
+    return { success: false, message: 'Card not found for specified payload.' };
   }
 
   async getAllTenantBusinesses(): Promise<Business[]> {
-    await this.simulateLatency();
-    return mockBusinesses.map((b) => ({ ...b }));
+    const cards = await cardService.getAllCards();
+    const activeCards = cards.filter((c) => c.status === 'ACTIVE');
+    return activeCards.map((c) => ({
+      id: c.id,
+      user_id: 'admin',
+      name: c.business_name || `Card Target (${c.card_code})`,
+      website_url: c.public_url,
+      status: 'ACTIVE',
+      created_at: c.created_at,
+      updated_at: c.updated_at || c.created_at,
+    }));
   }
 
   async getAllUnifiedAssets(): Promise<UnifiedAsset[]> {
-    await this.simulateLatency();
     const cards = await cardService.getAllCards();
     const assets: UnifiedAsset[] = [];
 
@@ -60,20 +63,20 @@ class MockAdminService implements IAdminService {
         id: c.qr.id,
         type: 'QR',
         public_code: c.public_code,
-        business_id: c.business_id || undefined,
+        business_id: c.id,
         business_name: bizName,
         label: `QR (${c.card_code})`,
-        status: c.usage_status === 'USED' ? 'ACTIVE' : 'UNASSIGNED',
+        status: c.status === 'ACTIVE' ? 'ACTIVE' : 'UNASSIGNED',
         created_at: c.created_at,
       });
       assets.push({
         id: c.nfc.id,
         type: 'NFC',
         public_code: c.public_code,
-        business_id: c.business_id || undefined,
+        business_id: c.id,
         business_name: bizName,
         label: `NFC (${c.card_code})`,
-        status: c.usage_status === 'USED' ? 'ACTIVE' : 'UNASSIGNED',
+        status: c.status === 'ACTIVE' ? 'ACTIVE' : 'UNASSIGNED',
         created_at: c.created_at,
       });
     });
@@ -82,23 +85,23 @@ class MockAdminService implements IAdminService {
   }
 
   async getAdminStats(): Promise<AdminStats> {
-    await this.simulateLatency();
     const assets = await this.getAllUnifiedAssets();
     const cardStats = await cardService.getCardStats();
 
     return {
-      total_businesses: mockBusinesses.length,
-      active_businesses: mockBusinesses.filter((b) => b.status === 'ACTIVE').length,
+      total_businesses: cardStats.active_cards,
+      active_businesses: cardStats.active_cards,
       total_assets: assets.length,
-      unassigned_assets: assets.filter((a) => !a.business_id || a.status === 'UNASSIGNED').length,
+      unassigned_assets: assets.filter((a) => a.status === 'UNASSIGNED').length,
       total_cards: cardStats.total_cards,
-      used_cards: cardStats.used_cards,
-      unused_cards: cardStats.unused_cards,
+      active_cards: cardStats.active_cards,
+      inactive_cards: cardStats.inactive_cards,
+      used_cards: cardStats.active_cards,
+      unused_cards: cardStats.inactive_cards,
     };
   }
 
   async resolveAssetPayload(payload: string): Promise<UnifiedAsset | null> {
-    await this.simulateLatency();
     const card = await cardService.resolveCardByPayload(payload);
     if (!card) return null;
 
@@ -106,17 +109,13 @@ class MockAdminService implements IAdminService {
       id: card.id,
       type: 'QR',
       public_code: card.public_code,
-      business_id: card.business_id || undefined,
+      business_id: card.id,
       business_name: card.business_name || 'Unassigned',
       label: card.card_code,
-      status: card.usage_status === 'USED' ? 'ACTIVE' : 'UNASSIGNED',
+      status: card.status === 'ACTIVE' ? 'ACTIVE' : 'UNASSIGNED',
       created_at: card.created_at,
     };
   }
-
-  private simulateLatency(ms = 80): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
 }
 
-export const adminService: IAdminService = new MockAdminService();
+export const adminService: IAdminService = new RealAdminService();

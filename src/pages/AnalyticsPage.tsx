@@ -48,7 +48,12 @@ export const AnalyticsPage: React.FC = () => {
         {/* Header Action Bar with Time Range Filter */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
           <div>
-            <h2 className="text-title">{t('dashboard.analytics.title')}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 className="text-title">{t('dashboard.analytics.title')}</h2>
+              <span style={{ backgroundColor: '#fff7ed', color: '#c2410c', border: '1px solid #ffedd5', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800 }}>
+                BACKEND GAP — Analytics API not available
+              </span>
+            </div>
             <p className="text-body" style={{ color: 'var(--text-secondary)' }}>
               {t('dashboard.analytics.subtitle')}
             </p>

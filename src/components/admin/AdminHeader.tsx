@@ -1,6 +1,7 @@
 import React from 'react';
-import { Menu, Search, Bell } from 'lucide-react';
-import { LanguageSwitcher } from '../ui';
+import { Menu, Search, Bell, LogOut, User } from 'lucide-react';
+import { LanguageSwitcher, Button } from '../ui';
+import { useAuth } from '../../context/AuthContext';
 
 export interface AdminHeaderProps {
   title: string;
@@ -9,6 +10,8 @@ export interface AdminHeaderProps {
 }
 
 export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMenu, onOpenCommandPalette }) => {
+  const { admin, logout } = useAuth();
+
   return (
     <header
       style={{
@@ -113,6 +116,23 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
             }}
           />
         </button>
+
+        {/* Admin Profile Pill & Logout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f1f5f9', padding: '4px 10px', borderRadius: '10px' }}>
+          <User size={15} style={{ color: '#6366f1' }} />
+          <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#0f172a' }}>
+            {admin?.username || 'admin'}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={logout}
+            title="تسجيل الخروج"
+            style={{ padding: '4px', minWidth: 'auto', color: '#ef4444' }}
+          >
+            <LogOut size={16} />
+          </Button>
+        </div>
 
         {/* Language Switcher */}
         <LanguageSwitcher variant="outline" size="sm" />

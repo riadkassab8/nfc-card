@@ -212,3 +212,108 @@ export interface AdminStats {
   used_cards?: number;
   unused_cards?: number;
 }
+
+/* ==========================================================================
+   OFFICIAL BACKEND API SCHEMAS & CONVERTERS
+   ========================================================================== */
+
+export interface ApiAdmin {
+  id: string;
+  username: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ApiAuthResponse {
+  access_token: string;
+  admin: ApiAdmin;
+}
+
+export interface ApiCard {
+  _id: string;
+  card_code: string;
+  nfc_uid?: string;
+  qr_code?: string;
+  card_type: string;
+  current_redirect_url: string;
+  status: 'active' | 'inactive';
+  subscription_start_date: string;
+  subscription_end_date: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiCardsPaginatedResponse {
+  data: ApiCard[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ApiCreateCardDto {
+  card_code: string;
+  nfc_uid?: string;
+  qr_code?: string;
+  card_type: string;
+  current_redirect_url: string;
+}
+
+export interface ApiUpdateCardDto {
+  nfc_uid?: string;
+  qr_code?: string;
+  card_type?: string;
+  current_redirect_url?: string;
+  status?: 'active' | 'inactive';
+}
+
+export interface ApiUpdateRedirectDto {
+  redirect_url: string;
+}
+
+/**
+ * Adapter: Converts backend ApiCard object to frontend CardItem format
+ */
+export const apiCardToCardItem = (apiCard: ApiCard): CardItem => {
+  const publicCode = apiCard.card_code ? apiCard.card_code.replace('CARD-', '') : apiCard._id.slice(-6).toUpperCase();
+  const status: CardStatus = apiCard.status === 'active' ? 'ACTIVE' : 'INACTIVE';
+
+  let cardType: CardProductType = 'UNIFIED_SOCIAL';
+  const typeLower = (apiCard.card_type || '').toLowerCase();
+  if (typeLower.includes('google') || typeLower.includes('review')) {
+    cardType = 'GOOGLE_REVIEW';
+  } else if (typeLower.includes('insta') || typeLower.includes('pay')) {
+    cardType = 'INSTAPAY';
+  } else {
+    cardType = 'UNIFIED_SOCIAL';
+  }
+
+  return {
+    id: apiCard._id,
+    card_code: apiCard.card_code,
+    public_code: publicCode,
+    card_type: cardType,
+    public_url: apiCard.current_redirect_url,
+    qr: {
+      id: apiCard.qr_code || `QR-${publicCode}`,
+      public_code: publicCode,
+      public_url: apiCard.current_redirect_url,
+    },
+    nfc: {
+      id: `NFC-${apiCard.nfc_uid || publicCode}`,
+      identifier: apiCard.nfc_uid || `NFC-${publicCode}`,
+      public_url: apiCard.current_redirect_url,
+    },
+    status,
+    business_data: apiCard.current_redirect_url ? {
+      name: apiCard.card_type ? `${apiCard.card_type}` : 'Target Destination',
+      google_review_url: cardType === 'GOOGLE_REVIEW' ? apiCard.current_redirect_url : undefined,
+      instapay_url: cardType === 'INSTAPAY' ? apiCard.current_redirect_url : undefined,
+      website_url: cardType === 'UNIFIED_SOCIAL' ? apiCard.current_redirect_url : undefined,
+    } : null,
+    business_name: apiCard.card_type ? `${apiCard.card_type}` : 'Target Destination',
+    usage_status: status === 'ACTIVE' ? 'USED' : 'UNUSED',
+    created_at: apiCard.createdAt || apiCard.subscription_start_date || new Date().toISOString(),
+    updated_at: apiCard.updatedAt || new Date().toISOString(),
+  };
+};

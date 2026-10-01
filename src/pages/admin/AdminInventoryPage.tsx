@@ -3,6 +3,7 @@ import { Card, Input, Button, Badge, Skeleton, Toast, ToastType, EmptyState, Err
 import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCardsModal';
 import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { cardService } from '../../services';
+import { cardsApi } from '../../services/api';
 import { CardItem, CardInventoryStats, CardProductType } from '../../types';
 import { useTranslation } from '../../i18n';
 import { Plus, CreditCard, Eye, Download, Building2, Edit, Trash2, Power, Layers, CheckCircle2, AlertCircle, Copy, ExternalLink } from 'lucide-react';
@@ -117,18 +118,30 @@ export const AdminInventoryPage: React.FC = () => {
 
   const downloadPNG = async (card: CardItem) => {
     try {
-      const result = await generateRealQRCode(card);
-      const blob = new Blob([result.svgString], { type: 'image/svg+xml' });
+      const blob = await cardsApi.getCardQrBlob(card.id);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `QR-CODE-${card.public_code}.svg`;
+      a.download = `qr-${card.card_code}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Error generating QR code for download:', err);
+      try {
+        const result = await generateRealQRCode(card);
+        const blob = new Blob([result.svgString], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `QR-CODE-${card.public_code}.svg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error('Error generating QR code for download:', e);
+      }
     }
   };
 

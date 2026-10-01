@@ -15,12 +15,16 @@ import { Button, LanguageSwitcher } from './components/ui';
 import { useTranslation } from './i18n';
 import { QrCode, ShieldAlert } from 'lucide-react';
 
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './components/admin/ProtectedRoute';
+import { LoginPage } from './pages/LoginPage';
+
 const GlobalHeader: React.FC = () => {
   const location = useLocation();
   const { t } = useTranslation();
 
   // Hide header completely on public customer routes for clean customer view
-  if (location.pathname.startsWith('/q/')) {
+  if (location.pathname.startsWith('/q/') || location.pathname === '/login') {
     return null;
   }
 
@@ -64,87 +68,106 @@ const GlobalHeader: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <Router>
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <GlobalHeader />
+    <AuthProvider>
+      <Router>
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+          <GlobalHeader />
 
-        {/* Main Route Body */}
-        <main style={{ flex: 1 }}>
-          <Routes>
-            {/* Public Dynamic Customer Route */}
-            <Route path="/q/:publicCode" element={<PublicBusinessPage />} />
+          {/* Main Route Body */}
+          <main style={{ flex: 1 }}>
+            <Routes>
+              {/* Unauthenticated Login Route */}
+              <Route path="/login" element={<LoginPage />} />
 
-            {/* Merchant Prototype Routes (Hidden from Admin Workflow) */}
-            <Route path="/dashboard" element={<DashboardOverviewPage />} />
-            <Route path="/dashboard/business" element={<BusinessProfilePage />} />
-            <Route path="/dashboard/qr-codes" element={<QRCodesPage />} />
-            <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
-            <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
+              {/* Public Dynamic Customer Route */}
+              <Route path="/q/:publicCode" element={<PublicBusinessPage />} />
 
-            {/* Platform Admin Routes */}
-            <Route
-              path="/admin"
-              element={
-                <AdminShell title="Platform Overview">
-                  <AdminOverviewPage />
-                </AdminShell>
-              }
-            />
-            <Route
-              path="/admin/cards"
-              element={
-                <AdminShell title="Cards Inventory">
-                  <AdminInventoryPage />
-                </AdminShell>
-              }
-            />
-            <Route
-              path="/admin/qr-nfc"
-              element={
-                <AdminShell title="Cards Inventory">
-                  <AdminInventoryPage />
-                </AdminShell>
-              }
-            />
-            <Route
-              path="/admin/scan"
-              element={
-                <AdminShell title="Scan / Provision Card">
-                  <AdminScanPage />
-                </AdminShell>
-              }
-            />
-            <Route
-              path="/admin/analytics"
-              element={
-                <AdminShell title="Analytics & Reports">
-                  <AnalyticsPage />
-                </AdminShell>
-              }
-            />
-            <Route
-              path="/admin/settings"
-              element={
-                <AdminShell title="Admin Settings">
-                  <DashboardSettingsPage />
-                </AdminShell>
-              }
-            />
-            <Route
-              path="/admin/businesses"
-              element={
-                <AdminShell title="Business Data">
-                  <AdminBusinessesPage />
-                </AdminShell>
-              }
-            />
+              {/* Merchant Prototype Routes */}
+              <Route path="/dashboard" element={<DashboardOverviewPage />} />
+              <Route path="/dashboard/business" element={<BusinessProfilePage />} />
+              <Route path="/dashboard/qr-codes" element={<QRCodesPage />} />
+              <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
+              <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
 
-            {/* Default Fallback Redirect to Admin */}
-            <Route path="*" element={<Navigate to="/admin" replace />} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+              {/* Platform Admin Routes (Protected by JWT Auth) */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminShell title="Platform Overview">
+                      <AdminOverviewPage />
+                    </AdminShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/cards"
+                element={
+                  <ProtectedRoute>
+                    <AdminShell title="Cards Inventory">
+                      <AdminInventoryPage />
+                    </AdminShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/qr-nfc"
+                element={
+                  <ProtectedRoute>
+                    <AdminShell title="Cards Inventory">
+                      <AdminInventoryPage />
+                    </AdminShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/scan"
+                element={
+                  <ProtectedRoute>
+                    <AdminShell title="Scan / Provision Card">
+                      <AdminScanPage />
+                    </AdminShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/analytics"
+                element={
+                  <ProtectedRoute>
+                    <AdminShell title="Analytics & Reports">
+                      <AnalyticsPage />
+                    </AdminShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings"
+                element={
+                  <ProtectedRoute>
+                    <AdminShell title="Admin Settings">
+                      <DashboardSettingsPage />
+                    </AdminShell>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/businesses"
+                element={
+                  <ProtectedRoute>
+                    <AdminShell title="Business Data">
+                      <AdminBusinessesPage />
+                    </AdminShell>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Default Fallback Redirect to Admin */}
+              <Route path="*" element={<Navigate to="/admin" replace />} />
+            </Routes>
+          </main>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 };
 
