@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Drawer, Button, Input, Select } from '../ui';
-import { CardItem, CardProductType, ApiUpdateCardDto } from '../../types';
+import { CardItem, CardProductType, ApiUpdateCardDto, getMainCategory } from '../../types';
 import {
   Download,
   Cpu,
@@ -324,7 +324,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
 
             {/* Preview Button */}
             <a
-              href={`/c/${card.public_code}`}
+              href={getMainCategory(card.card_type) === 'Social' ? `/social/${card.public_code}` : `/c/${card.public_code}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{

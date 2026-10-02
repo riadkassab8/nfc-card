@@ -447,12 +447,9 @@ export const PhysicalCardPreview: React.FC<PhysicalCardPreviewProps> = ({
 
             {/* Back Footer Info */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 2, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '10px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <span style={{ fontSize: '0.55rem', color: '#64748b', fontFamily: 'monospace' }}>
                   UID: {nfcIdentifier}
-                </span>
-                <span style={{ fontSize: '0.55rem', color: '#dfb75c', fontFamily: 'monospace' }}>
-                  smart-card-qr-api.koyeb.app/r/{card.card_code}
                 </span>
               </div>
 

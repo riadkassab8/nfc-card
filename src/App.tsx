@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { PublicCardLandingPage } from './pages/PublicCardLandingPage';
+import { SocialPage } from './pages/SocialPage';
 import { DashboardOverviewPage } from './pages/DashboardOverviewPage';
 import { BusinessProfilePage } from './pages/BusinessProfilePage';
 import { QRCodesPage } from './pages/QRCodesPage';
@@ -26,6 +27,7 @@ const GlobalHeader: React.FC = () => {
   if (
     location.pathname.startsWith('/card/') ||
     location.pathname.startsWith('/c/') ||
+    location.pathname.startsWith('/social/') ||
     location.pathname.startsWith('/q/') ||
     location.pathname.startsWith('/r/') ||
     location.pathname === '/login'
@@ -85,6 +87,7 @@ export const App: React.FC = () => {
               <Route path="/login" element={<LoginPage />} />
 
               {/* Public Dynamic Customer Card Landing Page Routes */}
+              <Route path="/social/:publicCode" element={<SocialPage />} />
               <Route path="/card/:cardId" element={<PublicCardLandingPage />} />
               <Route path="/c/:publicCode" element={<PublicCardLandingPage />} />
               <Route path="/q/:publicCode" element={<PublicCardLandingPage />} />

@@ -111,11 +111,11 @@ export const cardsApi = {
 
   /**
    * PUT /api/cards/:id/redirect
-   * Change only the current_redirect_url of a card.
+   * Change the current_redirect_url and business_data of a card.
    * TOKEN REQUIRED.
    */
-  updateRedirectUrl: async (id: string, redirectUrl: string): Promise<ApiCard> => {
-    const dto = { redirect_url: redirectUrl };
+  updateRedirectUrl: async (id: string, redirectUrl: string, businessData?: any): Promise<ApiCard> => {
+    const dto = { redirect_url: redirectUrl, business_data: businessData };
     return apiClient<ApiCard>(`/cards/${id}/redirect`, {
       method: 'PUT',
       body: dto,

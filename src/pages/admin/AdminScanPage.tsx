@@ -251,7 +251,14 @@ export const AdminScanPage: React.FC = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => window.open(`/c/${resolvedCard.public_code}`, '_blank')}
+                onClick={() => {
+                  const category = getMainCategory(resolvedCard.card_type);
+                  if (category === 'Social') {
+                    window.open(`/social/${resolvedCard.public_code}`, '_blank');
+                  } else {
+                    window.open(`/c/${resolvedCard.public_code}`, '_blank');
+                  }
+                }}
               >
                 👁️ معاينة الكارت
               </Button>

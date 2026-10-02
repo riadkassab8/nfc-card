@@ -253,6 +253,7 @@ export interface ApiCard {
   qr_code?: string;
   card_type: string;
   current_redirect_url: string;
+  business_data?: any;
   status: 'active' | 'inactive';
   subscription_start_date: string;
   subscription_end_date: string;
@@ -281,11 +282,13 @@ export interface ApiUpdateCardDto {
   qr_code?: string;
   card_type?: string;
   current_redirect_url?: string;
+  business_data?: any;
   status?: 'active' | 'inactive';
 }
 
 export interface ApiUpdateRedirectDto {
   redirect_url: string;
+  business_data?: any;
 }
 
 /**
@@ -315,19 +318,23 @@ export const apiCardToCardItem = (apiCard: ApiCard): CardItem => {
     cardType = typeStr as CardProductType;
   }
 
-  let parsedBusinessData: BusinessData | null = null;
-  if (apiCard.current_redirect_url) {
-    try {
-      const urlObj = new URL(apiCard.current_redirect_url);
-      const dataParam = urlObj.searchParams.get('data');
-      if (dataParam) {
-         // Use robust base64 decoding that supports UTF-8 (Arabic characters)
-         const base64Decoded = atob(dataParam);
-         const utf8Decoded = new TextDecoder().decode(new Uint8Array([...base64Decoded].map(c => c.charCodeAt(0))));
-         parsedBusinessData = JSON.parse(utf8Decoded);
+  let parsedBusinessData: BusinessData | null = apiCard.business_data || null;
+  
+  if (!parsedBusinessData) {
+    // If the backend didn't provide business_data, try fallback to URL (for old cached cards),
+    // OR create a default empty BusinessData object.
+    if (apiCard.current_redirect_url) {
+      try {
+        const urlObj = new URL(apiCard.current_redirect_url);
+        const dataParam = urlObj.searchParams.get('data');
+        if (dataParam) {
+           const base64Decoded = atob(dataParam);
+           const utf8Decoded = new TextDecoder().decode(new Uint8Array([...base64Decoded].map(c => c.charCodeAt(0))));
+           parsedBusinessData = JSON.parse(utf8Decoded);
+        }
+      } catch (e) {
+        // Ignored
       }
-    } catch (e) {
-      // Ignored
     }
     
     if (!parsedBusinessData) {

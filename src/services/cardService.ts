@@ -20,6 +20,7 @@ import {
   CardProductType,
   apiCardToCardItem,
   ApiCreateCardDto,
+  getMainCategory,
 } from '../types';
 import { cardsApi, CardQueryParams } from './api';
 
@@ -184,22 +185,18 @@ class RealCardService implements ICardService {
     let targetUrl = publicUrl?.trim() || '';
 
     // 3. Determine the redirect URL
-    // ALWAYS redirect to our unified /c/:cardId route. The frontend routing engine will handle the specific logic.
     if (!targetUrl) {
-      const jsonStr = JSON.stringify(cleanData);
-      const utf8Bytes = new TextEncoder().encode(jsonStr);
-      let binary = '';
-      for (let i = 0; i < utf8Bytes.length; i++) {
-        binary += String.fromCharCode(utf8Bytes[i]);
-      }
-      const base64Data = btoa(binary);
-      
       // Use the actual origin where the app is running (e.g. localhost:3000 or the real vercel domain)
       const origin = import.meta.env.VITE_PUBLIC_FRONTEND_URL || window.location.origin;
-      targetUrl = `${origin}/c/${cardCode}?data=${base64Data}`;
+      const category = getMainCategory(currentCard?.card_type);
+      if (category === 'Social') {
+        targetUrl = `${origin}/social/${cardCode}`;
+      } else {
+        targetUrl = `${origin}/c/${cardCode}`;
+      }
     }
 
-    const updatedApiCard = await cardsApi.updateRedirectUrl(cardId, targetUrl);
+    const updatedApiCard = await cardsApi.updateRedirectUrl(cardId, targetUrl, cleanData);
     return apiCardToCardItem(updatedApiCard);
   }
 
