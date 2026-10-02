@@ -5,7 +5,7 @@ import { Card, Button, Badge, Skeleton, ErrorState } from '../components/ui';
 import { businessService, qrService, analyticsService } from '../services';
 import { Business, QRCode, AnalyticsSummary } from '../types';
 import { useTranslation } from '../i18n';
-import { QrCode, ArrowUpRight, MessageCircle, Phone, Eye } from 'lucide-react';
+import { QrCode, MessageCircle, Phone, Eye } from 'lucide-react';
 
 export const DashboardOverviewPage: React.FC = () => {
   const { t } = useTranslation();
@@ -169,11 +169,6 @@ export const DashboardOverviewPage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 className="text-section">{t('dashboard.overview.recentScans')}</h3>
-                <Link to="/dashboard/analytics" style={{ textDecoration: 'none' }}>
-                  <Button variant="ghost" size="sm">
-                    {t('dashboard.nav.analytics')} <ArrowUpRight size={14} className="icon-flip-rtl" />
-                  </Button>
-                </Link>
               </div>
 
               {loading ? (

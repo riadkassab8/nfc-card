@@ -1,10 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { PublicBusinessPage } from './pages/PublicBusinessPage';
+import { PublicCardLandingPage } from './pages/PublicCardLandingPage';
 import { DashboardOverviewPage } from './pages/DashboardOverviewPage';
 import { BusinessProfilePage } from './pages/BusinessProfilePage';
 import { QRCodesPage } from './pages/QRCodesPage';
-import { AnalyticsPage } from './pages/AnalyticsPage';
 import { DashboardSettingsPage } from './pages/DashboardSettingsPage';
 import { AdminShell } from './components/admin/AdminShell';
 import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
@@ -24,7 +23,12 @@ const GlobalHeader: React.FC = () => {
   const { t } = useTranslation();
 
   // Hide header completely on public customer routes for clean customer view
-  if (location.pathname.startsWith('/q/') || location.pathname === '/login') {
+  if (
+    location.pathname.startsWith('/card/') ||
+    location.pathname.startsWith('/q/') ||
+    location.pathname.startsWith('/r/') ||
+    location.pathname === '/login'
+  ) {
     return null;
   }
 
@@ -79,14 +83,15 @@ export const App: React.FC = () => {
               {/* Unauthenticated Login Route */}
               <Route path="/login" element={<LoginPage />} />
 
-              {/* Public Dynamic Customer Route */}
-              <Route path="/q/:publicCode" element={<PublicBusinessPage />} />
+              {/* Public Dynamic Customer Card Landing Page Routes */}
+              <Route path="/card/:cardId" element={<PublicCardLandingPage />} />
+              <Route path="/q/:publicCode" element={<PublicCardLandingPage />} />
+              <Route path="/r/:publicCode" element={<PublicCardLandingPage />} />
 
               {/* Merchant Prototype Routes */}
               <Route path="/dashboard" element={<DashboardOverviewPage />} />
               <Route path="/dashboard/business" element={<BusinessProfilePage />} />
               <Route path="/dashboard/qr-codes" element={<QRCodesPage />} />
-              <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
               <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
 
               {/* Platform Admin Routes (Protected by JWT Auth) */}
@@ -126,16 +131,6 @@ export const App: React.FC = () => {
                   <ProtectedRoute>
                     <AdminShell title="Scan / Provision Card">
                       <AdminScanPage />
-                    </AdminShell>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/analytics"
-                element={
-                  <ProtectedRoute>
-                    <AdminShell title="Analytics & Reports">
-                      <AnalyticsPage />
                     </AdminShell>
                   </ProtectedRoute>
                 }

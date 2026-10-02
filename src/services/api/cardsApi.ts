@@ -66,14 +66,14 @@ export const cardsApi = {
 
   /**
    * GET /api/cards/:id/qr
-   * Download the QR code image for a card as a PNG file.
-   * NO TOKEN REQUIRED.
+   * Download the QR code image for a card as a PNG file (400x400px, Level H).
+   * TOKEN REQUIRED.
    */
   getCardQrBlob: async (id: string): Promise<Blob> => {
     return apiClient<Blob>(`/cards/${id}/qr`, {
       method: 'GET',
       responseType: 'blob',
-      requiresAuth: false, // NO TOKEN
+      requiresAuth: true,
     });
   },
 

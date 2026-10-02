@@ -136,9 +136,26 @@ export type CardStatus = 'ACTIVE' | 'INACTIVE';
 export type CardUsageStatus = 'UNUSED' | 'USED';
 
 export type CardProductType =
-  | 'GOOGLE_REVIEW'
-  | 'INSTAPAY'
-  | 'UNIFIED_SOCIAL';
+  | 'Google Review'
+  | 'Instagram'
+  | 'TikTok'
+  | 'InstaPay'
+  | 'Google Maps'
+  | 'WhatsApp';
+
+export type MainCardCategory = 'Google Review' | 'Social Media' | 'Payment';
+
+export const getMainCategory = (cardType?: string): MainCardCategory => {
+  if (!cardType) return 'Social Media';
+  const lower = cardType.toLowerCase();
+  if (lower.includes('google review') || lower.includes('review') || lower === 'google_review') {
+    return 'Google Review';
+  }
+  if (lower.includes('instapay') || lower.includes('payment') || lower.includes('vodafone')) {
+    return 'Payment';
+  }
+  return 'Social Media';
+};
 
 export interface BusinessData {
   name: string;
@@ -278,14 +295,24 @@ export const apiCardToCardItem = (apiCard: ApiCard): CardItem => {
   const publicCode = apiCard.card_code ? apiCard.card_code.replace('CARD-', '') : apiCard._id.slice(-6).toUpperCase();
   const status: CardStatus = apiCard.status === 'active' ? 'ACTIVE' : 'INACTIVE';
 
-  let cardType: CardProductType = 'UNIFIED_SOCIAL';
-  const typeLower = (apiCard.card_type || '').toLowerCase();
-  if (typeLower.includes('google') || typeLower.includes('review')) {
-    cardType = 'GOOGLE_REVIEW';
-  } else if (typeLower.includes('insta') || typeLower.includes('pay')) {
-    cardType = 'INSTAPAY';
-  } else {
-    cardType = 'UNIFIED_SOCIAL';
+  let cardType: CardProductType = 'Google Review';
+  const typeStr = apiCard.card_type || '';
+  const typeLower = typeStr.toLowerCase();
+
+  if (typeLower.includes('google review') || typeLower.includes('review')) {
+    cardType = 'Google Review';
+  } else if (typeLower.includes('google map') || typeLower.includes('maps')) {
+    cardType = 'Google Maps';
+  } else if (typeLower.includes('insta') && typeLower.includes('pay')) {
+    cardType = 'InstaPay';
+  } else if (typeLower.includes('instagram')) {
+    cardType = 'Instagram';
+  } else if (typeLower.includes('tiktok')) {
+    cardType = 'TikTok';
+  } else if (typeLower.includes('whatsapp')) {
+    cardType = 'WhatsApp';
+  } else if (typeStr) {
+    cardType = typeStr as CardProductType;
   }
 
   return {
@@ -295,7 +322,7 @@ export const apiCardToCardItem = (apiCard: ApiCard): CardItem => {
     card_type: cardType,
     public_url: apiCard.current_redirect_url,
     qr: {
-      id: apiCard.qr_code || `QR-${publicCode}`,
+      id: apiCard.qr_code || `https://smart-card-qr-api.koyeb.app/r/${apiCard.card_code}`,
       public_code: publicCode,
       public_url: apiCard.current_redirect_url,
     },
@@ -307,9 +334,9 @@ export const apiCardToCardItem = (apiCard: ApiCard): CardItem => {
     status,
     business_data: apiCard.current_redirect_url ? {
       name: apiCard.card_type ? `${apiCard.card_type}` : 'Target Destination',
-      google_review_url: cardType === 'GOOGLE_REVIEW' ? apiCard.current_redirect_url : undefined,
-      instapay_url: cardType === 'INSTAPAY' ? apiCard.current_redirect_url : undefined,
-      website_url: cardType === 'UNIFIED_SOCIAL' ? apiCard.current_redirect_url : undefined,
+      google_review_url: cardType === 'Google Review' ? apiCard.current_redirect_url : undefined,
+      instapay_url: cardType === 'InstaPay' ? apiCard.current_redirect_url : undefined,
+      website_url: apiCard.current_redirect_url,
     } : null,
     business_name: apiCard.card_type ? `${apiCard.card_type}` : 'Target Destination',
     usage_status: status === 'ACTIVE' ? 'USED' : 'UNUSED',

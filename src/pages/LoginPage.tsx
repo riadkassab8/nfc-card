@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Card, Input, Button, Toast } from '../components/ui';
-import { ShieldCheck, Lock, User, Sparkles } from 'lucide-react';
+import { ShieldCheck, Lock, User, Sparkles, Eye, EyeOff } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const { login, error, clearError, loading } = useAuth();
@@ -16,6 +16,7 @@ export const LoginPage: React.FC = () => {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -23,6 +24,8 @@ export const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting || loading) return;
+
     if (!username.trim() || !password.trim()) {
       setLocalError('يرجى إدخال اسم المستخدم وكلمة المرور');
       return;
@@ -122,14 +125,43 @@ export const LoginPage: React.FC = () => {
               </label>
               <div style={{ position: 'relative' }}>
                 <Input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  style={{ paddingInlineStart: '40px', backgroundColor: '#0f172a', color: '#ffffff', borderColor: '#334155' }}
+                  style={{
+                    paddingInlineStart: '40px',
+                    paddingInlineEnd: '40px',
+                    backgroundColor: '#0f172a',
+                    color: '#ffffff',
+                    borderColor: '#334155',
+                  }}
                 />
                 <Lock size={18} style={{ position: 'absolute', insetInlineStart: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                  style={{
+                    position: 'absolute',
+                    insetInlineEnd: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: showPassword ? '#818cf8' : '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px',
+                    borderRadius: '4px',
+                    transition: 'color 150ms ease-out',
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 

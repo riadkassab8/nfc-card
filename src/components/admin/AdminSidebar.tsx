@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CreditCard, Scan, BarChart3, Settings, Sparkles } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Scan, Settings, Sparkles } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 export interface AdminSidebarProps {
@@ -14,7 +14,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLinkClick }) => {
     { path: '/admin', label: t('admin.nav.overview'), icon: <LayoutDashboard size={18} /> },
     { path: '/admin/cards', label: t('admin.nav.cards'), icon: <CreditCard size={18} /> },
     { path: '/admin/scan', label: t('admin.nav.scan'), icon: <Scan size={18} /> },
-    { path: '/admin/analytics', label: t('admin.nav.analytics'), icon: <BarChart3 size={18} /> },
     { path: '/admin/settings', label: t('admin.nav.settings'), icon: <Settings size={18} /> },
   ];
 

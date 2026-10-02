@@ -70,7 +70,7 @@ class RealCardService implements ICardService {
     return apiCardToCardItem(createdApiCard);
   }
 
-  async generateCardBatch(quantity: number, cardType: CardProductType = 'GOOGLE_REVIEW'): Promise<{ batch: CardBatch; cards: CardItem[] }> {
+  async generateCardBatch(quantity: number, cardType: CardProductType = 'Google Review'): Promise<{ batch: CardBatch; cards: CardItem[] }> {
     if (quantity < 1 || quantity > 500) {
       throw new Error('Quantity must be between 1 and 500');
     }
@@ -79,17 +79,30 @@ class RealCardService implements ICardService {
     const now = new Date().toISOString();
     const createdCards: CardItem[] = [];
 
-    const backendTypeStr =
-      cardType === 'GOOGLE_REVIEW'
-        ? 'Google Review'
-        : cardType === 'INSTAPAY'
-        ? 'InstaPay'
-        : 'WhatsApp';
+    const backendTypeStr = cardType;
+
+    let startNum = Math.floor(1000 + Math.random() * 8000);
+    try {
+      const existing = await cardsApi.getCards({ limit: 100 });
+      if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
+        const numbers = existing.data
+          .map((c) => {
+            const match = c.card_code ? c.card_code.match(/^CARD-(\d+)$/i) : null;
+            return match ? parseInt(match[1], 10) : 0;
+          })
+          .filter((n) => !isNaN(n) && n > 0);
+        if (numbers.length > 0) {
+          startNum = Math.max(...numbers) + 1;
+        }
+      }
+    } catch (e) {
+      // Fallback to random 4-digit startNum
+    }
 
     for (let i = 0; i < quantity; i++) {
-      const randHex = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const cardCode = `CARD-${randHex}`;
-      const nfcUid = `NFC-${randHex}`;
+      const currentNum = startNum + i;
+      const cardCode = `CARD-${String(currentNum).padStart(4, '0')}`;
+      const nfcUid = `NFC-${String(currentNum).padStart(8, '0')}`;
       const redirectUrl = 'https://example.com';
 
       try {
@@ -102,6 +115,7 @@ class RealCardService implements ICardService {
         createdCards.push(newCard);
       } catch (err) {
         console.error(`Failed to create card ${cardCode} in batch:`, err);
+        throw err;
       }
     }
 

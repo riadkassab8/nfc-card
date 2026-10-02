@@ -4,7 +4,7 @@ import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCar
 import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { cardService } from '../../services';
 import { cardsApi } from '../../services/api';
-import { CardItem, CardInventoryStats, CardProductType } from '../../types';
+import { CardItem, CardInventoryStats, getMainCategory } from '../../types';
 import { useTranslation } from '../../i18n';
 import { Plus, CreditCard, Eye, Download, Building2, Edit, Trash2, Power, Layers, CheckCircle2, AlertCircle, Copy, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -19,7 +19,7 @@ export const AdminInventoryPage: React.FC = () => {
   const [stats, setStats] = useState<CardInventoryStats>({ total_cards: 0, active_cards: 0, inactive_cards: 0 });
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
-  const [categoryFilter, setCategoryFilter] = useState<'ALL' | CardProductType>('ALL');
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   
   // Selection State for Bulk Batch Actions
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
@@ -166,14 +166,21 @@ export const AdminInventoryPage: React.FC = () => {
       statusFilter === 'ALL' || c.status === statusFilter;
 
     const matchesCategory =
-      categoryFilter === 'ALL' || c.card_type === categoryFilter;
+      categoryFilter === 'ALL' ||
+      (categoryFilter === 'Google Review' && getMainCategory(c.card_type) === 'Google Review') ||
+      (categoryFilter === 'Social Media' && getMainCategory(c.card_type) === 'Social Media') ||
+      (categoryFilter === 'Payment' && getMainCategory(c.card_type) === 'Payment') ||
+      (c.card_type || '').toLowerCase() === categoryFilter.toLowerCase();
 
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
   const getCategoryCount = (type: string) => {
     if (type === 'ALL') return cards.length;
-    return cards.filter((c) => c.card_type === type).length;
+    if (type === 'Google Review') return cards.filter((c) => getMainCategory(c.card_type) === 'Google Review').length;
+    if (type === 'Social Media') return cards.filter((c) => getMainCategory(c.card_type) === 'Social Media').length;
+    if (type === 'Payment') return cards.filter((c) => getMainCategory(c.card_type) === 'Payment').length;
+    return cards.filter((c) => (c.card_type || '').toLowerCase() === type.toLowerCase()).length;
   };
 
   const isAllSelected = filteredCards.length > 0 && filteredCards.every((c) => selectedCardIds.includes(c.id));
@@ -204,172 +211,156 @@ export const AdminInventoryPage: React.FC = () => {
 
       {/* Hero Header Card */}
       <div
+        className="admin-hero-section"
         style={{
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e2d4a 60%, #312e81 100%)',
           borderRadius: '20px',
-          padding: '28px 32px',
+          padding: '24px',
           color: '#ffffff',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '20px',
-          boxShadow: '0 10px 30px -5px rgba(15, 23, 42, 0.2)',
+          gap: '16px',
+          boxShadow: '0 10px 32px -5px rgba(15,23,42,0.28)',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        <div style={{ position: 'absolute', right: '-40px', bottom: '-40px', width: '200px', height: '200px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', insetInlineEnd: '-30px', top: '-30px', width: '160px', height: '160px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-        <div style={{ zIndex: 1, maxWidth: '640px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <span style={{ backgroundColor: 'rgba(99, 102, 241, 0.25)', color: '#818cf8', padding: '3px 12px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(99, 102, 241, 0.3)' }}>
-              إدارة المخزون والمنتجات
-            </span>
-          </div>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '6px', letterSpacing: '-0.02em', color: '#ffffff' }}>
-            بطاقات NFC & QR الفائقة 💳
+        <div style={{ zIndex: 1, flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'inline-block', marginBottom: '10px', backgroundColor: 'rgba(99,102,241,0.22)', color: '#a5b4fc', padding: '3px 12px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(99,102,241,0.3)' }}>
+            إدارة المخزون
+          </span>
+          <h2 style={{ fontSize: 'clamp(1.15rem, 5vw, 1.75rem)', fontWeight: 900, marginBottom: '6px', letterSpacing: '-0.02em', color: '#ffffff', lineHeight: 1.2 }}>
+            بطاقات NFC &amp; QR الفائقة
           </h2>
-          <p style={{ fontSize: '0.9375rem', color: '#94a3b8', lineHeight: 1.5 }}>
-            تحكم كامل في كروت تقييمات Google Review وInstaPay وتطبيقات التواصل الموحدة مع إمكانية التفعيل الفوري والربط المباشر.
+          <p className="hero-desc" style={{ fontSize: '0.875rem', color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+            تحكم كامل في كروت Google Review وInstaPay مع إمكانية التفعيل الفوري والربط المباشر.
           </p>
         </div>
 
-        <div style={{ zIndex: 1 }}>
+        <div style={{ zIndex: 1, flexShrink: 0 }} className="hero-btn-wrap">
           <Button
             variant="gradient"
             size="lg"
             onClick={() => setIsBatchOpen(true)}
           >
-            <Plus size={20} /> إنشاء مجموعة بطاقات جديدة
+            <Plus size={20} /> إنشاء مجموعة جديدة
           </Button>
         </div>
       </div>
 
-      {/* Interactive Stat Cards Grid (Click to filter) */}
+      {/* Stat Cards */}
       <div
+        className="admin-stat-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '16px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '12px',
         }}
       >
+        {/* Total */}
         <div onClick={() => { setStatusFilter('ALL'); setCategoryFilter('ALL'); }} style={{ cursor: 'pointer' }}>
-          <Card hoverable padding="lg" style={{ border: statusFilter === 'ALL' ? '2px solid #6366f1' : '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CreditCard size={24} />
+          <Card hoverable padding="md" style={{ border: statusFilter === 'ALL' ? '2px solid #6366f1' : '1px solid #e2e8f0', height: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <CreditCard size={20} />
               </div>
-              <div>
-                <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>إجمالي البطاقات (انقر للإظهار)</span>
-                <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginTop: '2px' }}>
-                  {formatNumber(stats.total_cards)}
-                </h3>
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>إجمالي البطاقات</span>
+                <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1, display: 'block' }}>{formatNumber(stats.total_cards)}</span>
               </div>
             </div>
           </Card>
         </div>
 
+        {/* Active */}
         <div onClick={() => setStatusFilter('ACTIVE')} style={{ cursor: 'pointer' }}>
-          <Card hoverable padding="lg" style={{ border: statusFilter === 'ACTIVE' ? '2px solid #10b981' : '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#d1fae5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CheckCircle2 size={24} />
+          <Card hoverable padding="md" style={{ border: statusFilter === 'ACTIVE' ? '2px solid #10b981' : '1px solid #e2e8f0', height: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#d1fae5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <CheckCircle2 size={20} />
               </div>
-              <div>
-                <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>البطاقات النشطة (انقر للفلترة)</span>
-                <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#047857', lineHeight: 1.1, marginTop: '2px' }}>
-                  {formatNumber(stats.active_cards)}
-                </h3>
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>نشطة</span>
+                <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#047857', lineHeight: 1.1, display: 'block' }}>{formatNumber(stats.active_cards)}</span>
               </div>
             </div>
           </Card>
         </div>
 
+        {/* Inactive */}
         <div onClick={() => setStatusFilter('INACTIVE')} style={{ cursor: 'pointer' }}>
-          <Card hoverable padding="lg" style={{ border: statusFilter === 'INACTIVE' ? '2px solid #f59e0b' : '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <AlertCircle size={24} />
+          <Card hoverable padding="md" style={{ border: statusFilter === 'INACTIVE' ? '2px solid #f59e0b' : '1px solid #e2e8f0', height: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <AlertCircle size={20} />
               </div>
-              <div>
-                <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>البطاقات المعطلة (انقر للفلترة)</span>
-                <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#b45309', lineHeight: 1.1, marginTop: '2px' }}>
-                  {formatNumber(stats.inactive_cards)}
-                </h3>
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>معطلة</span>
+                <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#b45309', lineHeight: 1.1, display: 'block' }}>{formatNumber(stats.inactive_cards)}</span>
               </div>
             </div>
           </Card>
         </div>
 
-        <Card hoverable padding="lg">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#f3e8ff', color: '#7e22ce', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Layers size={24} />
+        {/* Categories */}
+        <Card hoverable padding="md">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#f3e8ff', color: '#7e22ce', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Layers size={20} />
             </div>
-            <div>
-              <span className="text-caption" style={{ fontWeight: 600, color: '#64748b' }}>أقسام المنتجات</span>
-              <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#7e22ce', lineHeight: 1.1, marginTop: '2px' }}>
-                3 تصنيفات
-              </h3>
+            <div style={{ minWidth: 0 }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>التصنيفات</span>
+              <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#7e22ce', lineHeight: 1.1, display: 'block' }}>6</span>
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Floating Bulk Action Bar (When cards are selected) */}
+      {/* Floating Bulk Action Bar */}
       {selectedCardIds.length > 0 && (
         <div
+          className="admin-bulk-bar"
           style={{
-            position: 'sticky',
-            top: '80px',
-            zIndex: 70,
-            backgroundColor: '#0f172a',
-            color: '#ffffff',
-            borderRadius: '16px',
-            padding: '14px 24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            position: 'sticky', top: '68px', zIndex: 70,
+            backgroundColor: '#0f172a', color: '#ffffff',
+            borderRadius: '14px', padding: '12px 18px',
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', flexWrap: 'wrap',
             boxShadow: '0 12px 32px rgba(15, 23, 42, 0.3)',
-            animation: 'fadeIn 200ms ease-out',
+            animation: 'fadeIn 200ms ease-out', gap: '10px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ backgroundColor: '#6366f1', color: '#ffffff', padding: '2px 10px', borderRadius: '9999px', fontWeight: 800, fontSize: '0.875rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ backgroundColor: '#6366f1', color: '#fff', padding: '2px 10px', borderRadius: '9999px', fontWeight: 800, fontSize: '0.875rem' }}>
               {selectedCardIds.length}
             </span>
-            <span style={{ fontWeight: 700, fontSize: '0.9375rem' }}>تم تحديد بطاقات للإجراء المجمع</span>
+            <span style={{ fontWeight: 700, fontSize: '0.9375rem' }}>تم تحديد بطاقات</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Button size="sm" variant="secondary" onClick={() => handleBulkStatusChange('ACTIVE')}>
-              🟢 تفعيل الكل
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => handleBulkStatusChange('INACTIVE')}>
-              🔴 تعطيل الكل
-            </Button>
-            <Button size="sm" variant="danger" onClick={() => setIsBulkDeleteOpen(true)}>
-              🗑️ حذف المحددة
-            </Button>
-            <Button size="sm" variant="ghost" style={{ color: '#94a3b8' }} onClick={() => setSelectedCardIds([])}>
-              إلغاء التحديد
-            </Button>
+          <div className="admin-bulk-bar-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <Button size="sm" variant="secondary" onClick={() => handleBulkStatusChange('ACTIVE')}>🟢 تفعيل</Button>
+            <Button size="sm" variant="secondary" onClick={() => handleBulkStatusChange('INACTIVE')}>🔴 تعطيل</Button>
+            <Button size="sm" variant="danger" onClick={() => setIsBulkDeleteOpen(true)}>🗑️ حذف</Button>
+            <Button size="sm" variant="ghost" style={{ color: '#94a3b8' }} onClick={() => setSelectedCardIds([])}>إلغاء</Button>
           </div>
         </div>
       )}
 
       {/* Filter & Search Controls */}
       <Card padding="md">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Category Pills Bar */}
-          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px', scrollbarWidth: 'none' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Category Pills */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
             {(
               [
-                { key: 'ALL', label: 'الكل', icon: '📦' },
-                { key: 'GOOGLE_REVIEW', label: 'Google Review', icon: '🌟' },
-                { key: 'INSTAPAY', label: 'InstaPay', icon: '💳' },
-                { key: 'UNIFIED_SOCIAL', label: 'السوشيال الموحدة', icon: '🌐' },
+                { key: 'ALL',          label: 'الكل',         short: 'الكل' },
+                { key: 'Google Review', label: 'Google Review', short: 'Google' },
+                { key: 'Social Media', label: 'Social Media',  short: 'Social' },
+                { key: 'Payment',      label: 'InstaPay',      short: 'Pay' },
               ] as const
             ).map((cat) => {
               const isSelected = categoryFilter === cat.key;
@@ -382,8 +373,8 @@ export const AdminInventoryPage: React.FC = () => {
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 16px',
+                    gap: '5px',
+                    padding: '7px 13px',
                     borderRadius: '9999px',
                     fontSize: '0.8125rem',
                     fontWeight: isSelected ? 700 : 500,
@@ -393,18 +384,21 @@ export const AdminInventoryPage: React.FC = () => {
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
                     transition: 'all 150ms ease-out',
-                    boxShadow: isSelected ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+                    boxShadow: isSelected ? '0 3px 10px rgba(15,23,42,0.15)' : 'none',
+                    fontFamily: 'Cairo, sans-serif',
                   }}
                 >
-                  <span>{cat.icon}</span>
-                  <span>{cat.label}</span>
+                  <span className="cat-full">{cat.label}</span>
+                  <span className="cat-short" style={{ display: 'none' }}>{cat.short}</span>
                   <span style={{
-                    backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0',
+                    backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
                     color: isSelected ? '#ffffff' : '#64748b',
                     padding: '1px 6px',
                     borderRadius: '9999px',
                     fontSize: '0.7rem',
                     fontWeight: 700,
+                    minWidth: '18px',
+                    textAlign: 'center',
                   }}>
                     {count}
                   </span>
@@ -413,7 +407,7 @@ export const AdminInventoryPage: React.FC = () => {
             })}
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
+          <div className="admin-filter-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
             <div style={{ flex: 1, minWidth: '280px' }}>
               <Input
                 placeholder="بحث برقم البطاقة، الكود العام، QR، أو اسم النشاط..."
@@ -480,7 +474,7 @@ export const AdminInventoryPage: React.FC = () => {
         />
       ) : (
         <Card padding="none" style={{ overflow: 'hidden', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-          <div style={{ width: '100%', overflowX: 'auto' }}>
+          <div className="admin-table-wrapper" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'start' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
@@ -502,17 +496,17 @@ export const AdminInventoryPage: React.FC = () => {
                   <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     كود البطاقة
                   </th>
-                  <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <th style={{ padding: '12px 16px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="col-qr">
                     رمز QR
                   </th>
-                  <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <th style={{ padding: '12px 16px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="col-nfc">
                     معرف NFC
                   </th>
                   <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     الكود العام
                   </th>
-                  <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    النشاط التجاري المرتبط
+                  <th style={{ padding: '12px 16px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="col-business">
+                    النشاط التجاري
                   </th>
                   <th style={{ padding: '14px 20px', color: '#475569', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'end' }}>
                     الإجراءات
@@ -525,10 +519,13 @@ export const AdminInventoryPage: React.FC = () => {
                   const isSelected = selectedCardIds.includes(card.id);
                   const bizName = card.business_data?.name || card.business_name;
                   const catMeta = {
-                    GOOGLE_REVIEW: { label: 'Google Review', icon: '🌟', badgeVariant: 'amber' as const },
-                    INSTAPAY: { label: 'InstaPay', icon: '💳', badgeVariant: 'purple' as const },
-                    UNIFIED_SOCIAL: { label: 'السوشيال الموحدة', icon: '🌐', badgeVariant: 'info' as const },
-                  }[card.card_type || 'GOOGLE_REVIEW'] || { label: 'السوشيال الموحدة', icon: '🌐', badgeVariant: 'info' as const };
+                    'Google Review': { label: 'Google Review', icon: '🌟', badgeVariant: 'amber' as const },
+                    'Instagram': { label: 'Instagram', icon: '📸', badgeVariant: 'info' as const },
+                    'TikTok': { label: 'TikTok', icon: '🎵', badgeVariant: 'info' as const },
+                    'InstaPay': { label: 'InstaPay', icon: '💳', badgeVariant: 'purple' as const },
+                    'Google Maps': { label: 'Google Maps', icon: '📍', badgeVariant: 'amber' as const },
+                    'WhatsApp': { label: 'WhatsApp', icon: '💬', badgeVariant: 'info' as const },
+                  }[card.card_type] || { label: card.card_type || 'Google Review', icon: '🌐', badgeVariant: 'info' as const };
 
                   return (
                     <tr
@@ -587,14 +584,14 @@ export const AdminInventoryPage: React.FC = () => {
                       </td>
 
                       {/* QR Code */}
-                      <td style={{ padding: '14px 20px' }}>
+                      <td style={{ padding: '12px 16px' }} className="col-qr">
                         <span style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: '#64748b' }}>
                           {card.qr.id}
                         </span>
                       </td>
 
                       {/* NFC Identifier */}
-                      <td style={{ padding: '14px 20px' }}>
+                      <td style={{ padding: '12px 16px' }} className="col-nfc">
                         <span style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: '#64748b' }}>
                           {card.nfc.identifier}
                         </span>
@@ -618,13 +615,11 @@ export const AdminInventoryPage: React.FC = () => {
                       </td>
 
                       {/* Business */}
-                      <td style={{ padding: '14px 20px' }}>
+                      <td style={{ padding: '12px 16px' }} className="col-business">
                         {bizName ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: isActive ? 1 : 0.6 }}>
-                            <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: '#f1f5f9', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Building2 size={13} />
-                            </div>
-                            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>{bizName}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Building2 size={13} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{bizName}</span>
                           </div>
                         ) : (
                           <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>غير معين</span>
@@ -714,6 +709,12 @@ export const AdminInventoryPage: React.FC = () => {
         }}
         onCardUpdated={(updated) => {
           setSelectedCard(updated);
+          fetchInventory();
+        }}
+        onCardDeleted={() => {
+          setSelectedCard(null);
+          setIsDrawerOpen(false);
+          setToast({ type: 'success', message: `🗑️ تم حذف البطاقة بنجاح` });
           fetchInventory();
         }}
       />

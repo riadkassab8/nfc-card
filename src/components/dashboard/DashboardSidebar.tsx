@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Store, QrCode, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, Store, QrCode, Settings } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 export interface DashboardSidebarProps {
@@ -14,7 +14,6 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ onLinkClick 
     { path: '/dashboard', label: t('dashboard.nav.overview'), icon: <LayoutDashboard size={18} /> },
     { path: '/dashboard/business', label: t('dashboard.nav.businessProfile'), icon: <Store size={18} /> },
     { path: '/dashboard/qr-codes', label: t('dashboard.nav.qrCodes'), icon: <QrCode size={18} /> },
-    { path: '/dashboard/analytics', label: t('dashboard.nav.analytics'), icon: <BarChart3 size={18} /> },
     { path: '/dashboard/settings', label: t('dashboard.nav.settings'), icon: <Settings size={18} /> },
   ];
 

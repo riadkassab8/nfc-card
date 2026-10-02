@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { cardService } from '../../services';
-import { CardItem, BusinessData } from '../../types';
+import { CardItem, BusinessData, getMainCategory } from '../../types';
 import { useTranslation } from '../../i18n';
 import { QRScannerModal } from '../../components/admin/QRScannerModal';
 import {
@@ -20,6 +20,7 @@ import {
   Cpu,
   Store,
   Camera,
+  Upload,
 } from 'lucide-react';
 
 export const AdminScanPage: React.FC = () => {
@@ -237,8 +238,8 @@ export const AdminScanPage: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{resolvedCard.card_code}</h2>
-                <Badge variant={cardType === 'GOOGLE_REVIEW' ? 'amber' : cardType === 'INSTAPAY' ? 'purple' : 'info'}>
-                  {cardType === 'GOOGLE_REVIEW' ? '🌟 Google Review' : cardType === 'INSTAPAY' ? '💳 InstaPay' : '🌐 السوشيال الموحدة'}
+                <Badge variant={cardType === 'Google Review' ? 'amber' : cardType === 'InstaPay' ? 'purple' : 'info'}>
+                  {cardType === 'Google Review' ? '🌟 Google Review' : cardType === 'InstaPay' ? '💳 InstaPay' : `🌐 ${cardType}`}
                 </Badge>
               </div>
               <p style={{ fontSize: '0.8125rem', color: '#64748b', fontFamily: 'monospace', marginTop: '2px' }}>
@@ -295,135 +296,254 @@ export const AdminScanPage: React.FC = () => {
 
           {/* Contextual Form Rendered Specifically based on cardType */}
           <form onSubmit={handleSaveData} style={{ display: 'flex', flexDirection: 'column', gap: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
-            <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '14px 18px', borderRadius: '12px' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e40af' }}>
-                {cardType === 'GOOGLE_REVIEW' && '🌟 نموذج كارت تقييمات جوجل (Google Review Card)'}
-                {cardType === 'INSTAPAY' && '💳 نموذج كارت انستا باي (InstaPay Card)'}
-                {cardType === 'UNIFIED_SOCIAL' && '🌐 نموذج كارت السوشيال الموحدة (Unified Social Card)'}
-              </h3>
-              <p style={{ fontSize: '0.8125rem', color: '#3b82f6', marginTop: '4px' }}>
-                {cardType === 'GOOGLE_REVIEW' && 'أدخل اسم النشاط ورابط تقييم جوجل المباشر فقط.'}
-                {cardType === 'INSTAPAY' && 'أدخل اسم صاحب الحساب وعنوان InstaPay IPA.'}
-                {cardType === 'UNIFIED_SOCIAL' && 'أدخل اللينكات المتاحة فقط. الحقول التي تقوم بملئها هي فقط التي ستظهر للعميل بعد المسح!'}
-              </p>
-            </div>
+            {(() => {
+              const category = getMainCategory(resolvedCard?.card_type);
+              return (
+                <>
+                  <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '14px 18px', borderRadius: '12px' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e40af' }}>
+                      {category === 'Google Review' && '🌟 نموذج كارت تقييمات جوجل (Google Review Card)'}
+                      {category === 'Payment' && '💳 نموذج كارت الدفع والتحويل (Payment / InstaPay Card)'}
+                      {category === 'Social Media' && '📱 نموذج كارت التواصل الاجتماعي (Social Media Card)'}
+                    </h3>
+                    <p style={{ fontSize: '0.8125rem', color: '#3b82f6', marginTop: '4px' }}>
+                      {category === 'Google Review' && 'أدخل اسم النشاط، الوصف، اللوجو، ورابط تقييم جوجل المباشر.'}
+                      {category === 'Payment' && 'أدخل اسم المستفيد، عنوان InstaPay IPA، ورقم فودافون كاش أو رقم الهاتف.'}
+                      {category === 'Social Media' && 'أدخل اسم النشاط ورابط البروفايل أو روابط التواصل الاجتماعي المطلوبة.'}
+                    </p>
+                  </div>
 
-            {/* 1. GOOGLE REVIEW FORM FIELDS */}
-            {cardType === 'GOOGLE_REVIEW' && (
-              <>
-                <Input
-                  label="اسم النشاط التجاري / المحل *"
-                  value={formData.name}
-                  onChange={(e) => handleFormChange('name', e.target.value)}
-                  placeholder="مثال: مطعم الفيروز / Acme Coffee"
-                  required
-                />
-                <Input
-                  label="رابط تقييمات جوجل المباشر (Google Review Link) *"
-                  value={formData.google_review_url || ''}
-                  onChange={(e) => handleFormChange('google_review_url', e.target.value)}
-                  placeholder="https://search.google.com/local/writereview?placeid=..."
-                  required
-                />
-              </>
-            )}
+                  {/* Helper for Logo Upload / URL Input with live preview */}
+                  {(() => {
+                    const logoUploadControl = (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
+                          صورة الشعار / اللوجو (رفع ملف صورة أو إضافة رابط) (اختياري)
+                        </label>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <div style={{ flex: 1, minWidth: '240px' }}>
+                            <Input
+                              value={formData.logo_url || ''}
+                              onChange={(e) => handleFormChange('logo_url', e.target.value)}
+                              placeholder="https://example.com/logo.png أو اضغط زر رفع صورة"
+                            />
+                          </div>
 
-            {/* 2. INSTAPAY FORM FIELDS */}
-            {cardType === 'INSTAPAY' && (
-              <>
-                <Input
-                  label="اسم المستفيد / صاحب حساب InstaPay *"
-                  value={formData.name}
-                  onChange={(e) => handleFormChange('name', e.target.value)}
-                  placeholder="مثال: أحمد محمود / متجر الأمل"
-                  required
-                />
-                <Input
-                  label="عنوان أو رابط InstaPay IPA (Handle) *"
-                  value={formData.instapay_url || ''}
-                  onChange={(e) => handleFormChange('instapay_url', e.target.value)}
-                  placeholder="مثال: name@instapay أو 01001234567@instapay"
-                  required
-                />
-                <Input
-                  label="رقم الهاتف المرتبط بالحساب (اختياري)"
-                  value={formData.phone || ''}
-                  onChange={(e) => handleFormChange('phone', e.target.value)}
-                  placeholder="مثال: +201001234567"
-                />
-              </>
-            )}
+                          <label
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '10px 18px',
+                              backgroundColor: '#4f46e5',
+                              color: '#ffffff',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontSize: '0.875rem',
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap',
+                              boxShadow: '0 2px 6px rgba(79, 70, 229, 0.25)',
+                              transition: 'transform 100ms ease, opacity 100ms ease',
+                            }}
+                          >
+                            <Upload size={16} />
+                            <span>رفع صورة (Upload)</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (evt) => {
+                                    const dataUrl = evt.target?.result as string;
+                                    handleFormChange('logo_url', dataUrl);
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                          </label>
 
-            {/* 3. UNIFIED SOCIAL FORM FIELDS */}
-            {cardType === 'UNIFIED_SOCIAL' && (
-              <>
-                <Input
-                  label="اسم النشاط التجاري / المكان *"
-                  value={formData.name}
-                  onChange={(e) => handleFormChange('name', e.target.value)}
-                  placeholder="مثال: Vibe Fashion Store"
-                  required
-                />
+                          {formData.logo_url && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <img
+                                src={formData.logo_url}
+                                alt="Logo Preview"
+                                style={{
+                                  width: '42px',
+                                  height: '42px',
+                                  borderRadius: '8px',
+                                  objectFit: 'cover',
+                                  border: '2px solid #6366f1',
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                }}
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleFormChange('logo_url', '')}
+                                style={{
+                                  background: '#ef4444',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '50%',
+                                  width: '22px',
+                                  height: '22px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  fontSize: '12px',
+                                  fontWeight: 'bold',
+                                }}
+                                title="حذف اللوجو"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
 
-                <Input
-                  label="نبذة / وصف النشاط (اختياري)"
-                  value={formData.description || ''}
-                  onChange={(e) => handleFormChange('description', e.target.value)}
-                  placeholder="مثال: أرقى صيحات الموضة والملابس الجاهزة"
-                />
+                    return (
+                      <>
+                        {/* 1. GOOGLE REVIEW FORM FIELDS */}
+                        {category === 'Google Review' && (
+                          <>
+                            <Input
+                              label="اسم النشاط التجاري / المكان *"
+                              value={formData.name}
+                              onChange={(e) => handleFormChange('name', e.target.value)}
+                              placeholder="مثال: مطعم الفيروز / Acme Coffee"
+                              required
+                            />
+                            <Input
+                              label="نبذة / وصف النشاط (اختياري)"
+                              value={formData.description || ''}
+                              onChange={(e) => handleFormChange('description', e.target.value)}
+                              placeholder="مثال: أفضل المأكولات الشرقية والغربية"
+                            />
+                            {logoUploadControl}
+                            <Input
+                              label="رابط تقييمات جوجل المباشر (Google Review Link) *"
+                              value={formData.google_review_url || ''}
+                              onChange={(e) => handleFormChange('google_review_url', e.target.value)}
+                              placeholder="https://search.google.com/local/writereview?placeid=..."
+                              required
+                            />
+                          </>
+                        )}
 
-                <Input
-                  label="رابط صورة الشعار / اللوجو (اختياري)"
-                  value={formData.logo_url || ''}
-                  onChange={(e) => handleFormChange('logo_url', e.target.value)}
-                  placeholder="https://example.com/logo.png"
-                />
+                        {/* 2. PAYMENT FORM FIELDS (InstaPay & Vodafone Cash) */}
+                        {category === 'Payment' && (
+                          <>
+                            <Input
+                              label="اسم المستفيد / صاحب الحساب *"
+                              value={formData.name}
+                              onChange={(e) => handleFormChange('name', e.target.value)}
+                              placeholder="مثال: أحمد محمود / متجر الأمل"
+                              required
+                            />
+                            <Input
+                              label="عنوان / إيميل InstaPay IPA (مثال: name@instapay) *"
+                              value={formData.instapay_url || ''}
+                              onChange={(e) => handleFormChange('instapay_url', e.target.value)}
+                              placeholder="مثال: name@instapay أو 01001234567@instapay"
+                              required
+                            />
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                              <Input
+                                label="رقم الهاتف المربوط بالحساب (اختياري)"
+                                value={formData.phone || ''}
+                                onChange={(e) => handleFormChange('phone', e.target.value)}
+                                placeholder="مثال: 01001234567"
+                              />
+                              <Input
+                                label="رقم فودافون كاش (Vodafone Cash) (اختياري)"
+                                value={formData.whatsapp || ''}
+                                onChange={(e) => handleFormChange('whatsapp', e.target.value)}
+                                placeholder="مثال: 01012345678"
+                              />
+                            </div>
+                            <Input
+                              label="نبذة / ملحوظة للتحويل (اختياري)"
+                              value={formData.description || ''}
+                              onChange={(e) => handleFormChange('description', e.target.value)}
+                              placeholder="مثال: يرجى إرسال صورة الإيصال بعد التحويل"
+                            />
+                            {logoUploadControl}
+                          </>
+                        )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                  <Input
-                    label="رابط صفحة فيسبوك (Facebook URL) (اختياري)"
-                    value={formData.facebook_url || ''}
-                    onChange={(e) => handleFormChange('facebook_url', e.target.value)}
-                    placeholder="https://facebook.com/yourpage"
-                  />
+                        {/* 3. SOCIAL MEDIA FORM FIELDS */}
+                        {category === 'Social Media' && (
+                          <>
+                            <Input
+                              label="اسم النشاط التجاري / المكان *"
+                              value={formData.name}
+                              onChange={(e) => handleFormChange('name', e.target.value)}
+                              placeholder="مثال: Vibe Fashion Store"
+                              required
+                            />
+                            <Input
+                              label="نبذة / وصف النشاط (اختياري)"
+                              value={formData.description || ''}
+                              onChange={(e) => handleFormChange('description', e.target.value)}
+                              placeholder="مثال: أرقى صيحات الموضة والملابس الجاهزة"
+                            />
+                            {logoUploadControl}
 
-                  <Input
-                    label="حساب / رابط إنستجرام (Instagram URL) (اختياري)"
-                    value={formData.instagram_url || ''}
-                    onChange={(e) => handleFormChange('instagram_url', e.target.value)}
-                    placeholder="https://instagram.com/yourhandle"
-                  />
-
-                  <Input
-                    label="حساب / رابط تيك توك (TikTok URL) (اختياري)"
-                    value={formData.tiktok_url || ''}
-                    onChange={(e) => handleFormChange('tiktok_url', e.target.value)}
-                    placeholder="https://tiktok.com/@yourusername"
-                  />
-
-                  <Input
-                    label="رابط الموقع الإلكتروني الرسمي (Website URL) (اختياري)"
-                    value={formData.website_url || ''}
-                    onChange={(e) => handleFormChange('website_url', e.target.value)}
-                    placeholder="https://yourwebsite.com"
-                  />
-
-                  <Input
-                    label="رقم / رابط الواتساب (WhatsApp) (اختياري)"
-                    value={formData.whatsapp || ''}
-                    onChange={(e) => handleFormChange('whatsapp', e.target.value)}
-                    placeholder="+201001234567"
-                  />
-
-                  <Input
-                    label="رقم الهاتف للتواصل المباشر (Phone) (اختياري)"
-                    value={formData.phone || ''}
-                    onChange={(e) => handleFormChange('phone', e.target.value)}
-                    placeholder="+201001234567"
-                  />
-                </div>
-              </>
-            )}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                              <Input
+                                label="رابط صفحة فيسبوك (Facebook URL) (اختياري)"
+                                value={formData.facebook_url || ''}
+                                onChange={(e) => handleFormChange('facebook_url', e.target.value)}
+                                placeholder="https://facebook.com/yourpage"
+                              />
+                              <Input
+                                label="حساب / رابط إنستجرام (Instagram URL) (اختياري)"
+                                value={formData.instagram_url || ''}
+                                onChange={(e) => handleFormChange('instagram_url', e.target.value)}
+                                placeholder="https://instagram.com/yourhandle"
+                              />
+                              <Input
+                                label="حساب / رابط تيك توك (TikTok URL) (اختياري)"
+                                value={formData.tiktok_url || ''}
+                                onChange={(e) => handleFormChange('tiktok_url', e.target.value)}
+                                placeholder="https://tiktok.com/@yourusername"
+                              />
+                              <Input
+                                label="رابط الموقع الإلكتروني الرسمي (Website URL) (اختياري)"
+                                value={formData.website_url || ''}
+                                onChange={(e) => handleFormChange('website_url', e.target.value)}
+                                placeholder="https://yourwebsite.com"
+                              />
+                              <Input
+                                label="رقم / رابط الواتساب (WhatsApp) (اختياري)"
+                                value={formData.whatsapp || ''}
+                                onChange={(e) => handleFormChange('whatsapp', e.target.value)}
+                                placeholder="+201001234567"
+                              />
+                              <Input
+                                label="رقم الهاتف للتواصل المباشر (Phone) (اختياري)"
+                                value={formData.phone || ''}
+                                onChange={(e) => handleFormChange('phone', e.target.value)}
+                                placeholder="+201001234567"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </>
+                    );
+                  })()}
+                </>
+              );
+            })()}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
               <Button type="submit" variant="gradient" size="lg" isLoading={saving}>

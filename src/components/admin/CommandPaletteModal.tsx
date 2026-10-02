@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, CreditCard, Scan, LayoutDashboard, BarChart3, Settings, Plus, ArrowRight, ExternalLink } from 'lucide-react';
+import { Search, CreditCard, Scan, LayoutDashboard, Settings, Plus, ArrowRight, ExternalLink } from 'lucide-react';
 import { Modal } from '../ui';
 import { cardService } from '../../services';
 import { CardItem } from '../../types';
@@ -62,7 +62,6 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
     { label: 'بطاقات NFC & QR المخزون', path: '/admin/cards', icon: <CreditCard size={16} /> },
     { label: 'قارئ ومجهّز الكروت (الماسح)', path: '/admin/scan', icon: <Scan size={16} /> },
     { label: 'نظرة عامة على المنصة', path: '/admin', icon: <LayoutDashboard size={16} /> },
-    { label: 'التقارير والإحصائيات', path: '/admin/analytics', icon: <BarChart3 size={16} /> },
     { label: 'إعدادات النظام', path: '/admin/settings', icon: <Settings size={16} /> },
   ];
 

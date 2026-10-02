@@ -10,14 +10,16 @@ export interface GeneratedQRCodeData {
 }
 
 export const getPublicUrl = (publicCode: string): string => {
-  if (publicCode.startsWith('http://') || publicCode.startsWith('https://')) {
-    return publicCode.trim();
+  const clean = publicCode.trim();
+  if (clean.startsWith('http://') || clean.startsWith('https://')) {
+    return clean;
   }
-  const origin =
-    typeof window !== 'undefined' && window.location && window.location.origin
-      ? window.location.origin
-      : 'https://dynamic-qr-nfc.com';
-  return `${origin}/q/${publicCode.trim().toUpperCase()}`;
+  const redirectBase = (import.meta.env.VITE_PUBLIC_REDIRECT_BASE_URL || 'https://smart-card-qr-api.koyeb.app/r').replace(/\/$/, '');
+  const cleanCode = clean.toUpperCase();
+  const fullCode = cleanCode.startsWith('CARD-') || cleanCode.startsWith('NFC-') || cleanCode.startsWith('QR-')
+    ? cleanCode
+    : `CARD-${cleanCode}`;
+  return `${redirectBase}/${fullCode}`;
 };
 
 export const getCardPublicUrl = (card: CardItem): string => {

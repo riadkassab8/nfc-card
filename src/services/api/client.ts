@@ -67,7 +67,6 @@ const isUnauthenticatedRoute = (endpoint: string, options?: RequestOptions): boo
   // Strict check for documented unauthenticated routes
   const cleanEndpoint = endpoint.split('?')[0];
   if (cleanEndpoint === '/auth/login') return true;
-  if (cleanEndpoint.startsWith('/cards/') && cleanEndpoint.endsWith('/qr')) return true;
   if (cleanEndpoint.startsWith('/r/')) return true;
 
   return false;
@@ -164,6 +163,10 @@ export const apiClient = async <T = any>(
         }
       } catch (e) {
         // Response wasn't JSON
+      }
+
+      if (response.status === 429) {
+        errorMessage = 'تم تجاوز عدد محاولات الدخول المسموح بها للسيرفر (Rate Limit). يرجى الانتظار 30-60 ثانية ثم المحاولة مجدداً.';
       }
 
       throw new ApiError(response.status, errorMessage, errorType, errorDetails);

@@ -1,111 +1,114 @@
 /* ==========================================================================
    DYNAMIC QR & NFC PLATFORM — ULTRA-PREMIUM DESIGN SYSTEM (src/index.css)
+   Font: Cairo (Arabic-first), weights 400–900
    ========================================================================== */
 
 :root {
-  /* Core Surface & Background Token System */
-  --bg-app: #f8fafc;
-  --bg-surface: #ffffff;
+  /* ── Surfaces ── */
+  --bg-app:           #f4f6fa;
+  --bg-surface:       #ffffff;
   --bg-surface-hover: #f1f5f9;
-  --bg-surface-active: #e2e8f0;
-  --bg-elevated: #ffffff;
-  --bg-overlay: rgba(15, 23, 42, 0.5);
-  --bg-glass: rgba(255, 255, 255, 0.85);
+  --bg-surface-active:#e2e8f0;
+  --bg-elevated:      #ffffff;
+  --bg-overlay:       rgba(15, 23, 42, 0.55);
+  --bg-glass:         rgba(255, 255, 255, 0.88);
 
-  /* Text & Typography */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-tertiary: #64748b;
-  --text-muted: #94a3b8;
-  --text-on-primary: #ffffff;
+  /* ── Text ── */
+  --text-primary:   #0f172a;
+  --text-secondary: #334155;
+  --text-tertiary:  #64748b;
+  --text-muted:     #94a3b8;
+  --text-on-primary:#ffffff;
 
-  /* Borders & Dividers */
+  /* ── Borders ── */
   --border-subtle: #e2e8f0;
   --border-strong: #cbd5e1;
-  --border-focus: #4f46e5;
+  --border-focus:  #6366f1;
 
-  /* Brand Colors & Vibrant Accents */
-  --primary-bg: #0f172a;
-  --primary-bg-hover: #1e293b;
-  --primary-bg-active: #020617;
-  --accent-indigo: #6366f1;
-  --accent-purple: #8b5cf6;
-  --accent-pink: #ec4899;
-  --accent-amber: #f59e0b;
-  --accent-emerald: #10b981;
-  --accent-cyan: #06b6d4;
+  /* ── Brand ── */
+  --primary-bg:        #0f172a;
+  --primary-bg-hover:  #1e293b;
+  --accent-indigo:     #6366f1;
+  --accent-purple:     #8b5cf6;
+  --accent-emerald:    #10b981;
+  --accent-amber:      #f59e0b;
 
-  /* Semantic Messaging Colors */
-  --success-bg: #ecfdf5;
-  --success-text: #047857;
-  --success-border: #a7f3d0;
+  /* ── Semantic ── */
+  --success-bg:    #ecfdf5; --success-text: #047857; --success-border: #a7f3d0;
+  --warning-bg:    #fffbeb; --warning-text: #b45309; --warning-border: #fde68a;
+  --error-bg:      #fef2f2; --error-text:   #b91c1c; --error-border:   #fecaca;
+  --info-bg:       #eff6ff; --info-text:    #1d4ed8; --info-border:    #bfdbfe;
 
-  --warning-bg: #fffbeb;
-  --warning-text: #b45309;
-  --warning-border: #fde68a;
-
-  --error-bg: #fef2f2;
-  --error-text: #b91c1c;
-  --error-border: #fecaca;
-
-  --info-bg: #eff6ff;
-  --info-text: #1d4ed8;
-  --info-border: #bfdbfe;
-
-  /* Focus Indicator Ring */
+  /* ── Focus ── */
   --focus-ring: 0 0 0 2px #ffffff, 0 0 0 4px #6366f1;
 
-  /* Spacing Scale */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 20px;
+  /* ── Spacing ── */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  12px;
+  --space-lg:  16px;
+  --space-xl:  20px;
   --space-2xl: 24px;
   --space-3xl: 32px;
   --space-4xl: 40px;
 
-  /* Border Radii */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  /* ── Radii ── */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-none: none;
-  --shadow-subtle: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.02);
-  --shadow-elevated: 0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 8px 10px -6px rgba(15, 23, 42, 0.03);
-  --shadow-glow: 0 0 20px -3px rgba(99, 102, 241, 0.25);
-  --shadow-overlay: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  /* ── Shadows ── */
+  --shadow-subtle:   0 1px 3px rgba(15,23,42,0.05), 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-card:     0 4px 16px rgba(15,23,42,0.07), 0 1px 4px rgba(15,23,42,0.04);
+  --shadow-elevated: 0 10px 28px rgba(15,23,42,0.09), 0 4px 8px rgba(15,23,42,0.04);
+  --shadow-overlay:  0 24px 60px rgba(15,23,42,0.22), 0 8px 20px rgba(15,23,42,0.1);
+  --shadow-glow:     0 0 24px rgba(99,102,241,0.22);
 
-  /* Typography */
-  --font-family-base: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-family-arabic: 'Cairo', 'Segoe UI Arabic', 'Tahoma', system-ui, sans-serif;
-  --font-size-display: 2.25rem;    /* 36px */
-  --font-size-title: 1.5rem;       /* 24px */
-  --font-size-section: 1.125rem;   /* 18px */
-  --font-size-card: 1rem;          /* 16px */
-  --font-size-body: 0.875rem;      /* 14px */
-  --font-size-label: 0.8125rem;    /* 13px */
-  --font-size-caption: 0.75rem;    /* 12px */
+  /* ── Typography ── */
+  --font-sans:    'Cairo', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+  --font-size-display: 2.25rem;
+  --font-size-title:   1.5rem;
+  --font-size-section: 1.125rem;
+  --font-size-card:    1rem;
+  --font-size-body:    0.9rem;
+  --font-size-label:   0.8125rem;
+  --font-size-caption: 0.75rem;
+
+  /* ── Transitions ── */
+  --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:   cubic-bezier(0.4, 0, 1, 1);
+  --ease-std:  cubic-bezier(0.4, 0, 0.2, 1);
+  --duration:  180ms;
 }
 
-/* Base Reset & Smooth Rendering Setup */
+/* ────────────────────────────────────────────────────────────────── */
+/*  RESET                                                             */
+/* ────────────────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+  text-size-adjust: 100%;
+}
+
 html, body {
   height: 100%;
-  font-family: var(--font-family-arabic);
+  font-family: var(--font-sans);
   font-size: 16px;
+  line-height: 1.6;
   background-color: var(--bg-app);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
@@ -114,32 +117,25 @@ html, body {
   flex-direction: column;
 }
 
-/* Custom Scrollbars */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+/* ────────────────────────────────────────────────────────────────── */
+/*  SCROLLBAR                                                         */
+/* ────────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; transition: background 150ms; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Accessibility Focus Indicator */
+/* ────────────────────────────────────────────────────────────────── */
+/*  FOCUS                                                             */
+/* ────────────────────────────────────────────────────────────────── */
 :focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
 
-/* Typography Utility Classes */
+/* ────────────────────────────────────────────────────────────────── */
+/*  TYPOGRAPHY UTILITIES                                              */
+/* ────────────────────────────────────────────────────────────────── */
 .text-display {
   font-size: var(--font-size-display);
   font-weight: 800;
@@ -163,19 +159,19 @@ html, body {
 .text-card {
   font-size: var(--font-size-card);
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .text-body {
   font-size: var(--font-size-body);
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .text-body-medium {
   font-size: var(--font-size-body);
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .text-label {
@@ -191,49 +187,134 @@ html, body {
   color: var(--text-tertiary);
 }
 
-/* Custom UI Polish Classes */
+/* ────────────────────────────────────────────────────────────────── */
+/*  KEYFRAMES                                                         */
+/* ────────────────────────────────────────────────────────────────── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+@keyframes drawerInRtl {
+  from { opacity: 0; transform: translateX(-28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes drawerInLtr {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* ────────────────────────────────────────────────────────────────── */
+/*  ANIMATION HELPERS                                                 */
+/* ────────────────────────────────────────────────────────────────── */
+.spin      { animation: spin 0.65s linear infinite; }
+.fade-in   { animation: fadeIn 220ms var(--ease-out) both; }
+.modal-in  { animation: modalIn 240ms var(--ease-out) both; }
+.drawer-rtl{ animation: drawerInRtl 260ms var(--ease-out) both; }
+.drawer-ltr{ animation: drawerInLtr 260ms var(--ease-out) both; }
+
+/* ────────────────────────────────────────────────────────────────── */
+/*  GLASS PANEL                                                       */
+/* ────────────────────────────────────────────────────────────────── */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: var(--bg-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(226,232,240,0.7);
 }
 
+/* ────────────────────────────────────────────────────────────────── */
+/*  CARD HOVER EFFECT                                                 */
+/* ────────────────────────────────────────────────────────────────── */
 .card-hover-effect {
-  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform var(--duration) var(--ease-std),
+              box-shadow var(--duration) var(--ease-std);
 }
-
 .card-hover-effect:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--shadow-elevated);
 }
 
-.glow-pill {
-  position: relative;
-  overflow: hidden;
-}
-
+/* ────────────────────────────────────────────────────────────────── */
+/*  GLOW PILL (button shine effect)                                   */
+/* ────────────────────────────────────────────────────────────────── */
+.glow-pill { position: relative; overflow: hidden; }
 .glow-pill::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 600ms ease;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%);
+  transform: translateX(-100%);
+  transition: transform 500ms var(--ease-out);
+  pointer-events: none;
+}
+.glow-pill:hover:not(:disabled)::after {
+  transform: translateX(100%);
 }
 
-.glow-pill:hover::after {
-  left: 100%;
+/* ────────────────────────────────────────────────────────────────── */
+/*  INPUT FOCUS GLOW                                                  */
+/* ────────────────────────────────────────────────────────────────── */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--border-focus) !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important;
 }
 
-/* Reduced Motion Preference Support */
+/* ────────────────────────────────────────────────────────────────── */
+/*  SKELETON SHIMMER                                                  */
+/* ────────────────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% auto;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: var(--radius-md);
+}
+
+/* ────────────────────────────────────────────────────────────────── */
+/*  BADGE PULSE DOT                                                   */
+/* ────────────────────────────────────────────────────────────────── */
+.status-dot-active {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ────────────────────────────────────────────────────────────────── */
+/*  TABLE ROW HOVER                                                   */
+/* ────────────────────────────────────────────────────────────────── */
+tbody tr:hover {
+  background-color: #fafbff !important;
+}
+
+/* ────────────────────────────────────────────────────────────────── */
+/*  REDUCED MOTION                                                    */
+/* ────────────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }
