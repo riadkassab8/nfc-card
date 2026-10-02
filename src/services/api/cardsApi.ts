@@ -8,7 +8,6 @@ import {
   ApiCardsPaginatedResponse,
   ApiCreateCardDto,
   ApiUpdateCardDto,
-  ApiUpdateRedirectDto,
 } from '../../types';
 
 export interface CardQueryParams {
@@ -116,7 +115,7 @@ export const cardsApi = {
    * TOKEN REQUIRED.
    */
   updateRedirectUrl: async (id: string, redirectUrl: string): Promise<ApiCard> => {
-    const dto: ApiUpdateRedirectDto = { redirect_url: redirectUrl };
+    const dto = { redirect_url: redirectUrl };
     return apiClient<ApiCard>(`/cards/${id}/redirect`, {
       method: 'PUT',
       body: dto,

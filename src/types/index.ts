@@ -143,10 +143,10 @@ export type CardProductType =
   | 'Google Maps'
   | 'WhatsApp';
 
-export type MainCardCategory = 'Google Review' | 'Social Media' | 'Payment';
+export type MainCardCategory = 'Google Review' | 'Social' | 'Payment';
 
 export const getMainCategory = (cardType?: string): MainCardCategory => {
-  if (!cardType) return 'Social Media';
+  if (!cardType) return 'Social';
   const lower = cardType.toLowerCase();
   if (lower.includes('google review') || lower.includes('review') || lower === 'google_review') {
     return 'Google Review';
@@ -154,7 +154,7 @@ export const getMainCategory = (cardType?: string): MainCardCategory => {
   if (lower.includes('instapay') || lower.includes('payment') || lower.includes('vodafone')) {
     return 'Payment';
   }
-  return 'Social Media';
+  return 'Social';
 };
 
 export interface BusinessData {
@@ -315,30 +315,56 @@ export const apiCardToCardItem = (apiCard: ApiCard): CardItem => {
     cardType = typeStr as CardProductType;
   }
 
+  let parsedBusinessData: BusinessData | null = null;
+  if (apiCard.current_redirect_url) {
+    try {
+      const urlObj = new URL(apiCard.current_redirect_url);
+      const dataParam = urlObj.searchParams.get('data');
+      if (dataParam) {
+         // Use robust base64 decoding that supports UTF-8 (Arabic characters)
+         const base64Decoded = atob(dataParam);
+         const utf8Decoded = new TextDecoder().decode(new Uint8Array([...base64Decoded].map(c => c.charCodeAt(0))));
+         parsedBusinessData = JSON.parse(utf8Decoded);
+      }
+    } catch (e) {
+      // Ignored
+    }
+    
+    if (!parsedBusinessData) {
+      parsedBusinessData = {
+        name: apiCard.card_type ? `${apiCard.card_type}` : 'Target Destination',
+        google_review_url: cardType === 'Google Review' ? apiCard.current_redirect_url : undefined,
+        instapay_url: cardType === 'InstaPay' ? apiCard.current_redirect_url : undefined,
+        website_url: ['Instagram', 'TikTok', 'WhatsApp', 'Social', 'UNIFIED_SOCIAL'].includes(cardType) ? apiCard.current_redirect_url : undefined,
+      } as BusinessData;
+    }
+  }
+
+  // Clean the public URL to hide the base64 data from the user interface
+  let cleanPublicUrl = apiCard.current_redirect_url || '';
+  if (cleanPublicUrl.includes('?data=')) {
+    cleanPublicUrl = cleanPublicUrl.split('?data=')[0];
+  }
+
   return {
     id: apiCard._id,
     card_code: apiCard.card_code,
     public_code: publicCode,
     card_type: cardType,
-    public_url: apiCard.current_redirect_url,
+    public_url: cleanPublicUrl,
     qr: {
       id: apiCard.qr_code || `https://smart-card-qr-api.koyeb.app/r/${apiCard.card_code}`,
       public_code: publicCode,
-      public_url: apiCard.current_redirect_url,
+      public_url: cleanPublicUrl,
     },
     nfc: {
       id: `NFC-${apiCard.nfc_uid || publicCode}`,
       identifier: apiCard.nfc_uid || `NFC-${publicCode}`,
-      public_url: apiCard.current_redirect_url,
+      public_url: cleanPublicUrl,
     },
     status,
-    business_data: apiCard.current_redirect_url ? {
-      name: apiCard.card_type ? `${apiCard.card_type}` : 'Target Destination',
-      google_review_url: cardType === 'Google Review' ? apiCard.current_redirect_url : undefined,
-      instapay_url: cardType === 'InstaPay' ? apiCard.current_redirect_url : undefined,
-      website_url: apiCard.current_redirect_url,
-    } : null,
-    business_name: apiCard.card_type ? `${apiCard.card_type}` : 'Target Destination',
+    business_data: parsedBusinessData,
+    business_name: parsedBusinessData?.name || (apiCard.card_type ? `${apiCard.card_type}` : 'Target Destination'),
     usage_status: status === 'ACTIVE' ? 'USED' : 'UNUSED',
     created_at: apiCard.createdAt || apiCard.subscription_start_date || new Date().toISOString(),
     updated_at: apiCard.updatedAt || new Date().toISOString(),

@@ -170,24 +170,33 @@ class RealCardService implements ICardService {
   }
 
   async saveCardBusinessData(cardId: string, data: BusinessData, publicUrl?: string): Promise<CardItem> {
-    let targetUrl = publicUrl?.trim();
+    // 1. Fetch the current card to know its type and public code
+    const cardRes = await cardsApi.getCards({ limit: 100 });
+    const currentCard = cardRes.data.find(c => c._id === cardId);
+    const cardCode = currentCard?.card_code || cardId;
+    
+    // 2. Sanitize data to prevent massive URLs
+    const cleanData = { ...data };
+    if (cleanData.logo_url && cleanData.logo_url.length > 2000 && cleanData.logo_url.startsWith('data:image/')) {
+      delete cleanData.logo_url;
+    }
 
-    if (!targetUrl || targetUrl.length === 0) {
-      if (data.google_review_url && data.google_review_url.trim().length > 0) {
-        targetUrl = data.google_review_url.trim();
-      } else if (data.instapay_url && data.instapay_url.trim().length > 0) {
-        targetUrl = data.instapay_url.trim();
-      } else if (data.website_url && data.website_url.trim().length > 0) {
-        targetUrl = data.website_url.trim();
-      } else if (data.instagram_url && data.instagram_url.trim().length > 0) {
-        targetUrl = data.instagram_url.trim();
-      } else if (data.facebook_url && data.facebook_url.trim().length > 0) {
-        targetUrl = data.facebook_url.trim();
-      } else if (data.tiktok_url && data.tiktok_url.trim().length > 0) {
-        targetUrl = data.tiktok_url.trim();
-      } else {
-        targetUrl = 'https://example.com';
+    let targetUrl = publicUrl?.trim() || '';
+
+    // 3. Determine the redirect URL
+    // ALWAYS redirect to our unified /c/:cardId route. The frontend routing engine will handle the specific logic.
+    if (!targetUrl) {
+      const jsonStr = JSON.stringify(cleanData);
+      const utf8Bytes = new TextEncoder().encode(jsonStr);
+      let binary = '';
+      for (let i = 0; i < utf8Bytes.length; i++) {
+        binary += String.fromCharCode(utf8Bytes[i]);
       }
+      const base64Data = btoa(binary);
+      
+      // Use the actual origin where the app is running (e.g. localhost:3000 or the real vercel domain)
+      const origin = import.meta.env.VITE_PUBLIC_FRONTEND_URL || window.location.origin;
+      targetUrl = `${origin}/c/${cardCode}?data=${base64Data}`;
     }
 
     const updatedApiCard = await cardsApi.updateRedirectUrl(cardId, targetUrl);

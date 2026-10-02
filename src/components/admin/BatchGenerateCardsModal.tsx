@@ -36,11 +36,8 @@ const tabStyle = (active: boolean): React.CSSProperties => ({
 
 const CARD_TYPE_OPTIONS = [
   { value: 'Google Review', label: '🌟 تقييمات جوجل (Google Review)' },
-  { value: 'Instagram',     label: '📸 انستجرام (Instagram)' },
-  { value: 'TikTok',        label: '🎵 تيك توك (TikTok)' },
-  { value: 'WhatsApp',      label: '💬 واتساب (WhatsApp)' },
-  { value: 'Google Maps',   label: '📍 خرائط جوجل (Google Maps)' },
-  { value: 'InstaPay',      label: '💳 انستا باي (InstaPay)' },
+  { value: 'Instagram',     label: '🌐 تواصل اجتماعي (Social)' },
+  { value: 'InstaPay',      label: '💳 دفع (Payment)' },
 ];
 
 /* ================================================================ */

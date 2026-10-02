@@ -168,7 +168,7 @@ export const AdminInventoryPage: React.FC = () => {
     const matchesCategory =
       categoryFilter === 'ALL' ||
       (categoryFilter === 'Google Review' && getMainCategory(c.card_type) === 'Google Review') ||
-      (categoryFilter === 'Social Media' && getMainCategory(c.card_type) === 'Social Media') ||
+      (categoryFilter === 'Social' && getMainCategory(c.card_type) === 'Social') ||
       (categoryFilter === 'Payment' && getMainCategory(c.card_type) === 'Payment') ||
       (c.card_type || '').toLowerCase() === categoryFilter.toLowerCase();
 
@@ -178,7 +178,7 @@ export const AdminInventoryPage: React.FC = () => {
   const getCategoryCount = (type: string) => {
     if (type === 'ALL') return cards.length;
     if (type === 'Google Review') return cards.filter((c) => getMainCategory(c.card_type) === 'Google Review').length;
-    if (type === 'Social Media') return cards.filter((c) => getMainCategory(c.card_type) === 'Social Media').length;
+    if (type === 'Social') return cards.filter((c) => getMainCategory(c.card_type) === 'Social').length;
     if (type === 'Payment') return cards.filter((c) => getMainCategory(c.card_type) === 'Payment').length;
     return cards.filter((c) => (c.card_type || '').toLowerCase() === type.toLowerCase()).length;
   };
@@ -520,12 +520,9 @@ export const AdminInventoryPage: React.FC = () => {
                   const bizName = card.business_data?.name || card.business_name;
                   const catMeta = {
                     'Google Review': { label: 'Google Review', icon: '🌟', badgeVariant: 'amber' as const },
-                    'Instagram': { label: 'Instagram', icon: '📸', badgeVariant: 'info' as const },
-                    'TikTok': { label: 'TikTok', icon: '🎵', badgeVariant: 'info' as const },
-                    'InstaPay': { label: 'InstaPay', icon: '💳', badgeVariant: 'purple' as const },
-                    'Google Maps': { label: 'Google Maps', icon: '📍', badgeVariant: 'amber' as const },
-                    'WhatsApp': { label: 'WhatsApp', icon: '💬', badgeVariant: 'info' as const },
-                  }[card.card_type] || { label: card.card_type || 'Google Review', icon: '🌐', badgeVariant: 'info' as const };
+                    'Social': { label: 'Social', icon: '🌐', badgeVariant: 'info' as const },
+                    'Payment': { label: 'Payment', icon: '💳', badgeVariant: 'purple' as const },
+                  }[getMainCategory(card.card_type)] || { label: 'Google Review', icon: '🌐', badgeVariant: 'info' as const };
 
                   return (
                     <tr

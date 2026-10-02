@@ -25,6 +25,7 @@ const GlobalHeader: React.FC = () => {
   // Hide header completely on public customer routes for clean customer view
   if (
     location.pathname.startsWith('/card/') ||
+    location.pathname.startsWith('/c/') ||
     location.pathname.startsWith('/q/') ||
     location.pathname.startsWith('/r/') ||
     location.pathname === '/login'
@@ -85,6 +86,7 @@ export const App: React.FC = () => {
 
               {/* Public Dynamic Customer Card Landing Page Routes */}
               <Route path="/card/:cardId" element={<PublicCardLandingPage />} />
+              <Route path="/c/:publicCode" element={<PublicCardLandingPage />} />
               <Route path="/q/:publicCode" element={<PublicCardLandingPage />} />
               <Route path="/r/:publicCode" element={<PublicCardLandingPage />} />
 

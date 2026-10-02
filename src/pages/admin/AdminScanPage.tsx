@@ -121,8 +121,9 @@ export const AdminScanPage: React.FC = () => {
         message: '🟢 تم حفظ وتفعيل بيانات البطاقة وتحديث الـ QR بنجاح!',
         type: 'success',
       });
-    } catch (err) {
-      setToast({ message: t('common.error'), type: 'error' });
+    } catch (err: any) {
+      console.error('Failed to save business data:', err);
+      setToast({ message: err.message || t('common.error'), type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -238,8 +239,8 @@ export const AdminScanPage: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{resolvedCard.card_code}</h2>
-                <Badge variant={cardType === 'Google Review' ? 'amber' : cardType === 'InstaPay' ? 'purple' : 'info'}>
-                  {cardType === 'Google Review' ? '🌟 Google Review' : cardType === 'InstaPay' ? '💳 InstaPay' : `🌐 ${cardType}`}
+                <Badge variant={getMainCategory(cardType) === 'Google Review' ? 'amber' : getMainCategory(cardType) === 'Payment' ? 'purple' : 'info'}>
+                  {getMainCategory(cardType) === 'Google Review' ? '🌟 Google Review' : getMainCategory(cardType) === 'Payment' ? '💳 Payment' : `🌐 Social`}
                 </Badge>
               </div>
               <p style={{ fontSize: '0.8125rem', color: '#64748b', fontFamily: 'monospace', marginTop: '2px' }}>
@@ -247,6 +248,13 @@ export const AdminScanPage: React.FC = () => {
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open(`/c/${resolvedCard.public_code}`, '_blank')}
+              >
+                👁️ معاينة الكارت
+              </Button>
               <Badge variant={isActive ? 'active' : 'disabled'} showDot>
                 {isActive ? 'نشطة ومتصلة' : 'معطلة / في الانتظار'}
               </Badge>
@@ -304,12 +312,12 @@ export const AdminScanPage: React.FC = () => {
                     <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e40af' }}>
                       {category === 'Google Review' && '🌟 نموذج كارت تقييمات جوجل (Google Review Card)'}
                       {category === 'Payment' && '💳 نموذج كارت الدفع والتحويل (Payment / InstaPay Card)'}
-                      {category === 'Social Media' && '📱 نموذج كارت التواصل الاجتماعي (Social Media Card)'}
+                      {category === 'Social' && '📱 نموذج كارت التواصل الاجتماعي (Social Media Card)'}
                     </h3>
                     <p style={{ fontSize: '0.8125rem', color: '#3b82f6', marginTop: '4px' }}>
                       {category === 'Google Review' && 'أدخل اسم النشاط، الوصف، اللوجو، ورابط تقييم جوجل المباشر.'}
                       {category === 'Payment' && 'أدخل اسم المستفيد، عنوان InstaPay IPA، ورقم فودافون كاش أو رقم الهاتف.'}
-                      {category === 'Social Media' && 'أدخل اسم النشاط ورابط البروفايل أو روابط التواصل الاجتماعي المطلوبة.'}
+                      {category === 'Social' && 'أدخل اسم النشاط ورابط البروفايل أو روابط التواصل الاجتماعي المطلوبة.'}
                     </p>
                   </div>
 
@@ -318,8 +326,11 @@ export const AdminScanPage: React.FC = () => {
                     const logoUploadControl = (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
-                          صورة الشعار / اللوجو (رفع ملف صورة أو إضافة رابط) (اختياري)
+                          صورة الشعار / اللوجو (رابط URL فقط) (اختياري)
                         </label>
+                        <p style={{ fontSize: '0.75rem', color: '#ef4444', margin: '0' }}>
+                          ملاحظة: لضمان سرعة الكارت، يرجى وضع رابط للصورة (مثال: Imgur) وعدم رفع صورة كبيرة الحجم مباشرة.
+                        </p>
                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                           <div style={{ flex: 1, minWidth: '240px' }}>
                             <Input
@@ -481,7 +492,7 @@ export const AdminScanPage: React.FC = () => {
                         )}
 
                         {/* 3. SOCIAL MEDIA FORM FIELDS */}
-                        {category === 'Social Media' && (
+                        {category === 'Social' && (
                           <>
                             <Input
                               label="اسم النشاط التجاري / المكان *"

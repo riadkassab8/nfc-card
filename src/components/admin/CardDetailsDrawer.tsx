@@ -43,11 +43,8 @@ const fmtDate = (iso?: string) =>
 
 const CARD_TYPE_OPTIONS = [
   { value: 'Google Review', label: '🌟 Google Review' },
-  { value: 'Instagram',     label: '📸 Instagram' },
-  { value: 'TikTok',        label: '🎵 TikTok' },
-  { value: 'WhatsApp',      label: '💬 WhatsApp' },
-  { value: 'Google Maps',   label: '📍 Google Maps' },
-  { value: 'InstaPay',      label: '💳 InstaPay' },
+  { value: 'Instagram',     label: '🌐 Social' },
+  { value: 'InstaPay',      label: '💳 Payment' },
 ];
 
 
@@ -324,6 +321,26 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                 </span>
               );
             })()}
+
+            {/* Preview Button */}
+            <a
+              href={`/c/${card.public_code}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                color: '#0f172a',
+                padding: '4px 12px', borderRadius: '99px',
+                fontSize: '0.8rem', fontWeight: 700,
+                textDecoration: 'none',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s',
+                marginInlineStart: 'auto',
+              }}
+            >
+              👁️ معاينة الكارت
+            </a>
           </div>
 
           {/* bottom row: card code (right) + NFC (left in RTL) */}
@@ -657,10 +674,11 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
               />
 
               <Select
-                label="نوع الكارت *"
+                label="نوع الكارت (لا يمكن تعديله)"
                 value={editCardType}
                 onChange={(e) => setEditCardType(e.target.value as CardProductType)}
                 options={CARD_TYPE_OPTIONS}
+                disabled
               />
 
               <div style={{ display: 'flex', gap: '8px' }}>

@@ -42,6 +42,13 @@ export const PublicCardLandingPage: React.FC = () => {
   };
 
   useEffect(() => {
+    // 1. Immediately hide query params from the URL bar to keep it clean (e.g., /c/CARD-0001)
+    if (window.location.search) {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState(null, '', cleanUrl);
+    }
+    
+    // 2. Fetch the card data
     fetchCardData();
   }, [codeToResolve]);
 
@@ -52,23 +59,25 @@ export const PublicCardLandingPage: React.FC = () => {
         dir="rtl"
         style={{
           minHeight: '100vh',
-          backgroundColor: '#f8fafc',
-          padding: '32px 16px',
+          backgroundColor: '#fafafa',
+          backgroundImage: 'radial-gradient(circle at 50% 0%, #e2e8f0 0%, #fafafa 60%)',
+          padding: '40px 20px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           gap: '24px',
         }}
       >
-        <div style={{ width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-          <Skeleton style={{ width: '92px', height: '92px', borderRadius: '24px' }} />
-          <Skeleton style={{ width: '200px', height: '24px', borderRadius: '8px' }} />
-          <Skeleton style={{ width: '280px', height: '16px', borderRadius: '6px' }} />
-          <Skeleton style={{ width: '120px', height: '28px', borderRadius: '9999px', marginTop: '8px' }} />
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '24px' }}>
-            <Skeleton style={{ width: '100%', height: '64px', borderRadius: '16px' }} />
-            <Skeleton style={{ width: '100%', height: '64px', borderRadius: '16px' }} />
-            <Skeleton style={{ width: '100%', height: '64px', borderRadius: '16px' }} />
+        <div style={{ width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          <Skeleton style={{ width: '100px', height: '100px', borderRadius: '24px', border: '4px solid #ffffff' }} />
+          <Skeleton style={{ width: '200px', height: '28px', borderRadius: '8px', marginTop: '8px' }} />
+          <Skeleton style={{ width: '280px', height: '20px', borderRadius: '6px' }} />
+          <Skeleton style={{ width: '120px', height: '32px', borderRadius: '9999px', marginTop: '8px' }} />
+          
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '32px' }}>
+            <Skeleton style={{ width: '100%', height: '80px', borderRadius: '16px' }} />
+            <Skeleton style={{ width: '100%', height: '80px', borderRadius: '16px' }} />
+            <Skeleton style={{ width: '100%', height: '80px', borderRadius: '16px' }} />
           </div>
         </div>
       </div>
@@ -82,7 +91,8 @@ export const PublicCardLandingPage: React.FC = () => {
         dir="rtl"
         style={{
           minHeight: '100vh',
-          backgroundColor: '#f8fafc',
+          backgroundColor: '#fafafa',
+          backgroundImage: 'radial-gradient(circle at 50% 0%, #e2e8f0 0%, #fafafa 60%)',
           padding: '40px 16px',
           display: 'flex',
           flexDirection: 'column',
@@ -99,7 +109,7 @@ export const PublicCardLandingPage: React.FC = () => {
             borderRadius: '20px',
             border: '1px solid #e2e8f0',
             padding: '32px 24px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -121,7 +131,7 @@ export const PublicCardLandingPage: React.FC = () => {
           <Button
             variant="primary"
             onClick={() => navigate('/')}
-            style={{ backgroundColor: '#065f46', marginTop: '8px' }}
+            style={{ marginTop: '8px' }}
           >
             <ArrowRight size={16} /> العودة للصفحة الرئيسية
           </Button>
@@ -137,7 +147,8 @@ export const PublicCardLandingPage: React.FC = () => {
         dir="rtl"
         style={{
           minHeight: '100vh',
-          backgroundColor: '#f8fafc',
+          backgroundColor: '#fafafa',
+          backgroundImage: 'radial-gradient(circle at 50% 0%, #e2e8f0 0%, #fafafa 60%)',
           padding: '40px 16px',
           display: 'flex',
           flexDirection: 'column',
@@ -185,6 +196,30 @@ export const PublicCardLandingPage: React.FC = () => {
     );
   }
 
-  // 4. SUCCESS STATE: Render Public Card View
-  return <PublicCardView card={card} />;
+  // 4. ROUTING LOGIC: Determine what happens after the card is resolved
+  const category = String(card.card_type);
+  switch (category) {
+    case 'Google Review':
+    case 'GOOGLE_REVIEW': {
+      const reviewUrl = card.business_data?.google_review_url || 'https://google.com';
+      window.location.replace(reviewUrl);
+      return null; // Return null while redirecting
+    }
+
+    case 'Social':
+    case 'Instagram':
+    case 'TikTok':
+    case 'WhatsApp':
+    case 'Google Maps':
+    case 'UNIFIED_SOCIAL':
+      return <PublicCardView card={card} />;
+
+    case 'Payment':
+    case 'InstaPay':
+      return <PublicCardView card={card} />;
+
+    default:
+      // Fallback
+      return <PublicCardView card={card} />;
+  }
 };
