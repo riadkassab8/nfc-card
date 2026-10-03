@@ -20,15 +20,15 @@ import {
   CardProductType,
   apiCardToCardItem,
   ApiCreateCardDto,
-  getMainCategory,
 } from '../types';
 import { cardsApi, CardQueryParams } from './api';
+import { getCategoryConfig, resolveLandingUrl } from '../config/CategoryRegistry';
 
 export interface ICardService {
   getAllCards(params?: CardQueryParams): Promise<CardItem[]>;
   getCardStats(): Promise<CardInventoryStats>;
   createCard(dto: ApiCreateCardDto): Promise<CardItem>;
-  generateCardBatch(quantity: number, cardType?: CardProductType): Promise<{ batch: CardBatch; cards: CardItem[] }>;
+  generateCardBatch(quantity: number, cardType?: CardProductType, categoryId?: string): Promise<{ batch: CardBatch; cards: CardItem[] }>;
   resolveCardByPayload(payload: string): Promise<CardItem | null>;
   saveCardBusinessData(cardId: string, data: BusinessData, publicUrl?: string): Promise<CardItem>;
   updateCardPublicUrl(cardId: string, publicUrl: string): Promise<CardItem>;
@@ -71,7 +71,11 @@ class RealCardService implements ICardService {
     return apiCardToCardItem(createdApiCard);
   }
 
-  async generateCardBatch(quantity: number, cardType: CardProductType = 'Google Review'): Promise<{ batch: CardBatch; cards: CardItem[] }> {
+  async generateCardBatch(
+    quantity: number,
+    cardType: CardProductType = 'Google Review',
+    categoryId?: string,
+  ): Promise<{ batch: CardBatch; cards: CardItem[] }> {
     if (quantity < 1 || quantity > 500) {
       throw new Error('Quantity must be between 1 and 500');
     }
@@ -79,8 +83,6 @@ class RealCardService implements ICardService {
     const batchId = `BATCH-${Date.now().toString().slice(-6)}`;
     const now = new Date().toISOString();
     const createdCards: CardItem[] = [];
-
-    const backendTypeStr = cardType;
 
     let startNum = Math.floor(1000 + Math.random() * 8000);
     try {
@@ -100,19 +102,27 @@ class RealCardService implements ICardService {
       // Fallback to random 4-digit startNum
     }
 
+
     for (let i = 0; i < quantity; i++) {
       const currentNum = startNum + i;
       const cardCode = `CARD-${String(currentNum).padStart(4, '0')}`;
       const nfcUid = `NFC-${String(currentNum).padStart(8, '0')}`;
-      const redirectUrl = 'https://example.com';
+
+      // Generate redirect based on category
+      const categoryConfig = getCategoryConfig(categoryId);
+      const redirectUrl = resolveLandingUrl(cardCode, categoryConfig);
 
       try {
-        const newCard = await this.createCard({
+        const dto: ApiCreateCardDto = {
           card_code: cardCode,
           nfc_uid: nfcUid,
-          card_type: backendTypeStr,
+          card_type: cardType,
           current_redirect_url: redirectUrl,
-        });
+        };
+        if (categoryId) {
+          dto.category_id = categoryId;
+        }
+        const newCard = await this.createCard(dto);
         createdCards.push(newCard);
       } catch (err) {
         console.error(`Failed to create card ${cardCode} in batch:`, err);
@@ -138,6 +148,12 @@ class RealCardService implements ICardService {
     if (clean.includes('/r/')) {
       clean = clean.split('/r/')[1].split('?')[0].split('#')[0];
     }
+    if (clean.includes('/social/')) {
+      clean = clean.split('/social/')[1].split('?')[0].split('#')[0];
+    }
+    if (clean.includes('/c/')) {
+      clean = clean.split('/c/')[1].split('?')[0].split('#')[0];
+    }
     clean = clean.trim();
 
     // 1. Try single card fetch if string is a MongoDB ObjectId (24 hex characters)
@@ -150,7 +166,7 @@ class RealCardService implements ICardService {
       }
     }
 
-    // 2. Search using backend search parameter
+    // 2. Search using backend search parameter (searches card_code, nfc_uid, qr_code)
     try {
       const searchRes = await cardsApi.getCards({ search: clean, limit: 20 });
       if (searchRes && searchRes.data && searchRes.data.length > 0) {
@@ -171,37 +187,44 @@ class RealCardService implements ICardService {
   }
 
   async saveCardBusinessData(cardId: string, data: BusinessData, publicUrl?: string): Promise<CardItem> {
-    // 1. Fetch the current card to know its type and public code
-    const cardRes = await cardsApi.getCards({ limit: 100 });
-    const currentCard = cardRes.data.find(c => c._id === cardId);
-    const cardCode = currentCard?.card_code || cardId;
-    
-    // 2. Sanitize data to prevent massive URLs
+    // 1. Fetch the current card to determine its code and type
+    const currentApiCard = await cardsApi.getCardById(cardId);
+    const cardCode = currentApiCard?.card_code || cardId;
+
+    // 2. Sanitize logo — reject raw base64 data URLs (too large for DB)
     const cleanData = { ...data };
-    if (cleanData.logo_url && cleanData.logo_url.length > 2000 && cleanData.logo_url.startsWith('data:image/')) {
-      delete cleanData.logo_url;
+    if (cleanData.logo && cleanData.logo.length > 2000 && cleanData.logo.startsWith('data:image/')) {
+      delete cleanData.logo;
     }
 
-    let targetUrl = publicUrl?.trim() || '';
-
     // 3. Determine the redirect URL
+    let targetUrl = publicUrl?.trim() || '';
     if (!targetUrl) {
-      // Use the actual origin where the app is running (e.g. localhost:3000 or the real vercel domain)
-      const origin = import.meta.env.VITE_PUBLIC_FRONTEND_URL || window.location.origin;
-      const category = getMainCategory(currentCard?.card_type);
-      if (category === 'Social') {
-        targetUrl = `${origin}/social/${cardCode}`;
+      // Use category config instead of hardcoded strings
+      const categoryId = currentApiCard?.category_id;
+      const categoryConfig = getCategoryConfig(categoryId as any); // cast safely because it's a dynamic type
+
+      if (categoryConfig.landingRoute === 'google-review' && cleanData.google_maps) {
+        targetUrl = cleanData.google_maps;
+      } else if (categoryConfig.landingRoute === 'payment' && cleanData.website) {
+        targetUrl = cleanData.website;
       } else {
-        targetUrl = `${origin}/c/${cardCode}`;
+        targetUrl = resolveLandingUrl(cardCode, categoryConfig);
       }
     }
 
-    const updatedApiCard = await cardsApi.updateRedirectUrl(cardId, targetUrl, cleanData);
+    // 4. Save business_data + redirect via PUT /api/cards/:id (NOT /redirect endpoint)
+    // The /redirect endpoint only accepts { redirect_url } — business_data goes to PUT /api/cards/:id
+    const updatedApiCard = await cardsApi.updateCard(cardId, {
+      business_data: cleanData,
+      current_redirect_url: targetUrl,
+    });
     return apiCardToCardItem(updatedApiCard);
   }
 
   async updateCardPublicUrl(cardId: string, publicUrl: string): Promise<CardItem> {
     const cleanUrl = publicUrl.trim();
+    // Use the /redirect endpoint for URL-only changes (no business_data)
     const updatedApiCard = await cardsApi.updateRedirectUrl(cardId, cleanUrl);
     return apiCardToCardItem(updatedApiCard);
   }
@@ -221,10 +244,7 @@ class RealCardService implements ICardService {
       business: card.status === 'ACTIVE' && card.business_data ? {
         id: card.id,
         user_id: 'admin-user',
-        name: card.business_name || 'Target Destination',
-        google_review_url: card.business_data.google_review_url,
-        instapay_url: card.business_data.instapay_url,
-        website_url: card.business_data.website_url,
+        name: card.business_data.business_name || 'Target Destination',
         status: 'ACTIVE',
         created_at: card.created_at,
         updated_at: card.updated_at || card.created_at,

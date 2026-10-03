@@ -16,6 +16,7 @@ export interface CardQueryParams {
   search?: string;
   status?: 'active' | 'inactive';
   card_type?: string;
+  category_id?: string;
 }
 
 export const cardsApi = {
@@ -46,6 +47,7 @@ export const cardsApi = {
         search: params?.search,
         status: params?.status,
         card_type: params?.card_type,
+        category_id: params?.category_id,
       },
       requiresAuth: true,
     });

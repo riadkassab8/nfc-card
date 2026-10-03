@@ -38,7 +38,7 @@ export const PhysicalCardPreview: React.FC<PhysicalCardPreviewProps> = ({
     };
   }, [card]);
 
-  const ownerName = card.business_data?.name || card.business_name || 'VIP Client';
+  const ownerName = card.business_data?.business_name || card.business_name || 'VIP Client';
   const cardTypeDisplay = (card.card_type || 'Google Review').toUpperCase();
   const publicCodeDisplay = card.card_code || `CARD-${card.public_code}`;
   const nfcIdentifier = card.nfc?.identifier || `NFC-0000${card.public_code}`;

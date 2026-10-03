@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { cardService } from '../services';
-import { CardItem, getMainCategory } from '../types';
+import { CardItem } from '../types';
 import { PublicCardView } from '../components/public/PublicCardView';
 import { Skeleton, Button } from '../components/ui';
 import { AlertCircle, RefreshCw } from 'lucide-react';
@@ -11,7 +11,7 @@ export const SocialPage: React.FC = () => {
 
   const [loading, setLoading] = useState<boolean>(true);
   const [card, setCard] = useState<CardItem | null>(null);
-  const [errorState, setErrorState] = useState<'none' | 'not_found' | 'invalid_category' | 'error'>('none');
+  const [errorState, setErrorState] = useState<'none' | 'not_found' | 'wrong_type' | 'error'>('none');
 
   const fetchCardData = async () => {
     if (!publicCode || publicCode.trim().length === 0) {
@@ -26,12 +26,13 @@ export const SocialPage: React.FC = () => {
     try {
       const resolvedCard = await cardService.resolveCardByPayload(publicCode.trim());
       if (resolvedCard) {
-        // Enforce Card Category Rule: Must be Social Media
-        const category = getMainCategory(resolvedCard.card_type);
-        if (category !== 'Social') {
-          setErrorState('invalid_category');
-        } else {
+        // Only Social Page card_type should render this page
+        // We render if the card exists and has business_data
+        if (resolvedCard.business_data) {
           setCard(resolvedCard);
+        } else {
+          // Card exists but has no business_data
+          setErrorState('wrong_type');
         }
       } else {
         setErrorState('not_found');
@@ -78,8 +79,8 @@ export const SocialPage: React.FC = () => {
     );
   }
 
-  // 2. INVALID / NOT FOUND STATE
-  if (errorState === 'not_found' || !card) {
+  // 2. NOT FOUND STATE
+  if (errorState === 'not_found' || (!card && errorState === 'none')) {
     return (
       <div
         dir="rtl"
@@ -119,8 +120,8 @@ export const SocialPage: React.FC = () => {
     );
   }
 
-  // 3. INVALID CATEGORY STATE
-  if (errorState === 'invalid_category') {
+  // 3. WRONG TYPE STATE
+  if (errorState === 'wrong_type') {
     return (
       <div
         dir="rtl"
@@ -150,10 +151,10 @@ export const SocialPage: React.FC = () => {
             <AlertCircle size={32} style={{ color: '#f97316' }} />
           </div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>
-            نوع الكارت غير مطابق
+            هذا الكارت ليس صفحة تواصل اجتماعي
           </h2>
           <p style={{ color: '#64748b', marginBottom: '24px', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-            هذا الكارت ليس مخصصاً لمنصات التواصل الاجتماعي (Social Media).
+            هذا الكارت من نوع مختلف ولا يحتوي على صفحة تواصل اجتماعي.
           </p>
         </div>
       </div>
@@ -207,6 +208,6 @@ export const SocialPage: React.FC = () => {
     );
   }
 
-  // 5. SUCCESS STATE: Render Public Card View which acts as the Social Page UI
-  return <PublicCardView card={card} />;
+  // 5. SUCCESS STATE: Render Public Card View
+  return <PublicCardView card={card!} />;
 };

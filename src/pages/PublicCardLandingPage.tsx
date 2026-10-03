@@ -197,29 +197,8 @@ export const PublicCardLandingPage: React.FC = () => {
   }
 
   // 4. ROUTING LOGIC: Determine what happens after the card is resolved
-  const category = String(card.card_type);
-  switch (category) {
-    case 'Google Review':
-    case 'GOOGLE_REVIEW': {
-      const reviewUrl = card.business_data?.google_review_url || 'https://google.com';
-      window.location.replace(reviewUrl);
-      return null; // Return null while redirecting
-    }
-
-    case 'Social':
-    case 'Instagram':
-    case 'TikTok':
-    case 'WhatsApp':
-    case 'Google Maps':
-    case 'UNIFIED_SOCIAL':
-      return <PublicCardView card={card} />;
-
-    case 'Payment':
-    case 'InstaPay':
-      return <PublicCardView card={card} />;
-
-    default:
-      // Fallback
-      return <PublicCardView card={card} />;
-  }
+  // By default, just render the PublicCardView. If the card was meant to be a direct redirect 
+  // (like Google Review), the backend /r/ endpoint would have already redirected the user directly 
+  // to that URL, so they would never hit this page anyway.
+  return <PublicCardView card={card} />;
 };

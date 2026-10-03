@@ -3,8 +3,8 @@ import { Card, Input, Button, Badge, Skeleton, Toast, ToastType, EmptyState, Err
 import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCardsModal';
 import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { cardService } from '../../services';
-import { cardsApi } from '../../services/api';
-import { CardItem, CardInventoryStats, getMainCategory } from '../../types';
+import { cardsApi, categoriesApi } from '../../services/api';
+import { CardItem, CardInventoryStats, ApiCategory } from '../../types';
 import { useTranslation } from '../../i18n';
 import { Plus, CreditCard, Eye, Download, Building2, Edit, Trash2, Power, Layers, CheckCircle2, AlertCircle, Copy, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,7 @@ export const AdminInventoryPage: React.FC = () => {
 
   const [loading, setLoading] = useState<boolean>(true);
   const [cards, setCards] = useState<CardItem[]>([]);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [stats, setStats] = useState<CardInventoryStats>({ total_cards: 0, active_cards: 0, inactive_cards: 0 });
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
@@ -99,12 +100,14 @@ export const AdminInventoryPage: React.FC = () => {
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const [cardsData, statsData] = await Promise.all([
+      const [cardsData, statsData, catsRes] = await Promise.all([
         cardService.getAllCards(),
         cardService.getCardStats(),
+        categoriesApi.getCategories({ limit: 100 }),
       ]);
       setCards(cardsData);
       setStats(statsData);
+      setCategories(catsRes.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load cards inventory');
     } finally {
@@ -152,7 +155,7 @@ export const AdminInventoryPage: React.FC = () => {
 
   const filteredCards = cards.filter((c) => {
     const query = searchQuery.trim().toLowerCase();
-    const bizName = c.business_data?.name || c.business_name || '';
+    const bizName = c.business_data?.business_name || c.business_name || '';
     const matchesSearch =
       !query ||
       c.card_code.toLowerCase().includes(query) ||
@@ -167,20 +170,14 @@ export const AdminInventoryPage: React.FC = () => {
 
     const matchesCategory =
       categoryFilter === 'ALL' ||
-      (categoryFilter === 'Google Review' && getMainCategory(c.card_type) === 'Google Review') ||
-      (categoryFilter === 'Social' && getMainCategory(c.card_type) === 'Social') ||
-      (categoryFilter === 'Payment' && getMainCategory(c.card_type) === 'Payment') ||
-      (c.card_type || '').toLowerCase() === categoryFilter.toLowerCase();
+      (typeof c.category_id === 'string' ? c.category_id : c.category_id?._id) === categoryFilter;
 
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
-  const getCategoryCount = (type: string) => {
-    if (type === 'ALL') return cards.length;
-    if (type === 'Google Review') return cards.filter((c) => getMainCategory(c.card_type) === 'Google Review').length;
-    if (type === 'Social') return cards.filter((c) => getMainCategory(c.card_type) === 'Social').length;
-    if (type === 'Payment') return cards.filter((c) => getMainCategory(c.card_type) === 'Payment').length;
-    return cards.filter((c) => (c.card_type || '').toLowerCase() === type.toLowerCase()).length;
+  const getCategoryCount = (catId: string) => {
+    if (catId === 'ALL') return cards.length;
+    return cards.filter((c) => (typeof c.category_id === 'string' ? c.category_id : c.category_id?._id) === catId).length;
   };
 
   const isAllSelected = filteredCards.length > 0 && filteredCards.every((c) => selectedCardIds.includes(c.id));
@@ -314,7 +311,7 @@ export const AdminInventoryPage: React.FC = () => {
             </div>
             <div style={{ minWidth: 0 }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>التصنيفات</span>
-              <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#7e22ce', lineHeight: 1.1, display: 'block' }}>6</span>
+              <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#7e22ce', lineHeight: 1.1, display: 'block' }}>{categories.length}</span>
             </div>
           </div>
         </Card>
@@ -355,21 +352,49 @@ export const AdminInventoryPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {/* Category Pills */}
           <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
-            {(
-              [
-                { key: 'ALL',          label: 'الكل',         short: 'الكل' },
-                { key: 'Google Review', label: 'Google Review', short: 'Google' },
-                { key: 'Social Media', label: 'Social Media',  short: 'Social' },
-                { key: 'Payment',      label: 'InstaPay',      short: 'Pay' },
-              ] as const
-            ).map((cat) => {
-              const isSelected = categoryFilter === cat.key;
-              const count = getCategoryCount(cat.key);
+            <button
+              type="button"
+              onClick={() => setCategoryFilter('ALL')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '7px 13px',
+                borderRadius: '9999px',
+                fontSize: '0.8125rem',
+                fontWeight: categoryFilter === 'ALL' ? 700 : 500,
+                backgroundColor: categoryFilter === 'ALL' ? '#0f172a' : '#f1f5f9',
+                color: categoryFilter === 'ALL' ? '#ffffff' : '#475569',
+                border: 'none',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 150ms ease-out',
+                boxShadow: categoryFilter === 'ALL' ? '0 3px 10px rgba(15,23,42,0.15)' : 'none',
+                fontFamily: 'Cairo, sans-serif',
+              }}
+            >
+              <span>الكل</span>
+              <span style={{
+                backgroundColor: categoryFilter === 'ALL' ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
+                color: categoryFilter === 'ALL' ? '#ffffff' : '#64748b',
+                padding: '1px 6px',
+                borderRadius: '9999px',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                minWidth: '18px',
+                textAlign: 'center',
+              }}>
+                {cards.length}
+              </span>
+            </button>
+            {categories.map((cat) => {
+              const isSelected = categoryFilter === cat._id;
+              const count = getCategoryCount(cat._id);
               return (
                 <button
-                  key={cat.key}
+                  key={cat._id}
                   type="button"
-                  onClick={() => setCategoryFilter(cat.key as any)}
+                  onClick={() => setCategoryFilter(cat._id)}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -388,8 +413,7 @@ export const AdminInventoryPage: React.FC = () => {
                     fontFamily: 'Cairo, sans-serif',
                   }}
                 >
-                  <span className="cat-full">{cat.label}</span>
-                  <span className="cat-short" style={{ display: 'none' }}>{cat.short}</span>
+                  <span>{cat.name}</span>
                   <span style={{
                     backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
                     color: isSelected ? '#ffffff' : '#64748b',
@@ -517,12 +541,12 @@ export const AdminInventoryPage: React.FC = () => {
                 {filteredCards.map((card) => {
                   const isActive = card.status === 'ACTIVE';
                   const isSelected = selectedCardIds.includes(card.id);
-                  const bizName = card.business_data?.name || card.business_name;
+                  const bizName = card.business_data?.business_name || card.business_name;
                   const catMeta = {
                     'Google Review': { label: 'Google Review', icon: '🌟', badgeVariant: 'amber' as const },
-                    'Social': { label: 'Social', icon: '🌐', badgeVariant: 'info' as const },
-                    'Payment': { label: 'Payment', icon: '💳', badgeVariant: 'purple' as const },
-                  }[getMainCategory(card.card_type)] || { label: 'Google Review', icon: '🌐', badgeVariant: 'info' as const };
+                    'Instagram': { label: 'Social', icon: '🌐', badgeVariant: 'info' as const },
+                    'InstaPay': { label: 'Payment', icon: '💳', badgeVariant: 'purple' as const },
+                  }[card.card_type] || { label: card.card_type || 'Google Review', icon: '🌐', badgeVariant: 'info' as const };
 
                   return (
                     <tr

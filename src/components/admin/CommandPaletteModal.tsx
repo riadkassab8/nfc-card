@@ -49,7 +49,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   const filteredCards = cards.filter((c) => {
     const q = query.trim().toLowerCase();
     if (!q) return false;
-    const bizName = c.business_data?.name || c.business_name || '';
+    const bizName = c.business_data?.business_name || c.business_name || '';
     return (
       c.card_code.toLowerCase().includes(q) ||
       c.public_code.toLowerCase().includes(q) ||
@@ -188,7 +188,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                           {card.card_code} ({card.public_code})
                         </span>
                         <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                          {card.business_data?.name || card.business_name || 'غير معين'}
+                          {card.business_data?.business_name || card.business_name || 'غير معين'}
                         </span>
                       </div>
                     </div>

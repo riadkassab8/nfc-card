@@ -135,48 +135,33 @@ export interface UnifiedAsset {
 export type CardStatus = 'ACTIVE' | 'INACTIVE';
 export type CardUsageStatus = 'UNUSED' | 'USED';
 
-export type CardProductType =
-  | 'Google Review'
-  | 'Instagram'
-  | 'TikTok'
-  | 'InstaPay'
-  | 'Google Maps'
-  | 'WhatsApp';
+/** Exact card_type values accepted by backend */
+export type CardProductType = string;
 
-export type MainCardCategory = 'Google Review' | 'Social' | 'Payment';
 
-export const getMainCategory = (cardType?: string): MainCardCategory => {
-  if (!cardType) return 'Social';
-  const lower = cardType.toLowerCase();
-  if (lower.includes('google review') || lower.includes('review') || lower === 'google_review') {
-    return 'Google Review';
-  }
-  if (lower.includes('instapay') || lower.includes('payment') || lower.includes('vodafone')) {
-    return 'Payment';
-  }
-  return 'Social';
-};
-
+/**
+ * business_data fields — EXACT backend API field names.
+ * See API docs: POST /api/cards, PUT /api/cards/:id
+ */
 export interface BusinessData {
-  name: string;
+  business_name?: string;
+  logo?: string;
   description?: string;
-  logo_url?: string;
   phone?: string;
   whatsapp?: string;
-  address?: string;
-  instagram_url?: string;
-  tiktok_url?: string;
-  facebook_url?: string;
-  google_review_url?: string;
-  instapay_url?: string;
-  website_url?: string;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  google_maps?: string;
+  website?: string;
+  email?: string;
 }
 
 export interface CardItem {
   id: string;
   card_code: string;
   public_code: string;
-  card_type: CardProductType;
+  card_type: string;
   public_url?: string;
 
   qr: {
@@ -194,14 +179,21 @@ export interface CardItem {
   status: CardStatus; // 'ACTIVE' (🟢) | 'INACTIVE' (🔴)
   business_data: BusinessData | null;
 
+  /** category_id from backend — may be populated object or string */
+  category_id?: string | ApiCategory | null;
+
   batch_id?: string;
   created_at: string;
   updated_at?: string;
 
-  // Compatibility helpers
+  // Convenience helpers
   usage_status?: CardUsageStatus;
   business_id?: string | null;
   business_name?: string;
+
+  // Subscription dates from backend
+  subscription_start_date?: string;
+  subscription_end_date?: string;
 }
 
 export interface CardBatch {
@@ -231,11 +223,12 @@ export interface AdminStats {
 }
 
 /* ==========================================================================
-   OFFICIAL BACKEND API SCHEMAS & CONVERTERS
+   OFFICIAL BACKEND API SCHEMAS
    ========================================================================== */
 
 export interface ApiAdmin {
-  id: string;
+  _id?: string;
+  id?: string;
   username: string;
   createdAt?: string;
   updatedAt?: string;
@@ -246,6 +239,52 @@ export interface ApiAuthResponse {
   admin: ApiAdmin;
 }
 
+/** Category as returned by the backend */
+export interface ApiCategory {
+  _id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  is_active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiCategoriesPaginatedResponse {
+  data: ApiCategory[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ApiCreateCategoryDto {
+  name: string;
+  description?: string;
+  icon?: string;
+  is_active?: boolean;
+}
+
+export interface ApiUpdateCategoryDto {
+  name?: string;
+  description?: string;
+  icon?: string;
+  is_active?: boolean;
+}
+
+/** Lookup entry as returned by the backend */
+export interface ApiLookupEntry {
+  _id: string;
+  group: string;
+  key: string;
+  label: string;
+  meta?: Record<string, any> | null;
+  order: number;
+  is_active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ApiCard {
   _id: string;
   card_code: string;
@@ -253,7 +292,10 @@ export interface ApiCard {
   qr_code?: string;
   card_type: string;
   current_redirect_url: string;
-  business_data?: any;
+  /** business_data uses exact API field names */
+  business_data?: BusinessData | null;
+  /** category_id may be a string (ObjectId) or populated ApiCategory object */
+  category_id?: string | ApiCategory | null;
   status: 'active' | 'inactive';
   subscription_start_date: string;
   subscription_end_date: string;
@@ -275,6 +317,8 @@ export interface ApiCreateCardDto {
   qr_code?: string;
   card_type: string;
   current_redirect_url: string;
+  category_id?: string;
+  business_data?: BusinessData;
 }
 
 export interface ApiUpdateCardDto {
@@ -282,98 +326,57 @@ export interface ApiUpdateCardDto {
   qr_code?: string;
   card_type?: string;
   current_redirect_url?: string;
-  business_data?: any;
+  business_data?: BusinessData | null;
   status?: 'active' | 'inactive';
+  category_id?: string;
 }
 
 export interface ApiUpdateRedirectDto {
   redirect_url: string;
-  business_data?: any;
 }
 
 /**
- * Adapter: Converts backend ApiCard object to frontend CardItem format
+ * Adapter: Converts backend ApiCard object to frontend CardItem format.
+ * Uses EXACT backend field names for business_data — no renaming.
  */
 export const apiCardToCardItem = (apiCard: ApiCard): CardItem => {
-  const publicCode = apiCard.card_code ? apiCard.card_code.replace('CARD-', '') : apiCard._id.slice(-6).toUpperCase();
+  const publicCode = apiCard.card_code
+    ? apiCard.card_code.replace('CARD-', '')
+    : apiCard._id.slice(-6).toUpperCase();
   const status: CardStatus = apiCard.status === 'active' ? 'ACTIVE' : 'INACTIVE';
 
-  let cardType: CardProductType = 'Google Review';
-  const typeStr = apiCard.card_type || '';
-  const typeLower = typeStr.toLowerCase();
+  // business_data comes from backend with exact field names — use directly
+  const parsedBusinessData: BusinessData | null = apiCard.business_data || null;
 
-  if (typeLower.includes('google review') || typeLower.includes('review')) {
-    cardType = 'Google Review';
-  } else if (typeLower.includes('google map') || typeLower.includes('maps')) {
-    cardType = 'Google Maps';
-  } else if (typeLower.includes('insta') && typeLower.includes('pay')) {
-    cardType = 'InstaPay';
-  } else if (typeLower.includes('instagram')) {
-    cardType = 'Instagram';
-  } else if (typeLower.includes('tiktok')) {
-    cardType = 'TikTok';
-  } else if (typeLower.includes('whatsapp')) {
-    cardType = 'WhatsApp';
-  } else if (typeStr) {
-    cardType = typeStr as CardProductType;
-  }
-
-  let parsedBusinessData: BusinessData | null = apiCard.business_data || null;
-  
-  if (!parsedBusinessData) {
-    // If the backend didn't provide business_data, try fallback to URL (for old cached cards),
-    // OR create a default empty BusinessData object.
-    if (apiCard.current_redirect_url) {
-      try {
-        const urlObj = new URL(apiCard.current_redirect_url);
-        const dataParam = urlObj.searchParams.get('data');
-        if (dataParam) {
-           const base64Decoded = atob(dataParam);
-           const utf8Decoded = new TextDecoder().decode(new Uint8Array([...base64Decoded].map(c => c.charCodeAt(0))));
-           parsedBusinessData = JSON.parse(utf8Decoded);
-        }
-      } catch (e) {
-        // Ignored
-      }
-    }
-    
-    if (!parsedBusinessData) {
-      parsedBusinessData = {
-        name: apiCard.card_type ? `${apiCard.card_type}` : 'Target Destination',
-        google_review_url: cardType === 'Google Review' ? apiCard.current_redirect_url : undefined,
-        instapay_url: cardType === 'InstaPay' ? apiCard.current_redirect_url : undefined,
-        website_url: ['Instagram', 'TikTok', 'WhatsApp', 'Social', 'UNIFIED_SOCIAL'].includes(cardType) ? apiCard.current_redirect_url : undefined,
-      } as BusinessData;
-    }
-  }
-
-  // Clean the public URL to hide the base64 data from the user interface
-  let cleanPublicUrl = apiCard.current_redirect_url || '';
-  if (cleanPublicUrl.includes('?data=')) {
-    cleanPublicUrl = cleanPublicUrl.split('?data=')[0];
-  }
+  // Display name for the card
+  const displayName =
+    parsedBusinessData?.business_name ||
+    (apiCard.card_type ? `${apiCard.card_type}` : 'Target Destination');
 
   return {
     id: apiCard._id,
     card_code: apiCard.card_code,
     public_code: publicCode,
-    card_type: cardType,
-    public_url: cleanPublicUrl,
+    card_type: apiCard.card_type,
+    public_url: apiCard.current_redirect_url || '',
     qr: {
       id: apiCard.qr_code || `https://smart-card-qr-api.koyeb.app/r/${apiCard.card_code}`,
       public_code: publicCode,
-      public_url: cleanPublicUrl,
+      public_url: apiCard.current_redirect_url || '',
     },
     nfc: {
-      id: `NFC-${apiCard.nfc_uid || publicCode}`,
+      id: apiCard.nfc_uid ? `NFC-${apiCard.nfc_uid}` : `NFC-${publicCode}`,
       identifier: apiCard.nfc_uid || `NFC-${publicCode}`,
-      public_url: cleanPublicUrl,
+      public_url: apiCard.current_redirect_url || '',
     },
     status,
     business_data: parsedBusinessData,
-    business_name: parsedBusinessData?.name || (apiCard.card_type ? `${apiCard.card_type}` : 'Target Destination'),
+    category_id: apiCard.category_id,
+    business_name: displayName,
     usage_status: status === 'ACTIVE' ? 'USED' : 'UNUSED',
     created_at: apiCard.createdAt || apiCard.subscription_start_date || new Date().toISOString(),
     updated_at: apiCard.updatedAt || new Date().toISOString(),
+    subscription_start_date: apiCard.subscription_start_date,
+    subscription_end_date: apiCard.subscription_end_date,
   };
 };

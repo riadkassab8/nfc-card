@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Input, Button, Select } from '../ui';
 import { cardService } from '../../services';
-import { CardItem, CardProductType } from '../../types';
+import { categoriesApi, apiClient } from '../../services/api';
+import { CardItem, ApiCategory, ApiLookupEntry } from '../../types';
+import { getCategoryConfig } from '../../config/CategoryRegistry';
 import { useTranslation } from '../../i18n';
 import { Layers, CheckCircle2, CreditCard, Plus } from 'lucide-react';
 
@@ -34,11 +36,6 @@ const tabStyle = (active: boolean): React.CSSProperties => ({
   boxShadow: active ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
 });
 
-const CARD_TYPE_OPTIONS = [
-  { value: 'Google Review', label: '🌟 تقييمات جوجل (Google Review)' },
-  { value: 'Instagram',     label: '🌐 تواصل اجتماعي (Social)' },
-  { value: 'InstaPay',      label: '💳 دفع (Payment)' },
-];
 
 /* ================================================================ */
 export const BatchGenerateCardsModal: React.FC<BatchGenerateCardsModalProps> = ({
@@ -52,16 +49,54 @@ export const BatchGenerateCardsModal: React.FC<BatchGenerateCardsModalProps> = (
   const [activeTab, setActiveTab] = useState<ActiveTab>('batch');
   const [successCount, setSuccessCount] = useState<number | null>(null);
 
+  /* ── dynamic data ── */
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [cardTypes, setCardTypes] = useState<ApiLookupEntry[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      const loadData = async () => {
+        try {
+          const [catsRes, typesRes] = await Promise.all([
+            categoriesApi.getCategories({ limit: 100 }),
+            apiClient<ApiLookupEntry[]>('/lookup/group/card_type'),
+          ]);
+          setCategories(catsRes.data || []);
+          setCardTypes(typesRes || []);
+        } catch (err) {
+          console.error('Failed to load modal dependencies:', err);
+        }
+      };
+      loadData();
+    }
+  }, [isOpen]);
+
+  const typeOptions = cardTypes.length > 0 
+    ? cardTypes.map(t => ({ value: t.key, label: t.label }))
+    : [
+        { value: 'Google Review', label: '🌟 تقييمات جوجل (Google Review)' },
+        { value: 'Instagram',     label: '🌐 تواصل اجتماعي (Social)' },
+        { value: 'InstaPay',      label: '💳 دفع (Payment)' },
+        { value: 'Social Page',   label: '📱 صفحة تواصل اجتماعي (Social Page)' },
+      ];
+      
+  const catOptions = [
+    { value: '', label: '-- بدون تصنيف --' },
+    ...categories.map(c => ({ value: c._id, label: c.name }))
+  ];
+
   /* ── batch tab ── */
   const [quantity, setQuantity]       = useState<string>('10');
-  const [batchCardType, setBatchCardType] = useState<CardProductType>('Google Review');
+  const [batchCardType, setBatchCardType] = useState<string>('Social Page');
+  const [batchCategoryId, setBatchCategoryId] = useState<string>('');
   const [batchError, setBatchError]   = useState<string | null>(null);
   const [batchLoading, setBatchLoading] = useState(false);
 
   /* ── single tab ── */
   const [cardCode, setCardCode]       = useState('');
   const [nfcUid, setNfcUid]           = useState('');
-  const [singleCardType, setSingleCardType] = useState<CardProductType>('Google Review');
+  const [singleCardType, setSingleCardType] = useState<string>('Social Page');
+  const [singleCategoryId, setSingleCategoryId] = useState<string>('');
   const [redirectUrl, setRedirectUrl] = useState('');
   const [singleError, setSingleError] = useState<string | null>(null);
   const [singleLoading, setSingleLoading] = useState(false);
@@ -76,11 +111,13 @@ export const BatchGenerateCardsModal: React.FC<BatchGenerateCardsModalProps> = (
     setActiveTab('batch');
     setSuccessCount(null);
     setQuantity('10');
-    setBatchCardType('Google Review');
+    setBatchCardType('Social Page');
+    setBatchCategoryId('');
     setBatchError(null);
     setCardCode('');
     setNfcUid('');
-    setSingleCardType('Google Review');
+    setSingleCardType('Social Page');
+    setSingleCategoryId('');
     setRedirectUrl('');
     setSingleError(null);
   };
@@ -104,7 +141,7 @@ export const BatchGenerateCardsModal: React.FC<BatchGenerateCardsModalProps> = (
 
     setBatchLoading(true);
     try {
-      const result = await cardService.generateCardBatch(numVal, batchCardType);
+      const result = await cardService.generateCardBatch(numVal, batchCardType, batchCategoryId || undefined);
       setSuccessCount(numVal);
       onSuccess(result.cards);
     } catch (err) {
@@ -135,11 +172,26 @@ export const BatchGenerateCardsModal: React.FC<BatchGenerateCardsModalProps> = (
 
     setSingleLoading(true);
     try {
+      const config = getCategoryConfig(singleCategoryId, categories);
+      const initialBusinessData: Record<string, string> = {};
+      
+      // Route the redirect URL to the appropriate business data field based on category configuration
+      if (config.allowedFields.includes('google_maps') && config.landingRoute === 'google-review') {
+        initialBusinessData.google_maps = trimUrl;
+      } else if (config.landingRoute === 'payment') {
+        initialBusinessData.website = trimUrl;
+      } else {
+        // generic fallback
+        initialBusinessData.website = trimUrl;
+      }
+
       const created = await cardService.createCard({
         card_code:            trimCode.toUpperCase(),
         nfc_uid:              nfcUid.trim() || undefined,
         card_type:            singleCardType,
+        category_id:          singleCategoryId || undefined,
         current_redirect_url: trimUrl,
+        business_data:        initialBusinessData,
       });
       setSuccessCount(1);
       onSuccess([created]);
@@ -246,10 +298,17 @@ export const BatchGenerateCardsModal: React.FC<BatchGenerateCardsModalProps> = (
               </div>
 
               <Select
-                label="نوع الكارت / المنتج"
+                label="نوع الكارت *"
                 value={batchCardType}
-                onChange={(e) => setBatchCardType(e.target.value as CardProductType)}
-                options={CARD_TYPE_OPTIONS}
+                onChange={(e) => setBatchCardType(e.target.value)}
+                options={typeOptions}
+              />
+
+              <Select
+                label="التصنيف (اختياري)"
+                value={batchCategoryId}
+                onChange={(e) => setBatchCategoryId(e.target.value)}
+                options={catOptions}
               />
 
               <Input
@@ -344,8 +403,15 @@ export const BatchGenerateCardsModal: React.FC<BatchGenerateCardsModalProps> = (
               <Select
                 label="نوع الكارت *"
                 value={singleCardType}
-                onChange={(e) => setSingleCardType(e.target.value as CardProductType)}
-                options={CARD_TYPE_OPTIONS}
+                onChange={(e) => setSingleCardType(e.target.value)}
+                options={typeOptions}
+              />
+
+              <Select
+                label="التصنيف (اختياري)"
+                value={singleCategoryId}
+                onChange={(e) => setSingleCategoryId(e.target.value)}
+                options={catOptions}
               />
 
               <Input

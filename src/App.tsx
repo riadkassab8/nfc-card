@@ -2,15 +2,12 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { PublicCardLandingPage } from './pages/PublicCardLandingPage';
 import { SocialPage } from './pages/SocialPage';
-import { DashboardOverviewPage } from './pages/DashboardOverviewPage';
-import { BusinessProfilePage } from './pages/BusinessProfilePage';
-import { QRCodesPage } from './pages/QRCodesPage';
-import { DashboardSettingsPage } from './pages/DashboardSettingsPage';
 import { AdminShell } from './components/admin/AdminShell';
+import { DashboardSettingsPage } from './pages/DashboardSettingsPage';
 import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
-import { AdminBusinessesPage } from './pages/admin/AdminBusinessesPage';
 import { AdminInventoryPage } from './pages/admin/AdminInventoryPage';
 import { AdminScanPage } from './pages/admin/AdminScanPage';
+import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
 import { Button, LanguageSwitcher } from './components/ui';
 import { useTranslation } from './i18n';
 import { QrCode, ShieldAlert } from 'lucide-react';
@@ -93,12 +90,6 @@ export const App: React.FC = () => {
               <Route path="/q/:publicCode" element={<PublicCardLandingPage />} />
               <Route path="/r/:publicCode" element={<PublicCardLandingPage />} />
 
-              {/* Merchant Prototype Routes */}
-              <Route path="/dashboard" element={<DashboardOverviewPage />} />
-              <Route path="/dashboard/business" element={<BusinessProfilePage />} />
-              <Route path="/dashboard/qr-codes" element={<QRCodesPage />} />
-              <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
-
               {/* Platform Admin Routes (Protected by JWT Auth) */}
               <Route
                 path="/admin"
@@ -150,12 +141,14 @@ export const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
+
+
               <Route
-                path="/admin/businesses"
+                path="/admin/categories"
                 element={
                   <ProtectedRoute>
-                    <AdminShell title="Business Data">
-                      <AdminBusinessesPage />
+                    <AdminShell title="إدارة التصنيفات">
+                      <AdminCategoriesPage />
                     </AdminShell>
                   </ProtectedRoute>
                 }

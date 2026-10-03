@@ -31,7 +31,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         setAvailableCards(
           cards.map((c) => ({
             public_code: c.public_code,
-            label: c.business_data?.name ? `${c.business_data.name} (${c.public_code})` : `بطاقة ${c.public_code}`,
+            label: c.business_data?.business_name ? `${c.business_data.business_name} (${c.public_code})` : `بطاقة ${c.public_code}`,
           }))
         );
       });

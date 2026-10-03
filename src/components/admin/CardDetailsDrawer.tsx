@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Drawer, Button, Input, Select } from '../ui';
-import { CardItem, CardProductType, ApiUpdateCardDto, getMainCategory } from '../../types';
+import { CardItem, ApiUpdateCardDto, ApiCategory, ApiLookupEntry } from '../../types';
 import {
   Download,
   Cpu,
@@ -21,10 +21,11 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { generateRealQRCode, decodeQRCodeDataUrl, getCardPublicUrl } from '../../utils/qrGenerator';
+import { getCategoryConfig, resolveLandingUrl } from '../../config/CategoryRegistry';
 import { cardService } from '../../services';
 import { PhysicalCardPreview } from './PhysicalCardPreview';
 import { DigitalProfilePreview } from '../digital-profile';
-import { cardsApi } from '../../services/api';
+import { cardsApi, categoriesApi, apiClient } from '../../services/api';
 
 export interface CardDetailsDrawerProps {
   isOpen: boolean;
@@ -40,12 +41,6 @@ const fmtDate = (iso?: string) =>
   iso
     ? new Date(iso).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
     : '—';
-
-const CARD_TYPE_OPTIONS = [
-  { value: 'Google Review', label: '🌟 Google Review' },
-  { value: 'Instagram',     label: '🌐 Social' },
-  { value: 'InstaPay',      label: '💳 Payment' },
-];
 
 
 /* ──────────────────────────────────────────── */
@@ -71,11 +66,48 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   const [isSavingUrl, setIsSavingUrl]     = useState(false);
   const [urlSaved, setUrlSaved]           = useState(false);
 
+  /* ── dynamic data ── */
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [cardTypes, setCardTypes] = useState<ApiLookupEntry[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      const loadData = async () => {
+        try {
+          const [catsRes, typesRes] = await Promise.all([
+            categoriesApi.getCategories({ limit: 100 }),
+            apiClient<ApiLookupEntry[]>('/lookup/group/card_type'),
+          ]);
+          setCategories(catsRes.data || []);
+          setCardTypes(typesRes || []);
+        } catch (err) {
+          console.error('Failed to load categories/types:', err);
+        }
+      };
+      loadData();
+    }
+  }, [isOpen]);
+
+  const typeOptions = cardTypes.length > 0 
+    ? cardTypes.map(t => ({ value: t.key, label: t.label }))
+    : [
+        { value: 'Google Review', label: '🌟 تقييمات جوجل (Google Review)' },
+        { value: 'Instagram',     label: '🌐 تواصل اجتماعي (Social)' },
+        { value: 'InstaPay',      label: '💳 دفع (Payment)' },
+        { value: 'Social Page',   label: '📱 صفحة تواصل اجتماعي (Social Page)' },
+      ];
+      
+  const catOptions = [
+    { value: '', label: '-- بدون تصنيف --' },
+    ...categories.map(c => ({ value: c._id, label: c.name }))
+  ];
+
   /* ── edit card fields ── */
   const [editMode, setEditMode]           = useState(false);
   const [editCardCode, setEditCardCode]   = useState('');
   const [editNfcUid, setEditNfcUid]       = useState('');
-  const [editCardType, setEditCardType]   = useState<CardProductType>('Google Review');
+  const [editCardType, setEditCardType]   = useState<string>('Google Review');
+  const [editCategoryId, setEditCategoryId] = useState<string>('');
   const [isSavingEdit, setIsSavingEdit]   = useState(false);
   const [editSavedMsg, setEditSavedMsg]   = useState<string | null>(null);
 
@@ -115,7 +147,8 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
       setConfirmDelete(false);
       setEditCardCode(card.card_code);
       setEditNfcUid(card.nfc?.identifier || '');
-      setEditCardType(card.card_type);
+      setEditCardType(card.card_type || '');
+      setEditCategoryId((typeof card.category_id === 'string' ? card.category_id : card.category_id?._id) || '');
       generateQR(url);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,6 +183,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
     const dto: ApiUpdateCardDto = {
       card_type: editCardType,
       nfc_uid:   editNfcUid.trim() || undefined,
+      category_id: editCategoryId || undefined,
     };
     try {
       const updated = await cardsApi.updateCard(card.id, dto);
@@ -324,7 +358,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
 
             {/* Preview Button */}
             <a
-              href={getMainCategory(card.card_type) === 'Social' ? `/social/${card.public_code}` : `/c/${card.public_code}`}
+              href={resolveLandingUrl(card.public_code, getCategoryConfig(typeof card.category_id === 'string' ? card.category_id : card.category_id?._id, categories))}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -674,11 +708,17 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
               />
 
               <Select
-                label="نوع الكارت (لا يمكن تعديله)"
+                label="نوع الكارت"
                 value={editCardType}
-                onChange={(e) => setEditCardType(e.target.value as CardProductType)}
-                options={CARD_TYPE_OPTIONS}
-                disabled
+                onChange={(e) => setEditCardType(e.target.value)}
+                options={typeOptions}
+              />
+
+              <Select
+                label="التصنيف (اختياري)"
+                value={editCategoryId}
+                onChange={(e) => setEditCategoryId(e.target.value)}
+                options={catOptions}
               />
 
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -730,7 +770,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                 <Building2 size={16} /> النشاط التجاري المرتبط
               </div>
               <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
-                {card.business_data?.name || card.business_name || 'غير معين'}
+                {card.business_data?.business_name || card.business_name || 'غير معين'}
               </span>
               {onAssignRequest && (
                 <Button variant="outline" size="sm" style={{ marginTop: '10px' }}

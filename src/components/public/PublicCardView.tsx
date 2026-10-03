@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { CardItem, getMainCategory } from '../../types';
+import { CardItem } from '../../types';
 import {
-  Star,
   MessageCircle,
   Phone,
   Globe,
-  CreditCard,
   Check,
   Copy,
   Instagram,
@@ -62,14 +60,14 @@ const SmartLinkButton: React.FC<{
     alignItems: 'center',
     gap: '16px',
     flex: 1,
-    minWidth: 0, // prevents overflow
+    minWidth: 0,
   };
 
   const iconWrapperStyle: React.CSSProperties = {
     width: '48px',
     height: '48px',
     borderRadius: '12px',
-    backgroundColor: `${link.color}15`, // 15% opacity
+    backgroundColor: `${link.color}15`,
     color: link.color,
     display: 'flex',
     alignItems: 'center',
@@ -138,7 +136,7 @@ const SmartLinkButton: React.FC<{
   }
 
   return (
-    <a href={link.url} target={link.url.startsWith('tel:') ? '_self' : '_blank'} rel="noopener noreferrer" style={baseStyle}>
+    <a href={link.url} target={link.url.startsWith('tel:') || link.url.startsWith('mailto:') ? '_self' : '_blank'} rel="noopener noreferrer" style={baseStyle}>
       <div style={contentStyle}>
         <div style={iconWrapperStyle}>{link.icon}</div>
         <div style={textWrapperStyle}>
@@ -259,10 +257,12 @@ export const PublicCardView: React.FC<PublicCardViewProps> = ({ card }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const bizData = card.business_data;
-  const bizName = bizData?.name || card.business_name || card.card_code;
+  // Use exact backend field name: business_name
+  const bizName = bizData?.business_name || card.business_name || card.card_code;
   const description = bizData?.description;
-  const logoUrl = bizData?.logo_url;
-  const cardType = card.card_type || 'Google Review';
+  // Use exact backend field name: logo
+  const logoUrl = bizData?.logo;
+  const cardType = card.card_type || 'Social Page';
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -270,38 +270,23 @@ export const PublicCardView: React.FC<PublicCardViewProps> = ({ card }) => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Build Dynamic Links list strictly backed by real card data
+  // Build Dynamic Links list — ONLY render fields that actually exist in business_data
   const links: CardLinkItem[] = [];
 
-  // 1. Google Review Link
-  const reviewUrl = bizData?.google_review_url || (cardType === 'Google Review' && card.public_url ? card.public_url : undefined);
-  if (reviewUrl && reviewUrl.trim().length > 0) {
+  // 1. WhatsApp (field: whatsapp)
+  if (bizData?.whatsapp && bizData.whatsapp.trim().length > 0) {
+    const cleanNum = bizData.whatsapp.replace(/[^0-9]/g, '');
     links.push({
-      id: 'google_review',
-      title: 'تقييمنا على جوجل',
-      subtitle: 'Google Reviews',
-      url: reviewUrl,
-      icon: <Star size={24} style={{ fill: '#f59e0b' }} />,
-      color: '#f59e0b',
+      id: 'whatsapp',
+      title: 'واتساب',
+      subtitle: bizData.whatsapp,
+      url: bizData.whatsapp.startsWith('http') ? bizData.whatsapp : `https://wa.me/${cleanNum}`,
+      icon: <MessageCircle size={24} />,
+      color: '#22c55e',
     });
   }
 
-  // 2. InstaPay Payment Link/Handle
-  const isPayment = getMainCategory(cardType) === 'Payment';
-  const instaPayVal = bizData?.instapay_url || (isPayment && card.public_url ? card.public_url : undefined);
-  if (instaPayVal && instaPayVal.trim().length > 0) {
-    links.push({
-      id: 'instapay',
-      title: 'حساب إنستاباي',
-      subtitle: instaPayVal,
-      url: instaPayVal,
-      icon: <CreditCard size={24} />,
-      color: '#6366f1',
-      isCopyable: true,
-    });
-  }
-
-  // 3. Phone Call
+  // 2. Phone (field: phone)
   if (bizData?.phone && bizData.phone.trim().length > 0) {
     links.push({
       id: 'phone',
@@ -313,67 +298,75 @@ export const PublicCardView: React.FC<PublicCardViewProps> = ({ card }) => {
     });
   }
 
-  // 4. WhatsApp Chat / Vodafone Cash
-  if (bizData?.whatsapp && bizData.whatsapp.trim().length > 0) {
-    const isVodafoneCash = isPayment;
-    const cleanNum = bizData.whatsapp.replace(/[^0-9]/g, '');
-    links.push({
-      id: isVodafoneCash ? 'vodafone_cash' : 'whatsapp',
-      title: isVodafoneCash ? 'فودافون كاش' : 'واتساب',
-      subtitle: bizData.whatsapp,
-      url: isVodafoneCash ? `tel:${cleanNum}` : `https://wa.me/${cleanNum}`,
-      icon: isVodafoneCash ? <Phone size={24} /> : <MessageCircle size={24} />,
-      color: isVodafoneCash ? '#e60000' : '#22c55e',
-      isCopyable: isVodafoneCash,
-    });
-  }
-
-  // 5. Instagram
-  if (bizData?.instagram_url && bizData.instagram_url.trim().length > 0) {
+  // 3. Instagram (field: instagram)
+  if (bizData?.instagram && bizData.instagram.trim().length > 0) {
     links.push({
       id: 'instagram',
       title: 'إنستجرام',
       subtitle: 'Instagram',
-      url: bizData.instagram_url.trim(),
+      url: bizData.instagram.trim(),
       icon: <Instagram size={24} />,
       color: '#e1306c',
     });
   }
 
-  // 6. Facebook
-  if (bizData?.facebook_url && bizData.facebook_url.trim().length > 0) {
+  // 4. Facebook (field: facebook)
+  if (bizData?.facebook && bizData.facebook.trim().length > 0) {
     links.push({
       id: 'facebook',
       title: 'فيسبوك',
       subtitle: 'Facebook',
-      url: bizData.facebook_url.trim(),
+      url: bizData.facebook.trim(),
       icon: <Facebook size={24} />,
       color: '#1877f2',
     });
   }
 
-  // 7. TikTok
-  if (bizData?.tiktok_url && bizData.tiktok_url.trim().length > 0) {
+  // 5. TikTok (field: tiktok)
+  if (bizData?.tiktok && bizData.tiktok.trim().length > 0) {
     links.push({
       id: 'tiktok',
       title: 'تيك توك',
       subtitle: 'TikTok',
-      url: bizData.tiktok_url.trim(),
+      url: bizData.tiktok.trim(),
       icon: <Video size={24} />,
       color: '#000000',
     });
   }
 
-  // 8. Website or Primary Target Link
-  const webUrl = bizData?.website_url || (card.public_url && !reviewUrl && !instaPayVal ? card.public_url : undefined);
-  if (webUrl && webUrl.trim().length > 0 && !links.some((l) => l.url === webUrl)) {
+  // 6. Google Maps (field: google_maps)
+  if (bizData?.google_maps && bizData.google_maps.trim().length > 0) {
+    links.push({
+      id: 'google_maps',
+      title: 'الموقع على الخريطة',
+      subtitle: 'Google Maps',
+      url: bizData.google_maps.trim(),
+      icon: <Compass size={24} />,
+      color: '#ea4335',
+    });
+  }
+
+  // 7. Website (field: website)
+  if (bizData?.website && bizData.website.trim().length > 0) {
     links.push({
       id: 'website',
       title: 'الموقع الإلكتروني',
-      subtitle: webUrl.replace(/^https?:\/\//, '').replace(/\/$/, ''),
-      url: webUrl.trim(),
+      subtitle: bizData.website.replace(/^https?:\/\//, '').replace(/\/$/, ''),
+      url: bizData.website.trim(),
       icon: <Globe size={24} />,
       color: '#64748b',
+    });
+  }
+
+  // 8. Email (field: email)
+  if (bizData?.email && bizData.email.trim().length > 0) {
+    links.push({
+      id: 'email',
+      title: 'البريد الإلكتروني',
+      subtitle: bizData.email,
+      url: `mailto:${bizData.email.trim()}`,
+      icon: <Globe size={24} />,
+      color: '#8b5cf6',
     });
   }
 

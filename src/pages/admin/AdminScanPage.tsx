@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { cardService } from '../../services';
-import { CardItem, BusinessData, getMainCategory } from '../../types';
+import { CardItem, BusinessData } from '../../types';
+import { getCategoryConfig, resolveLandingUrl } from '../../config/CategoryRegistry';
 import { useTranslation } from '../../i18n';
 import { QRScannerModal } from '../../components/admin/QRScannerModal';
 import {
@@ -23,6 +24,20 @@ import {
   Upload,
 } from 'lucide-react';
 
+const EMPTY_BUSINESS_DATA: BusinessData = {
+  business_name: '',
+  description: '',
+  logo: '',
+  phone: '',
+  whatsapp: '',
+  instagram: '',
+  facebook: '',
+  tiktok: '',
+  google_maps: '',
+  website: '',
+  email: '',
+};
+
 export const AdminScanPage: React.FC = () => {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
@@ -32,26 +47,21 @@ export const AdminScanPage: React.FC = () => {
   const [searched, setSearched] = useState(false);
   const [resolvedCard, setResolvedCard] = useState<CardItem | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
 
-  // Business Data Form State
-  const [formData, setFormData] = useState<BusinessData>({
-    name: '',
-    description: '',
-    logo_url: '',
-    phone: '',
-    whatsapp: '',
-    address: '',
-    instagram_url: '',
-    tiktok_url: '',
-    facebook_url: '',
-    google_review_url: '',
-    instapay_url: '',
-    website_url: '',
-  });
+  // Business Data Form State — uses exact backend API field names
+  const [formData, setFormData] = useState<BusinessData>({ ...EMPTY_BUSINESS_DATA });
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
+    // Fetch categories to resolve configuration
+    import('../../services/api/categoriesApi').then(({ categoriesApi }) => {
+      categoriesApi.getCategories({ limit: 100 })
+        .then(res => setCategories(res.data || []))
+        .catch(console.error);
+    });
+
     const paramPayload = searchParams.get('payload');
     if (paramPayload) {
       setPayloadInput(paramPayload);
@@ -59,6 +69,7 @@ export const AdminScanPage: React.FC = () => {
     }
   }, [searchParams]);
 
+  // Use a ref or simple function to handle resolve when categories are loaded or updated
   const handleResolve = async (inputToUse?: string) => {
     const term = inputToUse !== undefined ? inputToUse : payloadInput;
     if (!term.trim()) {
@@ -74,22 +85,22 @@ export const AdminScanPage: React.FC = () => {
       const card = await cardService.resolveCardByPayload(term);
       setResolvedCard(card);
       if (card) {
+        const categoryId = typeof card.category_id === 'string' ? card.category_id : card.category_id?._id;
+        const config = getCategoryConfig(categoryId as any, categories);
+        const initialRedirect = card.public_url || '';
+
         if (card.business_data) {
-          setFormData({ ...card.business_data });
+          setFormData({
+            ...EMPTY_BUSINESS_DATA,
+            ...card.business_data,
+            google_maps: card.business_data.google_maps || (config.landingRoute === 'google-review' ? initialRedirect : ''),
+            website: card.business_data.website || (config.landingRoute === 'payment' ? initialRedirect : ''),
+          });
         } else {
           setFormData({
-            name: '',
-            description: '',
-            logo_url: '',
-            phone: '',
-            whatsapp: '',
-            address: '',
-            instagram_url: '',
-            tiktok_url: '',
-            facebook_url: '',
-            google_review_url: '',
-            instapay_url: '',
-            website_url: '',
+            ...EMPTY_BUSINESS_DATA,
+            google_maps: config.landingRoute === 'google-review' ? initialRedirect : '',
+            website: config.landingRoute === 'payment' ? initialRedirect : '',
           });
         }
       }
@@ -108,7 +119,7 @@ export const AdminScanPage: React.FC = () => {
     e.preventDefault();
     if (!resolvedCard) return;
 
-    if (!formData.name.trim()) {
+    if (!formData.business_name?.trim()) {
       setToast({ message: 'يرجى كتابة اسم النشاط التجاري', type: 'error' });
       return;
     }
@@ -118,7 +129,7 @@ export const AdminScanPage: React.FC = () => {
       const updatedCard = await cardService.saveCardBusinessData(resolvedCard.id, formData);
       setResolvedCard(updatedCard);
       setToast({
-        message: '🟢 تم حفظ وتفعيل بيانات البطاقة وتحديث الـ QR بنجاح!',
+        message: '🟢 تم حفظ وتفعيل بيانات البطاقة بنجاح!',
         type: 'success',
       });
     } catch (err: any) {
@@ -130,7 +141,8 @@ export const AdminScanPage: React.FC = () => {
   };
 
   const isActive = resolvedCard?.status === 'ACTIVE';
-  const cardType = resolvedCard?.card_type || 'UNIFIED_SOCIAL';
+  const categoryId = typeof resolvedCard?.category_id === 'string' ? resolvedCard.category_id : resolvedCard?.category_id?._id;
+  const config = getCategoryConfig(categoryId as any, categories);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -152,7 +164,7 @@ export const AdminScanPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Input / Scanner Simulation Form */}
+      {/* Input / Scanner Form */}
       <Card padding="lg">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
@@ -173,7 +185,7 @@ export const AdminScanPage: React.FC = () => {
               <div style={{ flex: 1, minWidth: '260px' }}>
                 <Input
                   label="كود العام / رقم QR / معرف NFC"
-                  placeholder="مثال: 7FJ2K9 أو CARD-0001"
+                  placeholder="مثال: CARD-0001 أو NFC-7FJ2K9"
                   value={payloadInput}
                   onChange={(e) => setPayloadInput(e.target.value)}
                 />
@@ -204,7 +216,7 @@ export const AdminScanPage: React.FC = () => {
         </div>
       </Card>
 
-      {/* Resolution Result Section */}
+      {/* Resolution Result */}
       {loading ? (
         <Card padding="lg">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -239,25 +251,18 @@ export const AdminScanPage: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{resolvedCard.card_code}</h2>
-                <Badge variant={getMainCategory(cardType) === 'Google Review' ? 'amber' : getMainCategory(cardType) === 'Payment' ? 'purple' : 'info'}>
-                  {getMainCategory(cardType) === 'Google Review' ? '🌟 Google Review' : getMainCategory(cardType) === 'Payment' ? '💳 Payment' : `🌐 Social`}
-                </Badge>
+                <Badge variant="info">{resolvedCard.card_type || 'غير محدد'}</Badge>
               </div>
               <p style={{ fontSize: '0.8125rem', color: '#64748b', fontFamily: 'monospace', marginTop: '2px' }}>
                 Public Code: <strong style={{ color: '#4f46e5' }}>{resolvedCard.public_code}</strong>
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => {
-                  const category = getMainCategory(resolvedCard.card_type);
-                  if (category === 'Social') {
-                    window.open(`/social/${resolvedCard.public_code}`, '_blank');
-                  } else {
-                    window.open(`/c/${resolvedCard.public_code}`, '_blank');
-                  }
+                  window.open(resolveLandingUrl(resolvedCard.card_code, config), '_blank');
                 }}
               >
                 👁️ معاينة الكارت
@@ -268,7 +273,7 @@ export const AdminScanPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Unified Card Details Grid */}
+          {/* Card Details Grid */}
           <div
             style={{
               display: 'grid',
@@ -304,261 +309,231 @@ export const AdminScanPage: React.FC = () => {
               <div style={{ fontSize: '0.75rem', color: '#64748b' }}>النشاط التجاري الحالي</div>
               <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.875rem' }}>
                 <Store size={14} style={{ color: '#64748b' }} />
-                {isActive && resolvedCard.business_data ? resolvedCard.business_data.name : 'غير معين'}
+                {resolvedCard.business_data?.business_name || 'غير معين'}
               </div>
             </div>
           </div>
 
-          {/* Contextual Form Rendered Specifically based on cardType */}
+          {/* Contextual Form based on card_type */}
           <form onSubmit={handleSaveData} style={{ display: 'flex', flexDirection: 'column', gap: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+            {/* Form Header */}
+            <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '14px 18px', borderRadius: '12px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e40af' }}>
+                {config.landingRoute === 'google-review' && '🌟 نموذج كارت تقييمات جوجل (Google Review Card)'}
+                {config.landingRoute === 'payment' && '💳 نموذج كارت الدفع (InstaPay Card)'}
+                {config.landingRoute === 'social' && '📱 نموذج كارت التواصل الاجتماعي (Social Page Card)'}
+                {config.landingRoute === 'direct' && `🔗 نموذج بيانات الكارت`}
+              </h3>
+              <p style={{ fontSize: '0.8125rem', color: '#3b82f6', marginTop: '4px' }}>
+                {config.landingRoute === 'google-review' && 'أدخل اسم النشاط، الوصف، اللوجو، ورابط تقييم جوجل المباشر.'}
+                {config.landingRoute === 'payment' && 'أدخل اسم المستفيد، رابط InstaPay، ورقم الهاتف.'}
+                {config.landingRoute === 'social' && 'أدخل اسم النشاط وروابط التواصل الاجتماعي المطلوبة.'}
+                {config.landingRoute === 'direct' && 'أدخل بيانات النشاط التجاري.'}
+              </p>
+            </div>
+
+            {/* Logo Upload Control */}
             {(() => {
-              const category = getMainCategory(resolvedCard?.card_type);
+              const logoUploadControl = (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
+                    صورة الشعار / اللوجو (رابط URL) (اختياري)
+                  </label>
+                  <p style={{ fontSize: '0.75rem', color: '#ef4444', margin: '0' }}>
+                    ملاحظة: يرجى وضع رابط للصورة (مثال: Imgur) وعدم رفع صورة كبيرة الحجم مباشرة.
+                  </p>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '240px' }}>
+                      <Input
+                        value={formData.logo || ''}
+                        onChange={(e) => handleFormChange('logo', e.target.value)}
+                        placeholder="https://example.com/logo.png"
+                      />
+                    </div>
+
+                    <label
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '10px 18px',
+                        backgroundColor: '#4f46e5',
+                        color: '#ffffff',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <Upload size={16} />
+                      <span>رفع صورة (Upload)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (evt) => {
+                              const dataUrl = evt.target?.result as string;
+                              handleFormChange('logo', dataUrl);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+
+                    {formData.logo && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <img
+                          src={formData.logo}
+                          alt="Logo Preview"
+                          style={{
+                            width: '42px',
+                            height: '42px',
+                            borderRadius: '8px',
+                            objectFit: 'cover',
+                            border: '2px solid #6366f1',
+                          }}
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleFormChange('logo', '')}
+                          style={{
+                            background: '#ef4444',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '22px',
+                            height: '22px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                          }}
+                          title="حذف اللوجو"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+
               return (
                 <>
-                  <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '14px 18px', borderRadius: '12px' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e40af' }}>
-                      {category === 'Google Review' && '🌟 نموذج كارت تقييمات جوجل (Google Review Card)'}
-                      {category === 'Payment' && '💳 نموذج كارت الدفع والتحويل (Payment / InstaPay Card)'}
-                      {category === 'Social' && '📱 نموذج كارت التواصل الاجتماعي (Social Media Card)'}
-                    </h3>
-                    <p style={{ fontSize: '0.8125rem', color: '#3b82f6', marginTop: '4px' }}>
-                      {category === 'Google Review' && 'أدخل اسم النشاط، الوصف، اللوجو، ورابط تقييم جوجل المباشر.'}
-                      {category === 'Payment' && 'أدخل اسم المستفيد، عنوان InstaPay IPA، ورقم فودافون كاش أو رقم الهاتف.'}
-                      {category === 'Social' && 'أدخل اسم النشاط ورابط البروفايل أو روابط التواصل الاجتماعي المطلوبة.'}
-                    </p>
-                  </div>
+                  {/* Common Fields */}
+                  <Input
+                    label="اسم النشاط التجاري / المكان *"
+                    value={formData.business_name || ''}
+                    onChange={(e) => handleFormChange('business_name', e.target.value)}
+                    placeholder="مثال: مطعم الفيروز / Coffee House"
+                    required
+                  />
+                  <Input
+                    label="نبذة / وصف النشاط (اختياري)"
+                    value={formData.description || ''}
+                    onChange={(e) => handleFormChange('description', e.target.value)}
+                    placeholder="مثال: أفضل المأكولات الشرقية والغربية"
+                  />
+                  {logoUploadControl}
 
-                  {/* Helper for Logo Upload / URL Input with live preview */}
-                  {(() => {
-                    const logoUploadControl = (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
-                          صورة الشعار / اللوجو (رابط URL فقط) (اختياري)
-                        </label>
-                        <p style={{ fontSize: '0.75rem', color: '#ef4444', margin: '0' }}>
-                          ملاحظة: لضمان سرعة الكارت، يرجى وضع رابط للصورة (مثال: Imgur) وعدم رفع صورة كبيرة الحجم مباشرة.
-                        </p>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                          <div style={{ flex: 1, minWidth: '240px' }}>
-                            <Input
-                              value={formData.logo_url || ''}
-                              onChange={(e) => handleFormChange('logo_url', e.target.value)}
-                              placeholder="https://example.com/logo.png أو اضغط زر رفع صورة"
-                            />
-                          </div>
+                  {/* Google Review specific */}
+                  {config.allowedFields.includes('google_maps') && (
+                    <Input
+                      label="رابط تقييمات جوجل المباشر *"
+                      value={formData.google_maps || ''}
+                      onChange={(e) => handleFormChange('google_maps', e.target.value)}
+                      placeholder="https://search.google.com/local/writereview?placeid=..."
+                    />
+                  )}
 
-                          <label
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              padding: '10px 18px',
-                              backgroundColor: '#4f46e5',
-                              color: '#ffffff',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              fontSize: '0.875rem',
-                              fontWeight: 600,
-                              whiteSpace: 'nowrap',
-                              boxShadow: '0 2px 6px rgba(79, 70, 229, 0.25)',
-                              transition: 'transform 100ms ease, opacity 100ms ease',
-                            }}
-                          >
-                            <Upload size={16} />
-                            <span>رفع صورة (Upload)</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              style={{ display: 'none' }}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  const reader = new FileReader();
-                                  reader.onload = (evt) => {
-                                    const dataUrl = evt.target?.result as string;
-                                    handleFormChange('logo_url', dataUrl);
-                                  };
-                                  reader.readAsDataURL(file);
-                                }
-                              }}
-                            />
-                          </label>
+                  {/* InstaPay specific */}
+                  {config.landingRoute === 'payment' && config.allowedFields.includes('website') && (
+                    <Input
+                      label="رابط InstaPay *"
+                      value={formData.website || ''}
+                      onChange={(e) => handleFormChange('website', e.target.value)}
+                      placeholder="https://instapay.com.eg/..."
+                    />
+                  )}
 
-                          {formData.logo_url && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <img
-                                src={formData.logo_url}
-                                alt="Logo Preview"
-                                style={{
-                                  width: '42px',
-                                  height: '42px',
-                                  borderRadius: '8px',
-                                  objectFit: 'cover',
-                                  border: '2px solid #6366f1',
-                                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                }}
-                                onError={(e) => {
-                                  (e.target as HTMLElement).style.display = 'none';
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleFormChange('logo_url', '')}
-                                style={{
-                                  background: '#ef4444',
-                                  color: '#fff',
-                                  border: 'none',
-                                  borderRadius: '50%',
-                                  width: '22px',
-                                  height: '22px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  fontSize: '12px',
-                                  fontWeight: 'bold',
-                                }}
-                                title="حذف اللوجو"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-
-                    return (
-                      <>
-                        {/* 1. GOOGLE REVIEW FORM FIELDS */}
-                        {category === 'Google Review' && (
-                          <>
-                            <Input
-                              label="اسم النشاط التجاري / المكان *"
-                              value={formData.name}
-                              onChange={(e) => handleFormChange('name', e.target.value)}
-                              placeholder="مثال: مطعم الفيروز / Acme Coffee"
-                              required
-                            />
-                            <Input
-                              label="نبذة / وصف النشاط (اختياري)"
-                              value={formData.description || ''}
-                              onChange={(e) => handleFormChange('description', e.target.value)}
-                              placeholder="مثال: أفضل المأكولات الشرقية والغربية"
-                            />
-                            {logoUploadControl}
-                            <Input
-                              label="رابط تقييمات جوجل المباشر (Google Review Link) *"
-                              value={formData.google_review_url || ''}
-                              onChange={(e) => handleFormChange('google_review_url', e.target.value)}
-                              placeholder="https://search.google.com/local/writereview?placeid=..."
-                              required
-                            />
-                          </>
-                        )}
-
-                        {/* 2. PAYMENT FORM FIELDS (InstaPay & Vodafone Cash) */}
-                        {category === 'Payment' && (
-                          <>
-                            <Input
-                              label="اسم المستفيد / صاحب الحساب *"
-                              value={formData.name}
-                              onChange={(e) => handleFormChange('name', e.target.value)}
-                              placeholder="مثال: أحمد محمود / متجر الأمل"
-                              required
-                            />
-                            <Input
-                              label="عنوان / إيميل InstaPay IPA (مثال: name@instapay) *"
-                              value={formData.instapay_url || ''}
-                              onChange={(e) => handleFormChange('instapay_url', e.target.value)}
-                              placeholder="مثال: name@instapay أو 01001234567@instapay"
-                              required
-                            />
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                              <Input
-                                label="رقم الهاتف المربوط بالحساب (اختياري)"
-                                value={formData.phone || ''}
-                                onChange={(e) => handleFormChange('phone', e.target.value)}
-                                placeholder="مثال: 01001234567"
-                              />
-                              <Input
-                                label="رقم فودافون كاش (Vodafone Cash) (اختياري)"
-                                value={formData.whatsapp || ''}
-                                onChange={(e) => handleFormChange('whatsapp', e.target.value)}
-                                placeholder="مثال: 01012345678"
-                              />
-                            </div>
-                            <Input
-                              label="نبذة / ملحوظة للتحويل (اختياري)"
-                              value={formData.description || ''}
-                              onChange={(e) => handleFormChange('description', e.target.value)}
-                              placeholder="مثال: يرجى إرسال صورة الإيصال بعد التحويل"
-                            />
-                            {logoUploadControl}
-                          </>
-                        )}
-
-                        {/* 3. SOCIAL MEDIA FORM FIELDS */}
-                        {category === 'Social' && (
-                          <>
-                            <Input
-                              label="اسم النشاط التجاري / المكان *"
-                              value={formData.name}
-                              onChange={(e) => handleFormChange('name', e.target.value)}
-                              placeholder="مثال: Vibe Fashion Store"
-                              required
-                            />
-                            <Input
-                              label="نبذة / وصف النشاط (اختياري)"
-                              value={formData.description || ''}
-                              onChange={(e) => handleFormChange('description', e.target.value)}
-                              placeholder="مثال: أرقى صيحات الموضة والملابس الجاهزة"
-                            />
-                            {logoUploadControl}
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                              <Input
-                                label="رابط صفحة فيسبوك (Facebook URL) (اختياري)"
-                                value={formData.facebook_url || ''}
-                                onChange={(e) => handleFormChange('facebook_url', e.target.value)}
-                                placeholder="https://facebook.com/yourpage"
-                              />
-                              <Input
-                                label="حساب / رابط إنستجرام (Instagram URL) (اختياري)"
-                                value={formData.instagram_url || ''}
-                                onChange={(e) => handleFormChange('instagram_url', e.target.value)}
-                                placeholder="https://instagram.com/yourhandle"
-                              />
-                              <Input
-                                label="حساب / رابط تيك توك (TikTok URL) (اختياري)"
-                                value={formData.tiktok_url || ''}
-                                onChange={(e) => handleFormChange('tiktok_url', e.target.value)}
-                                placeholder="https://tiktok.com/@yourusername"
-                              />
-                              <Input
-                                label="رابط الموقع الإلكتروني الرسمي (Website URL) (اختياري)"
-                                value={formData.website_url || ''}
-                                onChange={(e) => handleFormChange('website_url', e.target.value)}
-                                placeholder="https://yourwebsite.com"
-                              />
-                              <Input
-                                label="رقم / رابط الواتساب (WhatsApp) (اختياري)"
-                                value={formData.whatsapp || ''}
-                                onChange={(e) => handleFormChange('whatsapp', e.target.value)}
-                                placeholder="+201001234567"
-                              />
-                              <Input
-                                label="رقم الهاتف للتواصل المباشر (Phone) (اختياري)"
-                                value={formData.phone || ''}
-                                onChange={(e) => handleFormChange('phone', e.target.value)}
-                                placeholder="+201001234567"
-                              />
-                            </div>
-                          </>
-                        )}
-                      </>
-                    );
-                  })()}
+                  {/* Social and Generic Fields */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                      {config.allowedFields.includes('whatsapp') && (
+                        <Input
+                          label="واتساب (WhatsApp URL) (اختياري)"
+                          value={formData.whatsapp || ''}
+                          onChange={(e) => handleFormChange('whatsapp', e.target.value)}
+                          placeholder="https://wa.me/20100000000"
+                        />
+                      )}
+                      {config.allowedFields.includes('phone') && (
+                        <Input
+                          label="رقم الهاتف (اختياري)"
+                          value={formData.phone || ''}
+                          onChange={(e) => handleFormChange('phone', e.target.value)}
+                          placeholder="+20100000000"
+                        />
+                      )}
+                      {config.allowedFields.includes('instagram') && (
+                        <Input
+                          label="إنستجرام (Instagram URL) (اختياري)"
+                          value={formData.instagram || ''}
+                          onChange={(e) => handleFormChange('instagram', e.target.value)}
+                          placeholder="https://instagram.com/yourhandle"
+                        />
+                      )}
+                      {config.allowedFields.includes('facebook') && (
+                        <Input
+                          label="فيسبوك (Facebook URL) (اختياري)"
+                          value={formData.facebook || ''}
+                          onChange={(e) => handleFormChange('facebook', e.target.value)}
+                          placeholder="https://facebook.com/yourpage"
+                        />
+                      )}
+                      {config.allowedFields.includes('tiktok') && (
+                        <Input
+                          label="تيك توك (TikTok URL) (اختياري)"
+                          value={formData.tiktok || ''}
+                          onChange={(e) => handleFormChange('tiktok', e.target.value)}
+                          placeholder="https://tiktok.com/@yourusername"
+                        />
+                      )}
+                      {config.allowedFields.includes('website') && config.landingRoute !== 'payment' && (
+                        <Input
+                          label="الموقع الإلكتروني (اختياري)"
+                          value={formData.website || ''}
+                          onChange={(e) => handleFormChange('website', e.target.value)}
+                          placeholder="https://yourwebsite.com"
+                        />
+                      )}
+                      {config.allowedFields.includes('google_maps') && config.landingRoute !== 'google-review' && (
+                        <Input
+                          label="خرائط جوجل (Google Maps URL) (اختياري)"
+                          value={formData.google_maps || ''}
+                          onChange={(e) => handleFormChange('google_maps', e.target.value)}
+                          placeholder="https://maps.google.com/?q=..."
+                        />
+                      )}
+                      {config.allowedFields.includes('email') && (
+                        <Input
+                          label="البريد الإلكتروني (اختياري)"
+                          value={formData.email || ''}
+                          onChange={(e) => handleFormChange('email', e.target.value)}
+                          placeholder="hello@example.com"
+                        />
+                      )}
+                    </div>
                 </>
               );
             })()}
