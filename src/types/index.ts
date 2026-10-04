@@ -74,13 +74,9 @@ export interface BusinessData {
 // ── Card Types ────────────────────────────────────────────────────────────
 
 export const CARD_TYPES = [
-  'Google Review',
-  'Instagram',
-  'TikTok',
-  'InstaPay',
-  'Google Maps',
-  'WhatsApp',
-  'Social Page',
+  'Medal',
+  'Card',
+  'Stand',
 ] as const;
 
 export type CardType = (typeof CARD_TYPES)[number];

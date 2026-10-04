@@ -149,9 +149,8 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">التصنيف (اختياري)</label>
+                    <label className="form-label">التصنيف *</label>
                     <select value={bCat} onChange={e => setBCat(e.target.value)} className="form-input">
-                      <option value="">— بدون تصنيف —</option>
                       {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                     </select>
                   </div>
@@ -199,7 +198,7 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
                     <input className="form-input" value={sUrl} onChange={e => setSUrl(e.target.value)} placeholder="https://..." />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">التصنيف (اختياري)</label>
+                    <label className="form-label">التصنيف *</label>
                     <select value={sCat} onChange={e => setSCat(e.target.value)} className="form-input">
                       <option value="">— بدون تصنيف —</option>
                       {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
