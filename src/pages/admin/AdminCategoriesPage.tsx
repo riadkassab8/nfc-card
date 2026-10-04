@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { categoriesApi } from '../../services';
-import { ApiCategory, ApiCreateCategoryDto, ApiUpdateCategoryDto, fmtDate } from '../../types';
+import { ApiCategory, ApiCreateCategoryDto, ApiUpdateCategoryDto, fmtDate, parseCategoryMeta, stringifyCategoryMeta } from '../../types';
 import {
   Plus, Edit2, Trash2, RefreshCw, Tags,
   CheckCircle2, XCircle, X, Save,
+  Phone, Mail, MessageCircle, Instagram, Facebook, Video, MapPin, Globe, Check, CreditCard, Smartphone
 } from 'lucide-react';
 
 /* ── Toast ─────────────────────────────────────────────────────── */
@@ -17,26 +18,45 @@ const Toast: React.FC<{ msg: string; type: 'success' | 'error'; onClose: () => v
   );
 };
 
-/* ── Modal ─────────────────────────────────────────────────────── */
+const AVAILABLE_FIELDS = [
+  { key: 'phone', label: 'رقم الهاتف', icon: <Phone size={13} /> },
+  { key: 'email', label: 'البريد الإلكتروني', icon: <Mail size={13} /> },
+  { key: 'whatsapp', label: 'واتساب', icon: <MessageCircle size={13} /> },
+  { key: 'instagram', label: 'انستجرام', icon: <Instagram size={13} /> },
+  { key: 'facebook', label: 'فيسبوك', icon: <Facebook size={13} /> },
+  { key: 'tiktok', label: 'تيك توك', icon: <Video size={13} /> },
+  { key: 'google_maps', label: 'رابط تقييمات جوجل', icon: <MapPin size={13} /> },
+  { key: 'website', label: 'الموقع الإلكتروني', icon: <Globe size={13} /> },
+  { key: 'instapay', label: 'انستا باي', icon: <CreditCard size={13} /> },
+  { key: 'vodafone_cash', label: 'فودافون كاش', icon: <Smartphone size={13} /> },
+];
+
 const Modal: React.FC<{ existing?: ApiCategory | null; onClose: () => void; onSaved: () => void }> = ({ existing, onClose, onSaved }) => {
   const isEdit = !!existing;
+  const meta = parseCategoryMeta(existing?.description);
   const [name, setName]     = useState(existing?.name ?? '');
-  const [desc, setDesc]     = useState(existing?.description ?? '');
+  const [desc, setDesc]     = useState(meta.desc ?? '');
+  const [fields, setFields] = useState<string[]>(meta.fields ?? []);
   const [icon, setIcon]     = useState(existing?.icon ?? '');
   const [active, setActive] = useState(existing?.is_active ?? true);
   const [saving, setSaving] = useState(false);
   const [err, setErr]       = useState<string | null>(null);
+
+  const toggleField = (key: string) => {
+    setFields(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { setErr('الاسم مطلوب'); return; }
     setSaving(true); setErr(null);
     try {
+      const finalDesc = stringifyCategoryMeta(desc.trim(), fields);
       if (isEdit && existing) {
-        const dto: ApiUpdateCategoryDto = { name: name.trim(), description: desc.trim() || undefined, icon: icon.trim() || undefined, is_active: active };
+        const dto: ApiUpdateCategoryDto = { name: name.trim(), description: finalDesc, icon: icon.trim() || undefined, is_active: active };
         await categoriesApi.updateCategory(existing._id, dto);
       } else {
-        const dto: ApiCreateCategoryDto = { name: name.trim(), description: desc.trim() || undefined, icon: icon.trim() || undefined, is_active: active };
+        const dto: ApiCreateCategoryDto = { name: name.trim(), description: finalDesc, icon: icon.trim() || undefined, is_active: active };
         await categoriesApi.createCategory(dto);
       }
       onSaved(); onClose();
@@ -70,6 +90,39 @@ const Modal: React.FC<{ existing?: ApiCategory | null; onClose: () => void; onSa
               <label className="form-label">رابط الأيقونة (اختياري)</label>
               <input className="form-input" value={icon} onChange={e => setIcon(e.target.value)} placeholder="https://..." />
             </div>
+            
+            <div className="form-group" style={{ marginBottom: '10px' }}>
+              <label className="form-label" style={{ marginBottom: '8px' }}>
+                الحقول المطلوبة في البطاقات من هذا التصنيف
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '14px', border: '1px solid var(--bdr-light)', borderRadius: 'var(--r-md)', backgroundColor: 'var(--bg-subtle)' }}>
+                {AVAILABLE_FIELDS.map(f => {
+                  const isSelected = fields.includes(f.key);
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => toggleField(f.key)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        padding: '6px 12px', borderRadius: 'var(--r-full)',
+                        border: `1.5px solid ${isSelected ? 'var(--clr-primary-500)' : 'var(--bdr-medium)'}`,
+                        backgroundColor: isSelected ? 'var(--clr-primary-50)' : 'var(--bg-white)',
+                        color: isSelected ? 'var(--clr-primary-700)' : 'var(--txt-secondary)',
+                        fontSize: 'var(--fs-xs)', fontWeight: isSelected ? 700 : 500,
+                        cursor: 'pointer', transition: 'all 0.15s ease-out',
+                        outline: 'none',
+                      }}
+                    >
+                      {f.icon}
+                      {f.label}
+                      {isSelected && <Check size={13} style={{ strokeWidth: 3 }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="toggle-wrap">
               <button
                 type="button"
@@ -241,7 +294,7 @@ export const AdminCategoriesPage: React.FC = () => {
                     </div>
                     {/* الوصف */}
                     <div style={{ padding: '0 6px', fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {cat.description || <span style={{ color: 'var(--txt-muted)', fontStyle: 'italic' }}>—</span>}
+                      {parseCategoryMeta(cat.description).desc || <span style={{ color: 'var(--txt-muted)', fontStyle: 'italic' }}>—</span>}
                     </div>
                     {/* الحالة */}
                     <div style={{ padding: '0 6px' }}>

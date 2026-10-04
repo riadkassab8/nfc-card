@@ -31,6 +31,20 @@ export const cardsApi = {
       },
     }),
 
+  // ── GET /api/cards (Public) ──────────────────────────────────────────────
+  getPublicCards: (params?: CardQueryParams): Promise<ApiCardsPaginatedResponse> =>
+    apiClient<ApiCardsPaginatedResponse>('/cards', {
+      requiresAuth: false,
+      params: {
+        page:        params?.page        ?? 1,
+        limit:       params?.limit       ?? 50,
+        search:      params?.search,
+        status:      params?.status,
+        card_type:   params?.card_type,
+        category_id: params?.category_id,
+      },
+    }),
+
   // ── GET /api/cards/:id ───────────────────────────────────────────────────
   getCardById: (id: string): Promise<ApiCard> =>
     apiClient<ApiCard>(`/cards/${id}`),

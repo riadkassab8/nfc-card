@@ -69,21 +69,19 @@ export interface BusinessData {
   google_maps?: string | null;
   website?: string | null;
   email?: string | null;
+  instapay?: string | null;
+  vodafone_cash?: string | null;
 }
 
 // ── Card Types ────────────────────────────────────────────────────────────
 
 export const CARD_TYPES = [
-  'Google Review',
-  'Instagram',
-  'TikTok',
-  'InstaPay',
-  'Google Maps',
-  'WhatsApp',
-  'Social Page',
+  'Card',
+  'Stand',
+  'Medal',
 ] as const;
 
-export type CardType = (typeof CARD_TYPES)[number];
+export type CardType = (typeof CARD_TYPES)[number] | string;
 
 export type CardStatus = 'active' | 'inactive';
 
@@ -203,4 +201,27 @@ export const fmtDate = (iso?: string | null): string => {
 /** Returns true if subscription_end_date is in the past */
 export const isSubscriptionExpired = (card: ApiCard): boolean => {
   return new Date(card.subscription_end_date) < new Date();
+};
+
+export interface CategoryMeta {
+  desc: string;
+  fields: string[];
+  isLegacy: boolean;
+}
+
+export const parseCategoryMeta = (raw?: string | null): CategoryMeta => {
+  if (!raw) return { desc: '', fields: [], isLegacy: true };
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.fields)) {
+      return { desc: parsed.desc || '', fields: parsed.fields, isLegacy: false };
+    }
+  } catch (e) {
+    // not JSON, treat as plain text
+  }
+  return { desc: raw, fields: [], isLegacy: true };
+};
+
+export const stringifyCategoryMeta = (desc: string, fields: string[]): string => {
+  return JSON.stringify({ desc, fields });
 };

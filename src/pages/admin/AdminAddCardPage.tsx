@@ -6,7 +6,7 @@ import Swal from 'sweetalert2';
 import {
   ArrowRight, CreditCard, Plus, Building2, Globe, Phone, Mail,
   Instagram, Facebook, MapPin, MessageCircle, Video, Link as LinkIcon,
-  Image, FileText, RefreshCw,
+  Image, FileText, RefreshCw, Smartphone,
 } from 'lucide-react';
 
 /* ── Field config ─────────────────────────────────────────────── */
@@ -25,7 +25,7 @@ interface FieldDef {
 
 const BIZ_FIELDS: FieldDef[] = [
   { key: 'business_name', label: 'اسم النشاط',    placeholder: 'مثال: Coffee House',              required: false, icon: <Building2 size={16} />,      hint: 'بحد أقصى 120 حرف' },
-  { key: 'logo',          label: 'شعار (رابط)',   placeholder: 'https://cdn.example.com/logo.png', required: false, type: 'url', icon: <Image size={16} />,  hint: 'رابط صورة الشعار' },
+  { key: 'logo',          label: 'شعار (رابط)',   placeholder: 'https://cdn.example.com/logo.png', required: false, type: 'url', icon: <Image size={16} />,  hint: 'رابط مباشر للصورة (http/https)' },
   { key: 'description',   label: 'الوصف',         placeholder: 'وصف مختصر عن النشاط',             required: false, icon: <FileText size={16} />,       hint: 'بحد أقصى 500 حرف', gridFull: true },
   { key: 'phone',         label: 'رقم الهاتف',    placeholder: '+20100000000',                    required: false, type: 'tel', icon: <Phone size={16} /> },
   { key: 'email',         label: 'البريد الإلكتروني', placeholder: 'hello@example.com',            required: false, type: 'email', icon: <Mail size={16} /> },
@@ -33,36 +33,37 @@ const BIZ_FIELDS: FieldDef[] = [
   { key: 'instagram',     label: 'انستجرام',      placeholder: 'https://instagram.com/name',      required: false, type: 'url', icon: <Instagram size={16} /> },
   { key: 'facebook',      label: 'فيسبوك',        placeholder: 'https://facebook.com/name',       required: false, type: 'url', icon: <Facebook size={16} /> },
   { key: 'tiktok',        label: 'تيك توك',       placeholder: 'https://tiktok.com/@name',        required: false, type: 'url', icon: <Video size={16} /> },
-  { key: 'google_maps',   label: 'خرائط جوجل',    placeholder: 'https://maps.google.com/?q=...',  required: false, type: 'url', icon: <MapPin size={16} /> },
+  { key: 'google_maps',   label: 'رابط تقييمات جوجل',    placeholder: 'https://g.page/r/.../review',  required: false, type: 'url', icon: <MapPin size={16} /> },
   { key: 'website',       label: 'الموقع الإلكتروني', placeholder: 'https://example.com',          required: false, type: 'url', icon: <Globe size={16} /> },
+  { key: 'instapay',      label: 'رابط انستا باي',  placeholder: 'https://instapay.eg/name',       required: false, type: 'url', icon: <CreditCard size={16} /> },
+  { key: 'vodafone_cash', label: 'رقم فودافون كاش', placeholder: '01000000000',                  required: false, type: 'tel', icon: <Smartphone size={16} /> },
 ];
 
-const getVisibleFields = (type: string): FieldDef[] => {
-  switch (type) {
-    case 'TikTok':
-      return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'tiktok'].includes(f.key));
-    case 'Instagram':
-      return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'instagram'].includes(f.key));
-    case 'WhatsApp':
-      return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'phone', 'whatsapp'].includes(f.key));
-    case 'Google Maps':
+import { parseCategoryMeta } from '../../types';
+
+const getVisibleFields = (category: ApiCategory | null): FieldDef[] => {
+  if (!category) return BIZ_FIELDS;
+
+  const meta = parseCategoryMeta(category.description);
+  
+  // Backward compatibility: If it's a legacy category, use category name rules
+  if (meta.isLegacy) {
+    const type = (category.name || '').toLowerCase();
+    
+    if (type.includes('tiktok')) return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'tiktok'].includes(f.key));
+    if (type.includes('instagram')) return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'instagram'].includes(f.key));
+    if (type.includes('whatsapp')) return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'phone', 'whatsapp'].includes(f.key));
+    if (type.includes('google map') || type.includes('google review')) {
       return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'google_maps'].includes(f.key));
-    case 'Google Review':
-      return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'google_maps'].includes(f.key)).map(f =>
-        f.key === 'google_maps'
-          ? { ...f, label: 'رابط تقييم جوجل (Google Review Link)', placeholder: 'https://g.page/r/.../review' }
-          : f
-      );
-    case 'InstaPay':
-      return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'website'].includes(f.key)).map(f =>
-        f.key === 'website'
-          ? { ...f, label: 'رابط الانستا باي (InstaPay Link)', placeholder: 'https://instapay.eg/...' }
-          : f
-      );
-    case 'Social Page':
-    default:
-      return BIZ_FIELDS;
+    }
+    if (type.includes('instapay')) return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'instapay'].includes(f.key));
+    return BIZ_FIELDS;
   }
+
+  // Use dynamic fields configuration
+  return BIZ_FIELDS.filter(f => 
+    ['business_name', 'logo', 'description'].includes(f.key) || meta.fields.includes(f.key)
+  );
 };
 
 /* ── Component ────────────────────────────────────────────────── */
@@ -74,7 +75,7 @@ export const AdminAddCardPage: React.FC = () => {
   /* Card state */
   const [cardCode, setCardCode]     = useState('');
   const [nfcUid, setNfcUid]         = useState('');
-  const [cardType, setCardType]     = useState<string>('Social Page');
+  const [cardType, setCardType]     = useState<string>('Card');
   const [redirectUrl, setRedirectUrl] = useState('');
   const [categoryId, setCategoryId] = useState('');
 
@@ -120,23 +121,24 @@ export const AdminAddCardPage: React.FC = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  /* Update redirect URL dynamically based on selected card type and input fields */
+  /* Update redirect URL dynamically based on selected category and input fields */
   useEffect(() => {
     if (!cardCode) return;
-    if (cardType === 'Social Page') {
+    const catName = categories.find(c => c._id === categoryId)?.name || '';
+    if (catName === 'Social Page' || !catName) {
       setRedirectUrl(`${window.location.origin}/social/${cardCode}`);
-    } else if (cardType === 'TikTok' && bizData.tiktok?.trim()) {
+    } else if (catName === 'TikTok' && bizData.tiktok?.trim()) {
       setRedirectUrl(bizData.tiktok.trim());
-    } else if (cardType === 'Instagram' && bizData.instagram?.trim()) {
+    } else if (catName === 'Instagram' && bizData.instagram?.trim()) {
       setRedirectUrl(bizData.instagram.trim());
-    } else if (cardType === 'WhatsApp' && bizData.whatsapp?.trim()) {
+    } else if (catName === 'WhatsApp' && bizData.whatsapp?.trim()) {
       setRedirectUrl(bizData.whatsapp.trim());
-    } else if ((cardType === 'Google Maps' || cardType === 'Google Review') && bizData.google_maps?.trim()) {
+    } else if ((catName === 'Google Maps' || catName === 'Google Review') && bizData.google_maps?.trim()) {
       setRedirectUrl(bizData.google_maps.trim());
-    } else if (cardType === 'InstaPay' && bizData.website?.trim()) {
+    } else if (catName === 'InstaPay' && bizData.website?.trim()) {
       setRedirectUrl(bizData.website.trim());
     }
-  }, [cardType, cardCode, bizData.tiktok, bizData.instagram, bizData.whatsapp, bizData.google_maps, bizData.website]);
+  }, [categoryId, categories, cardCode, bizData.tiktok, bizData.instagram, bizData.whatsapp, bizData.google_maps, bizData.website]);
 
   const updateBiz = (key: string, val: string) => {
     setBizData(prev => ({ ...prev, [key]: val }));
@@ -181,9 +183,15 @@ export const AdminAddCardPage: React.FC = () => {
     // Replace localhost or 127.0.0.1 with a valid domain format so backend validator passes seamlessly
     formattedUrl = formattedUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smartcard-app.com');
 
+    const category = categories.find(c => c._id === categoryId);
+    const catName = category?.name || 'Social Page';
+    const validEnums = ['Google Review', 'Instagram', 'TikTok', 'InstaPay', 'Google Maps', 'WhatsApp', 'Social Page'];
+    // We must send a valid backend enum for card_type to bypass backend validation errors
+    const backendCardType = validEnums.includes(catName) ? catName : 'Social Page';
+
     const dto: ApiCreateCardDto = {
       card_code: cardCode.trim().toUpperCase(),
-      card_type: cardType,
+      card_type: backendCardType,
       current_redirect_url: formattedUrl,
       category_id: categoryId,
     };
@@ -418,7 +426,7 @@ export const AdminAddCardPage: React.FC = () => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            {getVisibleFields(cardType).map(f => (
+            {getVisibleFields(categories.find(c => c._id === categoryId) || null).map(f => (
               <div key={f.key} className="form-group" style={f.gridFull ? { gridColumn: '1 / -1' } : undefined}>
                 <label className="form-label">
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

@@ -1,234 +1,275 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ApiCard } from '../../types';
+import { ProfileHero } from './ProfileHero';
+import { PublicCardFooter } from './PublicCardFooter';
+import { Globe } from 'lucide-react';
+import { gsap } from 'gsap';
 import {
-  MessageCircle, Phone, Globe, Instagram, Facebook,
-  Video, Compass, Mail, Copy, Check, ChevronLeft, ShieldCheck,
-} from 'lucide-react';
+  WhatsAppIcon,
+  InstagramIcon,
+  FacebookIcon,
+  TikTokIcon,
+  GoogleMapsIcon,
+  PhoneIcon,
+  EmailIcon,
+  GlobeIcon,
+} from './BrandIcons';
 
-interface LinkItem {
-  id: string; label: string; subtitle?: string;
-  url: string; icon: React.ReactNode; color: string; copyable?: boolean;
-}
-
-/* ── زر رابط ──────────────────────────────────────────────────── */
-const LinkBtn: React.FC<{ item: LinkItem; copiedId: string | null; onCopy: (url: string, id: string) => void }> = ({ item, copiedId, onCopy }) => {
-  const [hover, setHover] = useState(false);
-  const isCopied = copiedId === item.id;
-
-  const style: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    width: '100%', padding: '14px 16px', marginBottom: '10px',
-    backgroundColor: hover ? 'var(--clr-primary-50)' : 'var(--bg-white)',
-    border: `1px solid ${isCopied ? item.color : hover ? 'var(--clr-primary-300)' : 'var(--bdr-light)'}`,
-    borderRadius: 'var(--r-lg)',
-    textDecoration: 'none', color: 'var(--txt-body)',
-    cursor: 'pointer', outline: 'none',
-    boxShadow: hover ? 'var(--shadow-sm)' : 'var(--shadow-xs)',
-    transition: 'all 150ms var(--ease)',
-    WebkitTapHighlightColor: 'transparent',
-  };
-
-  const content = (
-    <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
-        <div style={{
-          width: '44px', height: '44px', borderRadius: 'var(--r-md)',
-          backgroundColor: item.color + '14', color: item.color,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          {item.icon}
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--txt-heading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {item.label}
-          </div>
-          {item.subtitle && (
-            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {item.subtitle}
-            </div>
-          )}
-        </div>
-      </div>
-      <div style={{ color: isCopied ? item.color : 'var(--txt-muted)', display: 'flex', alignItems: 'center', paddingRight: '4px', flexShrink: 0 }}>
-        {item.copyable
-          ? (isCopied ? <Check size={18} /> : <Copy size={18} />)
-          : <ChevronLeft size={18} />}
-      </div>
-    </>
-  );
-
-  if (item.copyable) {
-    return (
-      <button
-        type="button"
-        onClick={() => onCopy(item.url, item.id)}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        style={style as React.CSSProperties}
-      >
-        {content}
-      </button>
-    );
+export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const biz = card.business_data;
+  
+  // Extract links
+  const links: any[] = [];
+  
+  if (biz?.whatsapp?.trim()) {
+    links.push({ id: 'wa', platform: 'whatsapp', title: 'WhatsApp', url: biz.whatsapp, icon: <WhatsAppIcon size={32} />, brandColor: '#25D366' });
+  }
+  if (biz?.instagram?.trim()) {
+    links.push({ id: 'ig', platform: 'instagram', title: 'Instagram', url: biz.instagram, icon: <InstagramIcon size={32} />, brandColor: '#E1306C' });
+  }
+  if (biz?.facebook?.trim()) {
+    links.push({ id: 'fb', platform: 'facebook', title: 'Facebook', url: biz.facebook, icon: <FacebookIcon size={32} />, brandColor: '#1877F2' });
+  }
+  if (biz?.tiktok?.trim()) {
+    links.push({ id: 'tt', platform: 'tiktok', title: 'TikTok', url: biz.tiktok, icon: <TikTokIcon size={32} />, brandColor: '#000000' });
+  }
+  if (biz?.google_maps?.trim()) {
+    links.push({ id: 'gm', platform: 'google_maps', title: 'Google Review', url: biz.google_maps, icon: <GoogleMapsIcon size={32} />, brandColor: '#EA4335' });
+  }
+  if (biz?.phone?.trim()) {
+    links.push({ id: 'ph', platform: 'phone', title: 'Call', url: `tel:${biz.phone}`, icon: <PhoneIcon size={32} />, brandColor: '#10B981' });
+  }
+  if (biz?.email?.trim()) {
+    links.push({ id: 'em', platform: 'email', title: 'Email', url: `mailto:${biz.email}`, icon: <EmailIcon size={32} />, brandColor: '#6366F1' });
+  }
+  if (biz?.website?.trim()) {
+    links.push({ id: 'ws', platform: 'website', title: 'Website', url: biz.website, icon: <GlobeIcon size={32} />, brandColor: '#3B82F6' });
+  }
+  if (biz?.instapay?.trim()) {
+    links.push({ id: 'ip', platform: 'instapay', title: 'InstaPay', url: biz.instapay, icon: <GlobeIcon size={32} />, brandColor: '#49258E' });
+  }
+  if (biz?.vodafone_cash?.trim()) {
+    links.push({ id: 'vc', platform: 'vodafone_cash', title: 'Vodafone Cash', url: `tel:${biz.vodafone_cash}`, icon: <PhoneIcon size={32} />, brandColor: '#E60000' });
   }
 
-  return (
-    <a
-      href={item.url}
-      target={item.url.startsWith('tel:') || item.url.startsWith('mailto:') ? '_self' : '_blank'}
-      rel="noopener noreferrer"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={style}
-    >
-      {content}
-    </a>
-  );
-};
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion || !containerRef.current) return;
 
-/* ── Main ─────────────────────────────────────────────────────── */
-export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
-  const [copiedId, setCopied] = useState<string | null>(null);
-  const biz = card.business_data;
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
-  const copy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(id); setTimeout(() => setCopied(null), 2000);
+      tl.from('.gsap-hero', { y: 20, opacity: 0, duration: 0.6 })
+        .from('.gsap-tile', { 
+          y: 15, 
+          opacity: 0, 
+          duration: 0.4, 
+          stagger: 0.05 
+        }, '-=0.3')
+        .from('.gsap-footer', { opacity: 0, duration: 0.4 }, '-=0.2');
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, [card]);
+
+  // Determine rendering mode
+  const type = card.card_type || 'Social Page';
+  
+  const renderContent = () => {
+    if (type === 'Google Review') {
+      const reviewUrl = card.current_redirect_url || biz?.google_maps || '#';
+      return (
+        <div className="nfc-review-cta gsap-tile">
+          <a href={reviewUrl} target="_blank" rel="noopener noreferrer" className="nfc-btn-primary">
+            <GoogleMapsIcon size={24} />
+            اترك تقييماً على جوجل
+          </a>
+        </div>
+      );
+    }
+    
+    if (links.length === 0) {
+      return (
+        <div className="nfc-empty gsap-tile">
+          <Globe size={40} className="nfc-empty-icon" />
+          <p>لا توجد روابط مُدرجة</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="nfc-grid">
+        {links.map((link) => (
+          <a
+            key={link.id}
+            href={link.url}
+            target={link.url.startsWith('tel:') || link.url.startsWith('mailto:') ? '_self' : '_blank'}
+            rel="noopener noreferrer"
+            className="nfc-tile gsap-tile"
+            style={{ '--brand-color': link.brandColor } as React.CSSProperties}
+          >
+            <div className="nfc-tile-icon">{link.icon}</div>
+            <span className="nfc-tile-label">{link.title}</span>
+          </a>
+        ))}
+      </div>
+    );
   };
 
-  const bizName = biz?.business_name || card.card_code;
-  const initials = bizName.split(' ').filter(Boolean).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
-
-  /* بناء قائمة الروابط */
-  const links: LinkItem[] = [];
-  if (biz?.whatsapp)    links.push({ id: 'wa', label: 'واتساب',             subtitle: biz.whatsapp.replace(/^https?:\/\//, ''),  url: biz.whatsapp,          icon: <MessageCircle size={21} />, color: '#16a34a' });
-  if (biz?.phone)       links.push({ id: 'ph', label: 'الهاتف',              subtitle: biz.phone,                                 url: `tel:${biz.phone}`,    icon: <Phone size={21} />,         color: 'var(--clr-primary-500)', copyable: true });
-  if (biz?.instagram)   links.push({ id: 'ig', label: 'إنستجرام',           subtitle: 'Instagram',                               url: biz.instagram,         icon: <Instagram size={21} />,     color: '#e1306c' });
-  if (biz?.facebook)    links.push({ id: 'fb', label: 'فيسبوك',             subtitle: 'Facebook',                                url: biz.facebook,          icon: <Facebook size={21} />,      color: '#1877f2' });
-  if (biz?.tiktok)      links.push({ id: 'tt', label: 'تيك توك',            subtitle: 'TikTok',                                  url: biz.tiktok,            icon: <Video size={21} />,         color: '#333' });
-  if (biz?.google_maps) links.push({ id: 'gm', label: 'الموقع على الخريطة', subtitle: 'Google Maps',                             url: biz.google_maps,       icon: <Compass size={21} />,       color: '#ea4335' });
-  if (biz?.website)     links.push({ id: 'ws', label: 'الموقع الإلكتروني',  subtitle: biz.website.replace(/^https?:\/\//, '').replace(/\/$/, ''), url: biz.website, icon: <Globe size={21} />, color: 'var(--clr-primary-600)' });
-  if (biz?.email)       links.push({ id: 'em', label: 'البريد الإلكتروني',  subtitle: biz.email,                                 url: `mailto:${biz.email}`, icon: <Mail size={21} />,          color: '#7c3aed', copyable: true });
-
   return (
-    <div
-      dir="rtl"
-      style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--bg-page)',
-        backgroundImage: 'radial-gradient(circle at 50% 0%, var(--clr-primary-100) 0%, var(--bg-page) 55%)',
-        fontFamily: 'var(--font)',
-        padding: '36px 20px 48px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}
-    >
-      <div style={{ width: '100%', maxWidth: '400px' }}>
+    <>
+      <style>{`
+        :root {
+          --bg-color: #fafafa;
+          --surface-color: #ffffff;
+          --text-primary: #111827;
+          --text-secondary: #6b7280;
+          --border-color: #e5e7eb;
+          --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+          --shadow-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+          --radius-md: 12px;
+          --radius-lg: 16px;
+        }
 
-        {/* بطاقة الهوية */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '28px' }}>
-          <div style={{ position: 'relative', marginBottom: '14px' }}>
-            {biz?.logo
-              ? <img
-                  src={biz.logo} alt={bizName}
-                  style={{
-                    width: '92px', height: '92px', borderRadius: 'var(--r-xl)',
-                    objectFit: 'cover',
-                    border: '3px solid var(--bg-white)',
-                    boxShadow: 'var(--shadow-md)',
-                  }}
-                  onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
-                />
-              : <div style={{
-                  width: '92px', height: '92px', borderRadius: 'var(--r-xl)',
-                  backgroundColor: 'var(--clr-primary-500)', color: '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '2rem', fontWeight: 800,
-                  border: '3px solid var(--bg-white)',
-                  boxShadow: 'var(--shadow-md)',
-                }}>
-                  {initials}
-                </div>}
-            {/* شارة التحقق */}
-            <div style={{
-              position: 'absolute', bottom: '-4px', right: '-4px',
-              backgroundColor: 'var(--bg-white)', borderRadius: '50%', padding: '2px',
-              boxShadow: 'var(--shadow-xs)',
-            }}>
-              <ShieldCheck size={20} style={{ color: 'var(--clr-primary-500)', display: 'block' }} />
-            </div>
+        body {
+          background-color: var(--bg-color);
+        }
+
+        .nfc-page {
+          min-height: 100vh;
+          background-color: var(--bg-color);
+          color: var(--text-primary);
+          font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 48px 24px 64px;
+          transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .nfc-container {
+          width: 100%;
+          max-width: 480px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .nfc-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
+          width: 100%;
+          margin-top: 32px;
+        }
+
+        @media (min-width: 600px) {
+          .nfc-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+          }
+        }
+
+        .nfc-tile {
+          background-color: var(--surface-color);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-lg);
+          padding: 24px 12px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+          color: var(--text-primary);
+          box-shadow: var(--shadow-sm);
+          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+          aspect-ratio: 1 / 1;
+        }
+
+        .nfc-tile:hover {
+          transform: translateY(-4px) scale(1.02);
+          box-shadow: 0 14px 24px -8px color-mix(in srgb, var(--brand-color, #6b7280) 40%, transparent), 0 4px 12px -3px rgba(0,0,0,0.05);
+          border-color: var(--brand-color, var(--text-secondary));
+        }
+
+        .nfc-tile-icon {
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--brand-color, var(--text-primary));
+          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .nfc-tile:hover .nfc-tile-icon {
+          transform: scale(1.15) translateY(-2px);
+        }
+
+        .nfc-tile-label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          text-align: center;
+          letter-spacing: -0.01em;
+        }
+
+        .nfc-review-cta {
+          width: 100%;
+          margin-top: 32px;
+        }
+
+        .nfc-btn-primary {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          width: 100%;
+          padding: 18px 24px;
+          background-color: var(--text-primary);
+          color: var(--bg-color);
+          border-radius: var(--radius-lg);
+          font-size: 1.0625rem;
+          font-weight: 700;
+          text-decoration: none;
+          transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .nfc-btn-primary:hover {
+          transform: translateY(-2px);
+          opacity: 0.9;
+        }
+
+        .nfc-empty {
+          margin-top: 48px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          color: var(--text-secondary);
+          text-align: center;
+          padding: 32px;
+          border: 1px dashed var(--border-color);
+          border-radius: var(--radius-lg);
+        }
+
+        .nfc-empty-icon {
+          margin-bottom: 16px;
+          opacity: 0.5;
+        }
+      `}</style>
+      
+      <div className="nfc-page" dir="rtl" ref={containerRef}>
+        <div className="nfc-container">
+          <div className="gsap-hero" style={{ width: '100%' }}>
+            <ProfileHero card={card} />
           </div>
+          
+          {renderContent()}
 
-          <h1 style={{
-            fontSize: 'var(--fs-2xl)', fontWeight: 800,
-            color: 'var(--txt-heading)', margin: '0 0 7px',
-            letterSpacing: '-0.01em',
-          }}>
-            {bizName}
-          </h1>
-
-          {biz?.description && (
-            <p style={{
-              fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)',
-              margin: '0 0 12px', lineHeight: 1.6, maxWidth: '90%',
-            }}>
-              {biz.description}
-            </p>
-          )}
-
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: '5px',
-            padding: '5px 13px', borderRadius: 'var(--r-full)',
-            backgroundColor: 'var(--clr-primary-50)',
-            color: 'var(--clr-primary-700)',
-            border: '1px solid var(--clr-primary-200)',
-            fontSize: 'var(--fs-xs)', fontWeight: 700,
-          }}>
-            <Compass size={13} /> {card.card_type}
-          </span>
+          <div className="gsap-footer" style={{ marginTop: '64px', width: '100%' }}>
+            <PublicCardFooter />
+          </div>
         </div>
-
-        {/* قائمة الروابط */}
-        {links.length > 0
-          ? (
-            <>
-              <h2 style={{
-                fontSize: 'var(--fs-sm)', fontWeight: 700,
-                color: 'var(--txt-secondary)', margin: '0 0 12px',
-                padding: '0 4px',
-              }}>
-                اختر الخدمة
-              </h2>
-              {links.map(item => (
-                <LinkBtn key={item.id} item={item} copiedId={copiedId} onCopy={copy} />
-              ))}
-            </>
-          )
-          : (
-            <div style={{
-              backgroundColor: 'var(--bg-white)', border: '1px solid var(--bdr-light)',
-              borderRadius: 'var(--r-xl)', padding: '40px 20px', textAlign: 'center',
-              boxShadow: 'var(--shadow-xs)',
-            }}>
-              <Globe size={38} style={{ color: 'var(--bdr-medium)', marginBottom: '12px' }} />
-              <p style={{ fontWeight: 700, color: 'var(--txt-body)', margin: '0 0 6px' }}>لا توجد روابط</p>
-              <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--txt-muted)', margin: 0 }}>
-                لم يتم إضافة روابط لهذا الكارت بعد
-              </p>
-            </div>
-          )}
-
-        {/* Footer */}
-        <footer style={{ marginTop: '40px', textAlign: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginBottom: '3px' }}>
-            <ShieldCheck size={13} style={{ color: 'var(--clr-primary-400)' }} />
-            <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--txt-muted)', letterSpacing: '0.07em' }}>
-              NFC SMART CARD
-            </span>
-          </div>
-          <span style={{ fontSize: '0.68rem', color: 'var(--txt-muted)' }}>هوية رقمية آمنة</span>
-        </footer>
       </div>
-    </div>
+    </>
   );
 };
