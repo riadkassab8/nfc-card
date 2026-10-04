@@ -1,20 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { cardsApi } from '../../services';
 import {
-  ApiCard, ApiCategory, ApiCardHistory,
+  ApiCard, ApiCategory, ApiCardHistory, RedirectRule,
   BusinessData, fmtDate, isSubscriptionExpired,
-  getPopulatedCategory,
+  getPopulatedCategory, ApiUpdateRedirectRulesDto,
 } from '../../types';
 import {
   X, Info, Link as LinkIcon, QrCode, History,
   Copy, Check, Download, Power, Trash2, RefreshCw,
-  Save, Edit2, ExternalLink,
+  Save, Edit2, ExternalLink, GitBranch, Plus,
+  AlertCircle, GripVertical,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useNavigate } from 'react-router-dom';
 
 type ToastType = 'success' | 'error' | 'info';
-type Tab = 'info' | 'redirect' | 'qr' | 'history';
+type Tab = 'info' | 'redirect' | 'rules' | 'qr' | 'history';
 
 export interface CardDetailsDrawerProps {
   card: ApiCard | null;
@@ -25,7 +26,7 @@ export interface CardDetailsDrawerProps {
   onToast: (msg: string, type?: ToastType) => void;
 }
 
-/* ── خلية معلومة ──────────────────────────────────────────────── */
+/* ── Field cell ──────────────────────────────────────────────────── */
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
     <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--txt-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -37,8 +38,8 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
   </div>
 );
 
-/* ── زر تبويب ─────────────────────────────────────────────────── */
-const Tab: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
+/* ── Tab button ──────────────────────────────────────────────────── */
+const TabBtn: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: number }> = ({ active, onClick, icon, label, badge }) => (
   <button onClick={onClick} style={{
     display: 'flex', alignItems: 'center', gap: '6px',
     padding: '8px 13px', borderRadius: 'var(--r-md)', border: 'none',
@@ -47,13 +48,278 @@ const Tab: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNod
     backgroundColor: active ? 'var(--clr-primary-500)' : 'transparent',
     color: active ? '#fff' : 'var(--txt-secondary)',
     transition: 'all 140ms var(--ease)',
-    whiteSpace: 'nowrap',
+    whiteSpace: 'nowrap', position: 'relative',
   }}>
     {icon} {label}
+    {badge !== undefined && badge > 0 && (
+      <span style={{
+        minWidth: '16px', height: '16px', borderRadius: '8px',
+        backgroundColor: active ? 'rgba(255,255,255,0.3)' : 'var(--clr-primary-500)',
+        color: active ? '#fff' : '#fff',
+        fontSize: '10px', fontWeight: 800,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        padding: '0 4px',
+      }}>{badge}</span>
+    )}
   </button>
 );
 
-/* ── Main ─────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   REDIRECT RULES EDITOR
+   ═══════════════════════════════════════════════════════════════════ */
+const DEVICE_OPTIONS = ['any', 'mobile', 'tablet', 'desktop'] as const;
+const DEVICE_LABELS: Record<string, string> = {
+  any: 'أي جهاز', mobile: 'موبايل', tablet: 'تابلت', desktop: 'ديسكتوب',
+};
+
+type DraftRule = RedirectRule & { _key: string };
+
+const emptyRule = (): DraftRule => ({
+  _key: Math.random().toString(36).slice(2),
+  device_target: 'any',
+  redirect_url: '',
+  priority: 0,
+  is_active: true,
+  label: '',
+  hour_from: null,
+  hour_to: null,
+});
+
+const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToast: (m: string, t?: ToastType) => void }> = ({ card, onUpdated, onToast }) => {
+  const [rules, setRules] = useState<DraftRule[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  /* seed from card */
+  useEffect(() => {
+    setRules((card.redirect_rules ?? []).map(r => ({ ...r, _key: Math.random().toString(36).slice(2) })));
+    setDirty(false);
+  }, [card._id]);
+
+  const update = (key: string, field: keyof DraftRule, value: any) => {
+    setRules(prev => prev.map(r => r._key === key ? { ...r, [field]: value } : r));
+    setDirty(true);
+  };
+
+  const addRule = () => {
+    const next = rules.length > 0 ? Math.max(...rules.map(r => r.priority)) + 1 : 1;
+    setRules(prev => [...prev, { ...emptyRule(), priority: next }]);
+    setDirty(true);
+  };
+
+  const removeRule = (key: string) => {
+    setRules(prev => prev.filter(r => r._key !== key));
+    setDirty(true);
+  };
+
+  const save = async () => {
+    /* validate */
+    for (const r of rules) {
+      if (!r.redirect_url.trim()) { onToast('كل rule لازم يكون عنده redirect_url', 'error'); return; }
+      if (!/^https?:\/\//i.test(r.redirect_url.trim())) { onToast(`الرابط غير صالح: ${r.redirect_url}`, 'error'); return; }
+    }
+    setSaving(true);
+    try {
+      const dto: ApiUpdateRedirectRulesDto = {
+        rules: rules.map(({ _key, ...r }) => ({
+          ...r,
+          redirect_url: r.redirect_url.trim(),
+          label: r.label?.trim() || undefined,
+        })),
+      };
+      const updated = await cardsApi.updateRedirectRules(card._id, dto);
+      onUpdated(updated);
+      setDirty(false);
+      onToast('تم حفظ القواعد ✓');
+    } catch (e: any) {
+      onToast(e?.message || 'فشل الحفظ', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearAll = async () => {
+    setSaving(true);
+    try {
+      const updated = await cardsApi.updateRedirectRules(card._id, { rules: [] });
+      onUpdated(updated);
+      setRules([]);
+      setDirty(false);
+      onToast('تم مسح كل القواعد');
+    } catch (e: any) {
+      onToast(e?.message || 'فشل', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+      {/* Explainer */}
+      <div style={{ backgroundColor: 'var(--clr-info-bg)', borderRadius: 'var(--r-md)', padding: '11px 14px', border: '1px solid var(--clr-info-bdr)', fontSize: 'var(--fs-sm)', color: 'var(--clr-info)', lineHeight: 1.6 }}>
+        💡 القواعد بتوجّه الزوار لروابط مختلفة حسب الجهاز أو الوقت. لو مفيش rule اتطابق — بيروح لـ <strong>Redirect الأساسي</strong>.
+      </div>
+
+      {/* Rules list */}
+      {rules.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '30px 20px', color: 'var(--txt-muted)' }}>
+          <GitBranch size={36} style={{ marginBottom: '10px', color: 'var(--bdr-medium)' }} />
+          <p style={{ margin: 0, fontSize: 'var(--fs-sm)', fontWeight: 600 }}>لا توجد قواعد — اضغط "إضافة" لإنشاء أول rule</p>
+        </div>
+      )}
+
+      {rules.map((rule, idx) => (
+        <div key={rule._key} style={{
+          backgroundColor: rule.is_active ? 'var(--bg-white)' : 'var(--bg-subtle)',
+          border: `1.5px solid ${rule.is_active ? 'var(--bdr-light)' : 'var(--bdr-light)'}`,
+          borderRadius: 'var(--r-lg)', padding: '14px 16px',
+          display: 'flex', flexDirection: 'column', gap: '12px',
+          opacity: rule.is_active ? 1 : 0.65,
+        }}>
+
+          {/* Rule header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <GripVertical size={16} style={{ color: 'var(--txt-muted)', flexShrink: 0 }} />
+            <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--txt-muted)', minWidth: '20px' }}>#{idx + 1}</span>
+
+            {/* Label */}
+            <input
+              className="form-input"
+              value={rule.label || ''}
+              onChange={e => update(rule._key, 'label', e.target.value)}
+              placeholder="اسم القاعدة (اختياري)"
+              style={{ flex: 1, fontSize: 'var(--fs-sm)', padding: '6px 10px' }}
+            />
+
+            {/* Active toggle */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', flexShrink: 0 }}>
+              <input
+                type="checkbox"
+                checked={rule.is_active}
+                onChange={e => update(rule._key, 'is_active', e.target.checked)}
+                style={{ accentColor: 'var(--clr-primary-500)', width: '14px', height: '14px' }}
+              />
+              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--txt-secondary)' }}>مفعّل</span>
+            </label>
+
+            {/* Delete */}
+            <button
+              onClick={() => removeRule(rule._key)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: 'var(--r-sm)', border: 'none', backgroundColor: 'var(--clr-error-bg)', color: 'var(--clr-error)', cursor: 'pointer', flexShrink: 0 }}
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+
+          {/* Rule fields */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+
+            {/* Device */}
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ fontSize: 'var(--fs-xs)' }}>الجهاز *</label>
+              <select
+                className="form-input"
+                value={rule.device_target}
+                onChange={e => update(rule._key, 'device_target', e.target.value)}
+                style={{ fontSize: 'var(--fs-sm)', padding: '6px 10px' }}
+              >
+                {DEVICE_OPTIONS.map(d => <option key={d} value={d}>{DEVICE_LABELS[d]}</option>)}
+              </select>
+            </div>
+
+            {/* Priority */}
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ fontSize: 'var(--fs-xs)' }}>الأولوية (الأصغر أعلى)</label>
+              <input
+                type="number"
+                className="form-input"
+                value={rule.priority}
+                onChange={e => update(rule._key, 'priority', Number(e.target.value))}
+                min={0}
+                style={{ fontSize: 'var(--fs-sm)', padding: '6px 10px' }}
+              />
+            </div>
+
+            {/* Hour from */}
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ fontSize: 'var(--fs-xs)' }}>من الساعة (UTC) — اختياري</label>
+              <input
+                type="number"
+                className="form-input"
+                value={rule.hour_from ?? ''}
+                onChange={e => update(rule._key, 'hour_from', e.target.value === '' ? null : Number(e.target.value))}
+                placeholder="0–23"
+                min={0} max={23}
+                style={{ fontSize: 'var(--fs-sm)', padding: '6px 10px' }}
+              />
+            </div>
+
+            {/* Hour to */}
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ fontSize: 'var(--fs-xs)' }}>إلى الساعة (UTC) — اختياري</label>
+              <input
+                type="number"
+                className="form-input"
+                value={rule.hour_to ?? ''}
+                onChange={e => update(rule._key, 'hour_to', e.target.value === '' ? null : Number(e.target.value))}
+                placeholder="0–23"
+                min={0} max={23}
+                style={{ fontSize: 'var(--fs-sm)', padding: '6px 10px' }}
+              />
+            </div>
+          </div>
+
+          {/* Redirect URL — full width */}
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label" style={{ fontSize: 'var(--fs-xs)' }}>رابط التحويل *</label>
+            <input
+              className="form-input"
+              type="url"
+              value={rule.redirect_url}
+              onChange={e => update(rule._key, 'redirect_url', e.target.value)}
+              placeholder="https://..."
+              style={{ fontSize: 'var(--fs-sm)', padding: '6px 10px' }}
+            />
+          </div>
+        </div>
+      ))}
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '4px' }}>
+        <button className="btn-outline" onClick={addRule} style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px' }}>
+          <Plus size={14} /> إضافة rule
+        </button>
+        {dirty && (
+          <button className="btn-primary" onClick={save} disabled={saving} style={{ fontSize: 'var(--fs-sm)', padding: '8px 18px' }}>
+            {saving ? <><RefreshCw size={13} className="spin" /> حفظ...</> : <><Save size={13} /> حفظ القواعد</>}
+          </button>
+        )}
+        {rules.length > 0 && !dirty && (
+          <button
+            className="btn-outline"
+            style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px', borderColor: 'var(--clr-error-bdr)', color: 'var(--clr-error)', marginInlineStart: 'auto' }}
+            onClick={clearAll} disabled={saving}
+          >
+            <Trash2 size={13} /> مسح الكل
+          </button>
+        )}
+      </div>
+
+      {/* Hour hint */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '10px 13px', border: '1px solid var(--bdr-light)' }}>
+        <AlertCircle size={14} style={{ color: 'var(--txt-muted)', flexShrink: 0, marginTop: '1px' }} />
+        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', lineHeight: 1.6 }}>
+          الساعات بتوقيت UTC — توقيت مصر = UTC+3. مثال: ليلاً بتوقيت مصر (10م–8ص) = hour_from: 19، hour_to: 5
+        </span>
+      </div>
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN DRAWER
+   ═══════════════════════════════════════════════════════════════════ */
 export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   card, onClose, onUpdated, onDeleted, onToast,
 }) => {
@@ -72,7 +338,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   const [renewing, setRenewing]     = useState(false);
   const [copied, setCopied]         = useState<string | null>(null);
 
-  /* ── reset on card change ── */
+  /* reset on card change */
   useEffect(() => {
     if (!card) return;
     setTab('info'); setConfirmDel(false);
@@ -80,7 +346,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
     setQrDataUrl(null); setHistory([]); setHistLoaded(false);
   }, [card]);
 
-  /* ── QR ── */
+  /* QR */
   const genQr = useCallback(async (url: string) => {
     setQrLoading(true);
     try {
@@ -94,7 +360,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
     if (tab === 'qr' && card && !qrDataUrl) genQr(card.current_redirect_url);
   }, [tab, card, qrDataUrl, genQr]);
 
-  /* ── History ── */
+  /* History */
   useEffect(() => {
     if (tab === 'history' && card && !histLoaded) {
       setHistLoading(true);
@@ -107,17 +373,18 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
 
   if (!card) return null;
 
-  const isActive = card.status === 'active';
-  const expired  = isSubscriptionExpired(card);
-  const cat      = getPopulatedCategory(card.category_id);
+  const isActive  = card.status === 'active';
+  const expired   = isSubscriptionExpired(card);
+  const cat       = getPopulatedCategory(card.category_id);
   const staticUrl = `${window.location.origin}/r/${card.card_code}`;
+  const rulesCount = (card.redirect_rules ?? []).length;
 
   const copyText = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
     setCopied(key); setTimeout(() => setCopied(null), 2000);
   };
 
-  /* ── actions ── */
+  /* actions */
   const handleSaveUrl = async () => {
     if (!newUrl.trim()) return;
     setSavingUrl(true);
@@ -173,7 +440,6 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
     } catch { onToast('فشل تحميل QR', 'error'); }
   };
 
-
   return (
     <>
       {/* Overlay */}
@@ -187,7 +453,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
         dir="rtl"
         style={{
           position: 'fixed', top: 0, right: 0, bottom: 0,
-          width: 'min(500px, 100vw)',
+          width: 'min(520px, 100vw)',
           backgroundColor: 'var(--bg-white)', zIndex: 301,
           display: 'flex', flexDirection: 'column',
           boxShadow: 'var(--shadow-xl)',
@@ -211,7 +477,9 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
               <span className={`badge ${isActive ? 'badge-success' : 'badge-error'}`}>
                 {isActive ? 'نشطة' : 'معطلة'}
               </span>
+              {!card.requires_subscription && <span className="badge badge-success">دائم ♾</span>}
               {expired && <span className="badge badge-warning">⚠ منتهية</span>}
+              {rulesCount > 0 && <span className="badge badge-blue">⚡ {rulesCount} rules</span>}
             </div>
           </div>
           <button
@@ -233,10 +501,11 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
           display: 'flex', gap: '4px', flexShrink: 0, overflowX: 'auto',
           backgroundColor: 'var(--bg-subtle)',
         }}>
-          <Tab active={tab === 'info'}     onClick={() => setTab('info')}     icon={<Info size={13} />}     label="المعلومات" />
-          <Tab active={tab === 'redirect'} onClick={() => setTab('redirect')} icon={<LinkIcon size={13} />}  label="الرابط" />
-          <Tab active={tab === 'qr'}       onClick={() => setTab('qr')}       icon={<QrCode size={13} />}   label="رمز QR" />
-          <Tab active={tab === 'history'}  onClick={() => setTab('history')}  icon={<History size={13} />}  label="السجل" />
+          <TabBtn active={tab === 'info'}     onClick={() => setTab('info')}     icon={<Info size={13} />}        label="المعلومات" />
+          <TabBtn active={tab === 'redirect'} onClick={() => setTab('redirect')} icon={<LinkIcon size={13} />}     label="الرابط" />
+          <TabBtn active={tab === 'rules'}    onClick={() => setTab('rules')}    icon={<GitBranch size={13} />}   label="القواعد" badge={rulesCount} />
+          <TabBtn active={tab === 'qr'}       onClick={() => setTab('qr')}       icon={<QrCode size={13} />}      label="رمز QR" />
+          <TabBtn active={tab === 'history'}  onClick={() => setTab('history')}  icon={<History size={13} />}     label="السجل" />
         </div>
 
         {/* Body */}
@@ -246,7 +515,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
           {tab === 'info' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
-              {/* Edit toggle */}
+              {/* Edit button */}
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <button className="btn-outline" style={{ fontSize: 'var(--fs-sm)', padding: '7px 14px' }} onClick={handleSaveEdit}>
                   <Edit2 size={13} /> تعديل
@@ -270,34 +539,39 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                 <Field label="معرف NFC">
                   <span style={{ fontFamily: 'monospace' }}>{card.nfc_uid || '—'}</span>
                 </Field>
-                <Field label="نوع البطاقة">
-                  {card.card_type}
+                <Field label="نوع البطاقة">{card.card_type}</Field>
+                <Field label="التصنيف">{cat?.name || '—'}</Field>
+                <Field label="نوع الاشتراك">
+                  {card.requires_subscription
+                    ? <span className="badge badge-warning">باشتراك</span>
+                    : <span className="badge badge-success">دائم ♾</span>}
                 </Field>
-                <Field label="التصنيف">
-                  {cat?.name || '—'}
+                <Field label="بداية الاشتراك">
+                  {card.requires_subscription ? fmtDate(card.subscription_start_date) : '—'}
                 </Field>
-                <Field label="بداية الاشتراك">{fmtDate(card.subscription_start_date)}</Field>
                 <Field label="نهاية الاشتراك">
-                  <span style={{ color: expired ? 'var(--clr-error)' : undefined }}>
-                    {fmtDate(card.subscription_end_date)} {expired ? '⚠' : ''}
-                  </span>
+                  {card.requires_subscription
+                    ? (
+                      <span style={{ color: expired ? 'var(--clr-error)' : undefined }}>
+                        {fmtDate(card.subscription_end_date)} {expired ? '⚠' : ''}
+                      </span>
+                    )
+                    : <span style={{ color: 'var(--clr-success)', fontWeight: 700 }}>دائم</span>}
+                </Field>
+                <Field label="قواعد التحويل">
+                  {rulesCount > 0
+                    ? <button onClick={() => setTab('rules')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-primary-600)', fontWeight: 700, fontFamily: 'var(--font)', fontSize: 'var(--fs-sm)', padding: 0 }}>⚡ {rulesCount} rules — عرض</button>
+                    : <span style={{ color: 'var(--txt-muted)' }}>لا توجد</span>}
                 </Field>
                 <Field label="تاريخ الإنشاء">{fmtDate(card.createdAt)}</Field>
                 <Field label="آخر تحديث">{fmtDate(card.updatedAt)}</Field>
               </div>
 
               {/* Static URL */}
-              <div style={{
-                backgroundColor: 'var(--clr-primary-50)', borderRadius: 'var(--r-lg)',
-                padding: '13px 16px', border: '1px solid var(--clr-primary-200)',
-              }}>
-                <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--clr-primary-700)', marginBottom: '6px' }}>
-                  الرابط الثابت (NFC / QR)
-                </div>
+              <div style={{ backgroundColor: 'var(--clr-primary-50)', borderRadius: 'var(--r-lg)', padding: '13px 16px', border: '1px solid var(--clr-primary-200)' }}>
+                <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--clr-primary-700)', marginBottom: '6px' }}>الرابط الثابت (NFC / QR)</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-800)', flex: 1, wordBreak: 'break-all' }}>
-                    {staticUrl}
-                  </code>
+                  <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-800)', flex: 1, wordBreak: 'break-all' }}>{staticUrl}</code>
                   <button onClick={() => copyText(staticUrl, 'static')} style={iconBtnStyle}>
                     {copied === 'static' ? <Check size={12} style={{ color: 'var(--clr-success)' }} /> : <Copy size={12} />}
                   </button>
@@ -307,18 +581,11 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Social Page Link */}
-              <div style={{
-                backgroundColor: '#f0fdf4', borderRadius: 'var(--r-lg)',
-                padding: '13px 16px', border: '1px solid #bbf7d0',
-              }}>
-                <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: '#15803d', marginBottom: '6px' }}>
-                  صفحة الأزرار التفاعلية (Social Page)
-                </div>
+              {/* Social Page */}
+              <div style={{ backgroundColor: '#f0fdf4', borderRadius: 'var(--r-lg)', padding: '13px 16px', border: '1px solid #bbf7d0' }}>
+                <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: '#15803d', marginBottom: '6px' }}>صفحة الأزرار التفاعلية (Social Page)</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <code style={{ fontSize: 'var(--fs-xs)', color: '#166534', flex: 1, wordBreak: 'break-all' }}>
-                    {`${window.location.origin}/social/${card.card_code}`}
-                  </code>
+                  <code style={{ fontSize: 'var(--fs-xs)', color: '#166534', flex: 1, wordBreak: 'break-all' }}>{`${window.location.origin}/social/${card.card_code}`}</code>
                   <button onClick={() => copyText(`${window.location.origin}/social/${card.card_code}`, 'socialPreview')} style={iconBtnStyle}>
                     {copied === 'socialPreview' ? <Check size={12} style={{ color: 'var(--clr-success)' }} /> : <Copy size={12} />}
                   </button>
@@ -330,10 +597,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
 
               {/* Business data */}
               {card.business_data && Object.values(card.business_data).some(Boolean) && (
-                <div style={{
-                  backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-lg)',
-                  padding: '14px 16px', border: '1px solid var(--bdr-light)',
-                }}>
+                <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-lg)', padding: '14px 16px', border: '1px solid var(--bdr-light)' }}>
                   <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--txt-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
                     بيانات النشاط التجاري
                   </div>
@@ -357,7 +621,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                   {toggling ? <RefreshCw size={13} className="spin" /> : <Power size={13} />}
                   {isActive ? 'تعطيل' : 'تفعيل'}
                 </button>
-                <button className="btn-outline" style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px' }} onClick={handleRenew} disabled={renewing}>
+                <button className="btn-outline" style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px' }} onClick={handleRenew} disabled={renewing || !card.requires_subscription} title={!card.requires_subscription ? 'الكارت دائم — لا يحتاج تجديد' : undefined}>
                   {renewing ? <RefreshCw size={13} className="spin" /> : <RefreshCw size={13} />}
                   تجديد الاشتراك
                 </button>
@@ -379,7 +643,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
           {tab === 'redirect' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', lineHeight: 1.7 }}>
-                غيّر رابط التوجيه الذي يُفتح عند مسح الكارت. الكارت الفيزيائي لا يتأثر.
+                غيّر رابط التوجيه الأساسي. لو عندك <strong>Redirect Rules</strong> مفعّلة — بيأخذ أولوية عليه.
               </p>
               <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '11px 14px', border: '1px solid var(--bdr-light)' }}>
                 <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '4px' }}>الرابط الحالي</div>
@@ -403,6 +667,11 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                 {savingUrl ? <><RefreshCw size={14} className="spin" /> جاري الحفظ...</> : <><Save size={14} /> تغيير الرابط</>}
               </button>
             </div>
+          )}
+
+          {/* ════ REDIRECT RULES ════ */}
+          {tab === 'rules' && (
+            <RulesTab card={card} onUpdated={onUpdated} onToast={onToast} />
           )}
 
           {/* ════ QR ════ */}

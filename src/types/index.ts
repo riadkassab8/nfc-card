@@ -89,6 +89,22 @@ export const CARD_TYPES = [
 
 export type CardStatus = 'active' | 'inactive';
 
+// ── Redirect Rules ────────────────────────────────────────────────────────
+
+export interface RedirectRule {
+  label?: string;
+  device_target: 'mobile' | 'tablet' | 'desktop' | 'any';
+  hour_from?: number | null;
+  hour_to?: number | null;
+  redirect_url: string;
+  priority: number;
+  is_active: boolean;
+}
+
+export interface ApiUpdateRedirectRulesDto {
+  rules: RedirectRule[];
+}
+
 // ── Card ──────────────────────────────────────────────────────────────────
 
 export interface ApiCard {
@@ -99,8 +115,14 @@ export interface ApiCard {
   card_type: string;
   current_redirect_url: string;
   status: CardStatus;
-  subscription_start_date: string;
-  subscription_end_date: string;
+  /** ✅ NEW — false = permanent card (no subscription) */
+  requires_subscription: boolean;
+  /** ⚠️ null when requires_subscription is false */
+  subscription_start_date: string | null;
+  /** ⚠️ null when requires_subscription is false */
+  subscription_end_date: string | null;
+  /** ✅ NEW — [] when no rules are set */
+  redirect_rules: RedirectRule[];
   /** category_id is returned as a populated object from the backend */
   category_id?: ApiCategory | string | null;
   business_data?: BusinessData | null;
@@ -123,6 +145,8 @@ export interface ApiCreateCardDto {
   current_redirect_url: string;
   category_id?: string;
   business_data?: BusinessData;
+  /** default: true on backend */
+  requires_subscription?: boolean;
 }
 
 export interface ApiUpdateCardDto {
@@ -132,11 +156,94 @@ export interface ApiUpdateCardDto {
   status?: CardStatus;
   category_id?: string;
   business_data?: BusinessData | null;
+  requires_subscription?: boolean;
 }
 
 export interface ApiUpdateRedirectDto {
   redirect_url: string;
 }
+
+// ── Bulk Create ────────────────────────────────────────────────────────────
+
+export interface ApiBulkCreateDto {
+  cards: ApiCreateCardDto[];
+}
+
+export interface ApiBulkCreateResult {
+  total: number;
+  success_count: number;
+  fail_count: number;
+  created: ApiCard[];
+  failed: { card_code: string; reason: string }[];
+}
+
+// ── Social Page ────────────────────────────────────────────────────────────
+
+export interface ApiSocialPageResponse {
+  card_code: string;
+  card_type: string;
+  requires_subscription: boolean;
+  business_data: BusinessData | null;
+  message?: string;
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────
+
+export interface ScanByDay {
+  date: string;  // 'YYYY-MM-DD'
+  count: number;
+}
+
+export interface ScanByDevice {
+  device_type: string;
+  count: number;
+}
+
+export interface ScanByBrowser {
+  browser: string;
+  count: number;
+}
+
+export interface RecentScan {
+  card_id: string;
+  timestamp: string;
+  ip_address: string;
+  user_agent: string;
+  device_type: string;
+  browser: string;
+}
+
+export interface ApiCardAnalytics {
+  total_scans: number;
+  scans_last_N_days: number;
+  scans_by_day: ScanByDay[];
+  scans_by_device: ScanByDevice[];
+  scans_by_browser: ScanByBrowser[];
+  peak_hour: number;
+  recent_scans: RecentScan[];
+}
+
+export interface TopCard {
+  card_code: string;
+  count: number;
+}
+
+export interface ApiGlobalAnalytics {
+  total_scans: number;
+  scans_last_N_days: number;
+  scans_by_day: ScanByDay[];
+  top_cards: TopCard[];
+  scans_by_device: ScanByDevice[];
+  scans_by_browser: ScanByBrowser[];
+}
+
+// ── Export Query Params ───────────────────────────────────────────────────
+
+export interface ExportCardsParams {
+  status?: CardStatus;
+  card_type?: string;
+}
+
 
 // ── Card History ──────────────────────────────────────────────────────────
 
@@ -202,8 +309,11 @@ export const fmtDate = (iso?: string | null): string => {
   });
 };
 
-/** Returns true if subscription_end_date is in the past */
+/** Returns true if subscription_end_date is in the past.
+ *  Cards with requires_subscription: false are never expired. */
 export const isSubscriptionExpired = (card: ApiCard): boolean => {
+  if (!card.requires_subscription) return false;
+  if (!card.subscription_end_date) return false;
   return new Date(card.subscription_end_date) < new Date();
 };
 

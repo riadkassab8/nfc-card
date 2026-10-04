@@ -1,6 +1,6 @@
 /* ==========================================================================
    CARDS API (src/services/api/cardsApi.ts)
-   All endpoints require Authorization: Bearer <token>
+   All endpoints require Authorization: Bearer <token> unless noted.
    ========================================================================== */
 
 import { apiClient, getApiBaseUrl } from './client';
@@ -10,6 +10,13 @@ import {
   ApiCardHistory,
   ApiCreateCardDto,
   ApiUpdateCardDto,
+  ApiUpdateRedirectRulesDto,
+  ApiBulkCreateDto,
+  ApiBulkCreateResult,
+  ApiCardAnalytics,
+  ApiGlobalAnalytics,
+  ApiSocialPageResponse,
+  ExportCardsParams,
   CardQueryParams,
 } from '../../types';
 
@@ -82,4 +89,49 @@ export const cardsApi = {
   // ── DELETE /api/cards/:id ────────────────────────────────────────────────
   deleteCard: (id: string): Promise<{ message: string }> =>
     apiClient<{ message: string }>(`/cards/${id}`, { method: 'DELETE' }),
+
+  // ── PUT /api/cards/:id/rules ─────────────────────────────────────────────
+  /** Update smart redirect rules. Pass empty array to clear all rules. */
+  updateRedirectRules: (id: string, dto: ApiUpdateRedirectRulesDto): Promise<ApiCard> =>
+    apiClient<ApiCard>(`/cards/${id}/rules`, { method: 'PUT', body: dto }),
+
+  // ── POST /api/cards/bulk ─────────────────────────────────────────────────
+  /** Bulk-create up to 100 cards in one request. Always returns 201. */
+  bulkCreateCards: (dto: ApiBulkCreateDto): Promise<ApiBulkCreateResult> =>
+    apiClient<ApiBulkCreateResult>('/cards/bulk', { method: 'POST', body: dto }),
+
+  // ── GET /api/cards/:id/analytics?days=N ─────────────────────────────────
+  getCardAnalytics: (id: string, days?: number): Promise<ApiCardAnalytics> =>
+    apiClient<ApiCardAnalytics>(`/cards/${id}/analytics`, {
+      params: days !== undefined ? { days } : undefined,
+    }),
+
+  // ── GET /api/cards/analytics/global?days=N ──────────────────────────────
+  getGlobalAnalytics: (days?: number): Promise<ApiGlobalAnalytics> =>
+    apiClient<ApiGlobalAnalytics>('/cards/analytics/global', {
+      params: days !== undefined ? { days } : undefined,
+    }),
+
+  // ── GET /social/:card_code  (🔓 Public — no JWT) ─────────────────────────
+  getSocialPage: (cardCode: string): Promise<ApiSocialPageResponse> =>
+    apiClient<ApiSocialPageResponse>(`/social/${cardCode}`, { requiresAuth: false }),
+
+  // ── GET /api/export/cards ────────────────────────────────────────────────
+  /** Export all cards as an Excel file (.xlsx). Returns a Blob. */
+  exportCardsExcel: (params?: ExportCardsParams): Promise<Blob> =>
+    apiClient<Blob>('/export/cards', {
+      responseType: 'blob',
+      params: {
+        status:    params?.status,
+        card_type: params?.card_type,
+      },
+    }),
+
+  // ── GET /api/export/cards/:id/report?days=N ─────────────────────────────
+  /** Export a detailed 3-sheet Excel report for a single card. Returns a Blob. */
+  exportCardReport: (id: string, days?: number): Promise<Blob> =>
+    apiClient<Blob>(`/export/cards/${id}/report`, {
+      responseType: 'blob',
+      params: days !== undefined ? { days } : undefined,
+    }),
 };

@@ -11,6 +11,7 @@ import { AdminInventoryPage }       from './pages/admin/AdminInventoryPage';
 import { AdminAddCardPage }         from './pages/admin/AdminAddCardPage';
 import { AdminCategoriesPage }      from './pages/admin/AdminCategoriesPage';
 import { AdminScanPage }            from './pages/admin/AdminScanPage';
+import { AdminAnalyticsPage }       from './pages/admin/AdminAnalyticsPage';
 import { PublicCardLandingPage }    from './pages/PublicCardLandingPage';
 import { SocialPage }               from './pages/SocialPage';
 
@@ -67,6 +68,17 @@ export const App: React.FC = () => (
           }
         />
         
+
+        <Route
+          path="/admin/analytics"
+          element={
+            <ProtectedRoute>
+              <AdminShell title="الإحصائيات">
+                <AdminAnalyticsPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/admin/add-card"

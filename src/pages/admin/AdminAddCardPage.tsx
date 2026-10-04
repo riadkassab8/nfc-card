@@ -81,6 +81,9 @@ export const AdminAddCardPage: React.FC = () => {
   const [cardType, setCardType]     = useState<string>(editCard?.card_type || CardType.CARD);
   const [redirectUrl, setRedirectUrl] = useState(editCard?.current_redirect_url || '');
   const [categoryId, setCategoryId] = useState(getCategoryId(editCard?.category_id) || '');
+  const [requiresSubscription, setRequiresSubscription] = useState<boolean>(
+    editCard ? (editCard.requires_subscription ?? true) : true
+  );
 
   /* Business data state */
   const [bizData, setBizData] = useState<Record<string, string>>({
@@ -201,6 +204,7 @@ export const AdminAddCardPage: React.FC = () => {
       card_type: cardType,
       current_redirect_url: formattedUrl,
       category_id: categoryId,
+      requires_subscription: requiresSubscription,
     };
     if (nfcUid.trim()) dto.nfc_uid = nfcUid.trim().toUpperCase();
     if (hasBiz) dto.business_data = business;
@@ -393,6 +397,28 @@ export const AdminAddCardPage: React.FC = () => {
                 <option value="">— اختر تصنيف —</option>
                 {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
               </select>
+            </div>
+
+            {/* Requires Subscription */}
+            <div className="form-group">
+              <label className="form-label">
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <RefreshCw size={14} style={{ color: 'var(--clr-primary-500)' }} />
+                  نوع الاشتراك
+                </span>
+              </label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 14px', borderRadius: 'var(--r-md)', border: `2px solid ${requiresSubscription ? 'var(--clr-primary-400)' : 'var(--bdr-light)'}`, backgroundColor: requiresSubscription ? 'var(--clr-primary-50)' : 'var(--bg-subtle)', flex: 1, transition: 'all 140ms' }}>
+                  <input type="radio" checked={requiresSubscription} onChange={() => setRequiresSubscription(true)} style={{ accentColor: 'var(--clr-primary-500)' }} />
+                  <span style={{ fontWeight: 700, fontSize: 'var(--fs-sm)', color: requiresSubscription ? 'var(--clr-primary-700)' : 'var(--txt-secondary)' }}>باشتراك</span>
+                  <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)' }}>ينتهي بتاريخ</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 14px', borderRadius: 'var(--r-md)', border: `2px solid ${!requiresSubscription ? '#16a34a' : 'var(--bdr-light)'}`, backgroundColor: !requiresSubscription ? '#f0fdf4' : 'var(--bg-subtle)', flex: 1, transition: 'all 140ms' }}>
+                  <input type="radio" checked={!requiresSubscription} onChange={() => setRequiresSubscription(false)} style={{ accentColor: '#16a34a' }} />
+                  <span style={{ fontWeight: 700, fontSize: 'var(--fs-sm)', color: !requiresSubscription ? '#15803d' : 'var(--txt-secondary)' }}>دائم ♾</span>
+                  <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)' }}>بدون انتهاء</span>
+                </label>
+              </div>
             </div>
 
             {/* Redirect URL */}

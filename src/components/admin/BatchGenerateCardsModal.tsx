@@ -54,17 +54,25 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
       let next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
       const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smartcard-app.com');
 
-      for (let i = 0; i < qty; i++) {
-        const code = `CARD-${padNum(next + i)}`;
-        const dto: ApiCreateCardDto = {
-          card_code: code,
-          nfc_uid: `NFC-${padNum(next + i).padStart(6, '0')}`,
-          card_type: bType,
-          current_redirect_url: `${domainOrigin}/social/${code}`,
-        };
-        dto.category_id = bCat;
-        await cardsApi.createCard(dto);
-        created++;
+      // Use bulk endpoint for chunks of up to 100 cards
+      const CHUNK = 100;
+      for (let offset = 0; offset < qty; offset += CHUNK) {
+        const chunkSize = Math.min(CHUNK, qty - offset);
+        const cards = Array.from({ length: chunkSize }, (_, i) => {
+          const code = `CARD-${padNum(next + offset + i)}`;
+          return {
+            card_code: code,
+            nfc_uid: `NFC-${padNum(next + offset + i).padStart(6, '0')}`,
+            card_type: bType,
+            current_redirect_url: `${domainOrigin}/social/${code}`,
+            category_id: bCat,
+          };
+        });
+        const res = await cardsApi.bulkCreateCards({ cards });
+        created += res.success_count;
+        if (res.fail_count > 0) {
+          setBErr(`تم إنشاء ${created} بطاقة — فشل ${res.fail_count} بسبب تكرار`);
+        }
       }
       setBCount(created); setBDone(true);
     } catch (e: any) {

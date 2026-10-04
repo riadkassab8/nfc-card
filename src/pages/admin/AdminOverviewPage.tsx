@@ -1,19 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cardsApi, categoriesApi } from '../../services';
-import { ApiCard, ApiCategory, fmtDate, isSubscriptionExpired } from '../../types';
+import {
+  ApiCard, ApiCategory, ApiGlobalAnalytics, ScanByDay,
+  fmtDate, isSubscriptionExpired,
+} from '../../types';
 import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import {
   CreditCard, Tags, CheckCircle2, XCircle,
-  RefreshCw, ArrowLeft, Plus, TrendingUp,
+  RefreshCw, ArrowLeft, Plus, TrendingUp, BarChart2,
+  Activity,
 } from 'lucide-react';
 
-/* ── بطاقة إحصائية ─────────────────────────────────────────────── */
+/* ── Stat card ──────────────────────────────────────────────────── */
 const StatCard: React.FC<{
   label: string; value: number; icon: React.ReactNode;
   accent: string; loading?: boolean; onClick?: () => void;
 }> = ({ label, value, icon, accent, loading, onClick }) => (
-  <div className="stat-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default', transition: 'all 0.2s', ...(onClick ? { ':hover': { opacity: 0.9 } } as any : {}) }}>
+  <div className="stat-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default', transition: 'all 0.2s' }}>
     <div className="stat-card-icon" style={{ backgroundColor: accent + '18', color: accent }}>
       {icon}
     </div>
@@ -26,7 +30,7 @@ const StatCard: React.FC<{
   </div>
 );
 
-/* ── وسم نوع البطاقة ────────────────────────────────────────────── */
+/* ── Card type badge ─────────────────────────────────────────────── */
 const TypeBadge: React.FC<{ type: string }> = ({ type }) => {
   const map: Record<string, string> = {
     'Google Review': 'var(--clr-primary-500)',
@@ -62,22 +66,83 @@ const Toast: React.FC<{ msg: string; type: ToastType; onClose: () => void }> = (
   );
 };
 
-/* ── المكوّن الرئيسي ───────────────────────────────────────────── */
+/* ── Mini sparkline bar chart ────────────────────────────────────── */
+const Sparkline: React.FC<{ data: ScanByDay[]; loading: boolean }> = ({ data, loading }) => {
+  if (loading) return <div className="shimmer" style={{ height: '56px', borderRadius: 'var(--r-md)' }} />;
+  if (!data.length) return <div style={{ height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--txt-muted)', fontSize: 'var(--fs-xs)' }}>لا توجد بيانات</div>;
+  const max = Math.max(...data.map(d => d.count), 1);
+  const recent = data.slice(-14);
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '56px' }}>
+      {recent.map(d => (
+        <div key={d.date} title={`${d.date}: ${d.count}`} style={{
+          flex: 1, minWidth: '6px',
+          height: `${Math.max(3, (d.count / max) * 56)}px`,
+          backgroundColor: 'var(--clr-primary-400)',
+          borderRadius: '3px 3px 0 0',
+          opacity: 0.85,
+          transition: 'height 0.3s ease',
+          cursor: 'default',
+        }} />
+      ))}
+    </div>
+  );
+};
+
+/* ── Horizontal bar list ─────────────────────────────────────────── */
+const BarList: React.FC<{ items: { label: string; count: number; color?: string }[]; loading: boolean }> = ({ items, loading }) => {
+  if (loading) return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {[60, 40, 25].map(w => <div key={w} className="shimmer" style={{ height: '20px', width: `${w}%`, borderRadius: '4px' }} />)}
+    </div>
+  );
+  const max = Math.max(...items.map(i => i.count), 1);
+  const colors = ['var(--clr-primary-500)', '#16a34a', '#d97706', '#7c3aed', '#ef4444'];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {items.map((item, idx) => (
+        <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ minWidth: '68px', fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--txt-body)', textAlign: 'right' }}>{item.label}</span>
+          <div style={{ flex: 1, backgroundColor: 'var(--bg-subtle)', borderRadius: '4px', height: '18px', overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', borderRadius: '4px',
+              width: `${(item.count / max) * 100}%`,
+              backgroundColor: item.color || colors[idx % colors.length],
+              transition: 'width 0.5s ease',
+            }} />
+          </div>
+          <span style={{ minWidth: '32px', fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--txt-heading)', textAlign: 'left' }}>
+            {item.count.toLocaleString('ar-EG')}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+   ═══════════════════════════════════════════════════════════════════ */
 export const AdminOverviewPage: React.FC = () => {
   const navigate = useNavigate();
   const [drawerCard, setDrawerCard] = useState<ApiCard | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
   const showToast = (msg: string, type: ToastType = 'success') => setToast({ msg, type });
 
-  const [cards, setCards]             = useState<ApiCard[]>([]);
-  const [categories, setCategories]   = useState<ApiCategory[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState<string | null>(null);
+  /* cards & categories */
+  const [cards, setCards]           = useState<ApiCard[]>([]);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState<string | null>(null);
 
-  const [total, setTotal]     = useState(0);
-  const [active, setActive]   = useState(0);
+  const [total, setTotal]       = useState(0);
+  const [active, setActive]     = useState(0);
   const [inactive, setInactive] = useState(0);
-  const [expired, setExpired] = useState(0);
+  const [expired, setExpired]   = useState(0);
+
+  /* analytics */
+  const [analytics, setAnalytics]     = useState<ApiGlobalAnalytics | null>(null);
+  const [analyticsLoading, setAL]     = useState(true);
 
   const load = async () => {
     setLoading(true); setError(null);
@@ -92,7 +157,7 @@ export const AdminOverviewPage: React.FC = () => {
       setTotal(cr.total ?? all.length);
       setActive(all.filter(c => c.status === 'active').length);
       setInactive(all.filter(c => c.status === 'inactive').length);
-      setExpired(all.filter(isSubscriptionExpired).length);
+      setExpired(all.filter(c => c.requires_subscription && isSubscriptionExpired(c)).length);
     } catch (e: any) {
       setError(e?.message || 'فشل التحميل');
     } finally {
@@ -100,9 +165,20 @@ export const AdminOverviewPage: React.FC = () => {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  const loadAnalytics = async () => {
+    setAL(true);
+    try { setAnalytics(await cardsApi.getGlobalAnalytics(30)); }
+    catch { /* silent — analytics is non-critical */ }
+    finally { setAL(false); }
+  };
+
+  useEffect(() => { load(); loadAnalytics(); }, []);
 
   const recent = [...cards].reverse().slice(0, 8);
+
+  /* derive device/browser data for charts */
+  const deviceItems = (analytics?.scans_by_device ?? []).map(d => ({ label: d.device_type, count: d.count }));
+  const browserItems = (analytics?.scans_by_browser ?? []).map(b => ({ label: b.browser, count: b.count }));
 
   return (
     <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', fontFamily: 'var(--font)' }}>
@@ -116,7 +192,7 @@ export const AdminOverviewPage: React.FC = () => {
         onToast={showToast}
       />
 
-      {/* ── Hero ── */}
+      {/* Hero */}
       <div className="page-hero">
         <div style={{ zIndex: 1 }}>
           <span className="page-hero-label">لوحة الإدارة</span>
@@ -124,6 +200,11 @@ export const AdminOverviewPage: React.FC = () => {
           <p>إحصائيات مباشرة من قاعدة البيانات</p>
         </div>
         <div style={{ zIndex: 1, display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <Link to="/admin/analytics">
+            <button className="page-hero-btn">
+              <BarChart2 size={15} /> الإحصائيات
+            </button>
+          </Link>
           <Link to="/admin/cards">
             <button className="page-hero-btn page-hero-btn-solid">
               <CreditCard size={15} /> إدارة البطاقات
@@ -132,7 +213,7 @@ export const AdminOverviewPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── خطأ ── */}
+      {/* Error */}
       {error && (
         <div style={{
           backgroundColor: 'var(--clr-error-bg)', border: '1px solid var(--clr-error-bdr)',
@@ -151,27 +232,63 @@ export const AdminOverviewPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── بطاقات الإحصاء ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-        gap: '14px',
-      }}>
-        <StatCard label="إجمالي البطاقات"     value={total}    icon={<CreditCard size={20} />}     accent="var(--clr-primary-500)" loading={loading} onClick={() => navigate('/admin/cards')} />
-        <StatCard label="بطاقات نشطة"          value={active}   icon={<CheckCircle2 size={20} />}   accent="#16a34a"                 loading={loading} onClick={() => navigate('/admin/cards?status=active')} />
-        <StatCard label="بطاقات معطلة"         value={inactive} icon={<XCircle size={20} />}        accent="var(--clr-error)"        loading={loading} onClick={() => navigate('/admin/cards?status=inactive')} />
-        <StatCard label="التصنيفات"             value={categories.length} icon={<Tags size={20} />}  accent="#d97706"                 loading={loading} onClick={() => navigate('/admin/categories')} />
-        <StatCard label="منتهية الاشتراك"      value={expired}  icon={<TrendingUp size={20} />}    accent="#dc2626"                  loading={loading} onClick={() => navigate('/admin/cards?status=expired')} />
+      {/* KPI tiles */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))', gap: '14px' }}>
+        <StatCard label="إجمالي البطاقات"  value={total}    icon={<CreditCard size={20} />}     accent="var(--clr-primary-500)" loading={loading} onClick={() => navigate('/admin/cards')} />
+        <StatCard label="بطاقات نشطة"       value={active}   icon={<CheckCircle2 size={20} />}   accent="#16a34a"                 loading={loading} onClick={() => navigate('/admin/cards?status=active')} />
+        <StatCard label="بطاقات معطلة"      value={inactive} icon={<XCircle size={20} />}        accent="var(--clr-error)"        loading={loading} onClick={() => navigate('/admin/cards?status=inactive')} />
+        <StatCard label="التصنيفات"          value={categories.length} icon={<Tags size={20} />}  accent="#d97706"                 loading={loading} onClick={() => navigate('/admin/categories')} />
+        <StatCard label="منتهية الاشتراك"   value={expired}  icon={<TrendingUp size={20} />}    accent="#dc2626"                 loading={loading} />
+        <StatCard label="مسح آخر 30 يوم"    value={analytics?.scans_last_N_days ?? 0} icon={<Activity size={20} />} accent="#7c3aed" loading={analyticsLoading} onClick={() => navigate('/admin/analytics')} />
       </div>
 
-      {/* ── محتوى مزدوج ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: '18px',
-      }}>
+      {/* ── Charts row ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
 
-        {/* آخر البطاقات */}
+        {/* Scans trend */}
+        <div className="card" style={{ padding: '18px 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h3 style={{ margin: 0, fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--txt-heading)' }}>
+              المسح — آخر 30 يوم
+            </h3>
+            <Link to="/admin/analytics" style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--clr-primary-600)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              التفاصيل <ArrowLeft size={12} />
+            </Link>
+          </div>
+          <Sparkline data={analytics?.scans_by_day ?? []} loading={analyticsLoading} />
+          {!analyticsLoading && analytics && (
+            <div style={{ marginTop: '10px', display: 'flex', gap: '16px' }}>
+              <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)' }}>
+                الإجمالي: <strong style={{ color: 'var(--txt-heading)' }}>{(analytics.total_scans ?? 0).toLocaleString('ar-EG')}</strong>
+              </span>
+              <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)' }}>
+                هذا الشهر: <strong style={{ color: 'var(--clr-primary-600)' }}>{(analytics.scans_last_N_days ?? 0).toLocaleString('ar-EG')}</strong>
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Devices */}
+        <div className="card" style={{ padding: '18px 20px' }}>
+          <h3 style={{ margin: '0 0 14px', fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--txt-heading)' }}>
+            الأجهزة
+          </h3>
+          <BarList items={deviceItems} loading={analyticsLoading} />
+        </div>
+
+        {/* Browsers */}
+        <div className="card" style={{ padding: '18px 20px' }}>
+          <h3 style={{ margin: '0 0 14px', fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--txt-heading)' }}>
+            المتصفحات
+          </h3>
+          <BarList items={browserItems} loading={analyticsLoading} />
+        </div>
+      </div>
+
+      {/* ── Bottom grid: recent cards + categories ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
+
+        {/* Recent cards */}
         <div className="card" style={{ overflow: 'hidden' }}>
           <div style={{
             padding: '15px 20px', borderBottom: '1px solid var(--bdr-light)',
@@ -242,63 +359,7 @@ export const AdminOverviewPage: React.FC = () => {
               ))}
         </div>
 
-        {/* التصنيفات */}
-        <div className="card" style={{ overflow: 'hidden' }}>
-          <div style={{
-            padding: '15px 20px', borderBottom: '1px solid var(--bdr-light)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <h3 style={{ margin: 0, fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--txt-heading)' }}>
-              التصنيفات
-            </h3>
-            <Link to="/admin/categories" style={{
-              display: 'flex', alignItems: 'center', gap: '4px',
-              fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--clr-primary-600)',
-            }}>
-              إدارة <ArrowLeft size={13} />
-            </Link>
-          </div>
-
-          {loading
-            ? Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} style={{ padding: '13px 20px', borderBottom: '1px solid var(--bg-subtle)' }}>
-                  <div className="shimmer" style={{ height: '14px', width: '45%' }} />
-                </div>
-              ))
-            : categories.length === 0
-              ? (
-                <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--txt-muted)', fontSize: 'var(--fs-sm)' }}>
-                  <Tags size={36} style={{ marginBottom: '10px', color: 'var(--bdr-medium)' }} />
-                  <p style={{ marginBottom: '14px' }}>لا توجد تصنيفات</p>
-                  <Link to="/admin/categories">
-                    <button className="btn-primary" style={{ fontSize: 'var(--fs-sm)', padding: '8px 16px' }}>
-                      <Plus size={14} /> إضافة تصنيف
-                    </button>
-                  </Link>
-                </div>
-              )
-              : categories.map((cat) => (
-                <div key={cat._id} style={{
-                  padding: '12px 20px',
-                  borderBottom: '1px solid var(--bg-subtle)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {cat.icon
-                      ? <img src={cat.icon} alt="" style={{ width: '28px', height: '28px', borderRadius: 'var(--r-sm)', objectFit: 'cover', border: '1px solid var(--bdr-light)' }} onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
-                      : <div style={{ width: '28px', height: '28px', borderRadius: 'var(--r-sm)', backgroundColor: 'var(--clr-primary-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Tags size={14} style={{ color: 'var(--clr-primary-400)' }} />
-                        </div>}
-                    <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--txt-body)' }}>{cat.name}</span>
-                  </div>
-                  <span className={`badge ${cat.is_active ? 'badge-success' : 'badge-error'}`}>
-                    {cat.is_active ? 'مفعّل' : 'معطّل'}
-                  </span>
-                </div>
-              ))}
-        </div>
+       
       </div>
     </div>
   );

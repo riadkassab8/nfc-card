@@ -222,7 +222,6 @@ export const AdminCategoriesPage: React.FC = () => {
           <p>إضافة وتعديل وحذف تصنيفات البطاقات</p>
         </div>
         <div style={{ zIndex: 1, display: 'flex', gap: '10px' }}>
-          <button className="page-hero-btn" onClick={fetch}><RefreshCw size={14} /> تحديث</button>
           <button className="page-hero-btn page-hero-btn-solid" onClick={() => { setEditing(null); setModalOpen(true); }}>
             <Plus size={16} /> إضافة تصنيف
           </button>

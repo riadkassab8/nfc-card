@@ -9,7 +9,7 @@ import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCardsModal';
 import {
   Plus, Search, RefreshCw, CreditCard, CheckCircle2, XCircle,
-  Power, Trash2, Eye, Download,
+  Power, Trash2, Eye, Download, FileDown, Layers,
   AlertTriangle, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
@@ -126,7 +126,7 @@ export const AdminInventoryPage: React.FC = () => {
         case 'business': aVal = a.business_data?.business_name || ''; bVal = b.business_data?.business_name || ''; break;
         case 'category': aVal = getPopulatedCategory(a.category_id)?.name || ''; bVal = getPopulatedCategory(b.category_id)?.name || ''; break;
         case 'status':   aVal = a.status; bVal = b.status; break;
-        case 'sub':      aVal = new Date(a.subscription_end_date).getTime(); bVal = new Date(b.subscription_end_date).getTime(); break;
+        case 'sub':      aVal = a.subscription_end_date ? new Date(a.subscription_end_date).getTime() : Infinity; bVal = b.subscription_end_date ? new Date(b.subscription_end_date).getTime() : Infinity; break;
       }
       if (aVal < bVal) return sortConfig.dir === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortConfig.dir === 'asc' ? 1 : -1;
@@ -200,6 +200,22 @@ export const AdminInventoryPage: React.FC = () => {
     } catch { showToast('فشل تحميل QR', 'error'); }
   };
 
+  const downloadExcel = async () => {
+    try {
+      showToast('جاري تصدير Excel...', 'info');
+      const blob = await cardsApi.exportCardsExcel({
+        status:    statusF !== 'all' ? (statusF as any) : undefined,
+        card_type: typeF || undefined,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url; a.download = `cards-export-${date}.xlsx`;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+      showToast('تم تصدير الملف بنجاح ✓');
+    } catch (e: any) { showToast(e?.message || 'فشل التصدير', 'error'); }
+  };
 
 
   const allSel = cards.length > 0 && cards.every(c => selected.has(c._id));
@@ -261,9 +277,17 @@ export const AdminInventoryPage: React.FC = () => {
           <h2>إدارة البطاقات</h2>
           <p>إجمالي: <strong style={{ color: '#fff' }}>{total}</strong> بطاقة</p>
         </div>
-        <button className="page-hero-btn page-hero-btn-solid" style={{ zIndex: 1 }} onClick={() => navigate('/admin/add-card')}>
-          <Plus size={18} /> إنشاء بطاقة جديدة
-        </button>
+        <div style={{ zIndex: 1, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="page-hero-btn" onClick={downloadExcel} title="تصدير Excel بحسب الفلاتر الحالية">
+            <FileDown size={16} /> تصدير Excel
+          </button>
+          <button className="page-hero-btn" onClick={() => setBatchOpen(true)}>
+            <Layers size={16} /> إنشاء مجموعة
+          </button>
+          <button className="page-hero-btn page-hero-btn-solid" style={{ zIndex: 1 }} onClick={() => navigate('/admin/add-card')}>
+            <Plus size={18} /> بطاقة واحدة
+          </button>
+        </div>
       </div>
 
       {/* Stats row */}
@@ -432,16 +456,28 @@ export const AdminInventoryPage: React.FC = () => {
                           </td>
                           <td style={{ fontSize: 'var(--fs-xs)', whiteSpace: 'nowrap' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ color: 'var(--clr-primary-700)', fontWeight: 700, fontSize: '10px', backgroundColor: 'var(--clr-primary-50)', border: '1px solid var(--clr-primary-200)', padding: '2px 6px', borderRadius: '4px' }}>
-                                  {getDurationText(card.subscription_start_date, card.subscription_end_date)}
-                                </span>
-                                {exp && <span title="منتهية" style={{ color: 'var(--clr-error)', fontWeight: 700, fontSize: '10px', backgroundColor: 'var(--clr-error-bg)', padding: '2px 6px', borderRadius: '4px' }}>منتهية</span>}
-                              </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', color: exp ? 'var(--clr-error)' : 'var(--txt-body)', fontWeight: 600 }}>
-                                <span><span style={{ color: 'var(--txt-muted)', fontWeight: 400, marginInlineEnd: '4px' }}>إلى:</span>{fmtDate(card.subscription_end_date)}</span>
-                                <span style={{ fontSize: '11px', color: 'var(--txt-secondary)', fontWeight: 400 }}><span style={{ color: 'var(--txt-muted)', marginInlineEnd: '4px' }}>من:</span>{fmtDate(card.subscription_start_date)}</span>
-                              </div>
+                              {!card.requires_subscription
+                                ? (
+                                  <span style={{ color: 'var(--clr-success)', fontWeight: 700, fontSize: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 6px', borderRadius: '4px' }}>
+                                    دائم ♾
+                                  </span>
+                                )
+                                : (
+                                  <>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <span style={{ color: 'var(--clr-primary-700)', fontWeight: 700, fontSize: '10px', backgroundColor: 'var(--clr-primary-50)', border: '1px solid var(--clr-primary-200)', padding: '2px 6px', borderRadius: '4px' }}>
+                                        {card.subscription_start_date && card.subscription_end_date
+                                          ? getDurationText(card.subscription_start_date, card.subscription_end_date)
+                                          : '—'}
+                                      </span>
+                                      {exp && <span title="منتهية" style={{ color: 'var(--clr-error)', fontWeight: 700, fontSize: '10px', backgroundColor: 'var(--clr-error-bg)', padding: '2px 6px', borderRadius: '4px' }}>منتهية</span>}
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', color: exp ? 'var(--clr-error)' : 'var(--txt-body)', fontWeight: 600 }}>
+                                      <span><span style={{ color: 'var(--txt-muted)', fontWeight: 400, marginInlineEnd: '4px' }}>إلى:</span>{fmtDate(card.subscription_end_date)}</span>
+                                      <span style={{ fontSize: '11px', color: 'var(--txt-secondary)', fontWeight: 400 }}><span style={{ color: 'var(--txt-muted)', marginInlineEnd: '4px' }}>من:</span>{fmtDate(card.subscription_start_date)}</span>
+                                    </div>
+                                  </>
+                                )}
                             </div>
                           </td>
                           <td>
