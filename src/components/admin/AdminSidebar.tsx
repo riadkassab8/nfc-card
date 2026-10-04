@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CreditCard, Tags, Scan, Zap, Plus } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Tags, Scan, Zap } from 'lucide-react';
 
 export interface AdminSidebarProps {
   onLinkClick?: () => void;

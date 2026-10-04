@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap } from 'lucide-react';
+
 
 export const PublicCardFooter: React.FC = () => {
   const currentYear = new Date().getFullYear();

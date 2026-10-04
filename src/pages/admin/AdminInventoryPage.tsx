@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { cardsApi, categoriesApi } from '../../services';
 import {
@@ -9,7 +9,7 @@ import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCardsModal';
 import {
   Plus, Search, RefreshCw, CreditCard, CheckCircle2, XCircle,
-  Power, Trash2, Eye, Download, Copy, Check,
+  Power, Trash2, Eye, Download,
   AlertTriangle, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
@@ -101,7 +101,7 @@ export const AdminInventoryPage: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<ApiCard | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
-  const [copiedId, setCopied] = useState<string | null>(null);
+
 
   const [sortConfig, setSortConfig] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
 
@@ -142,7 +142,7 @@ export const AdminInventoryPage: React.FC = () => {
       const cr = await cardsApi.getCards({
         page: pg, limit: currentLimit,
         search: appliedSearch || undefined,
-        status: statusF !== 'all' ? statusF : undefined,
+        status: statusF !== 'all' ? (statusF as any) : undefined,
         card_type: typeF || undefined,
         category_id: catF || undefined,
       });
@@ -200,10 +200,7 @@ export const AdminInventoryPage: React.FC = () => {
     } catch { showToast('فشل تحميل QR', 'error'); }
   };
 
-  const copy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(id); setTimeout(() => setCopied(null), 2000);
-  };
+
 
   const allSel = cards.length > 0 && cards.every(c => selected.has(c._id));
   const toggleAll = () => setSelected(allSel ? new Set() : new Set(cards.map(c => c._id)));
