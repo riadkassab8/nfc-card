@@ -23,9 +23,6 @@ export const App: React.FC = () => (
 
         {/* ── Public card routes (no auth) ── */}
         <Route path="/social/:publicCode"  element={<SocialPage />} />
-        <Route path="/card/:cardId"        element={<PublicCardLandingPage />} />
-        <Route path="/c/:publicCode"       element={<PublicCardLandingPage />} />
-        <Route path="/q/:publicCode"       element={<PublicCardLandingPage />} />
         <Route path="/r/:publicCode"       element={<PublicCardLandingPage />} />
 
         {/* ── Admin routes (protected) ── */}

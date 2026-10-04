@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cardsApi, categoriesApi } from '../../services';
-import { ApiCategory, ApiCreateCardDto, CARD_TYPES, BusinessData } from '../../types';
+import { ApiCategory, ApiCreateCardDto, CARD_TYPES, CardType, BusinessData } from '../../types';
 import Swal from 'sweetalert2';
 import {
   ArrowRight, CreditCard, Plus, Building2, Globe, Phone, Mail,
@@ -75,7 +75,7 @@ export const AdminAddCardPage: React.FC = () => {
   /* Card state */
   const [cardCode, setCardCode]     = useState('');
   const [nfcUid, setNfcUid]         = useState('');
-  const [cardType, setCardType]     = useState<string>('Card');
+  const [cardType, setCardType]     = useState<string>(CardType.CARD);
   const [redirectUrl, setRedirectUrl] = useState('');
   const [categoryId, setCategoryId] = useState('');
 
@@ -301,7 +301,7 @@ export const AdminAddCardPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="form-grid">
             {/* Card Code */}
             <div className="form-group">
               <label className="form-label">
@@ -425,7 +425,7 @@ export const AdminAddCardPage: React.FC = () => {
             💡 هذه البيانات تظهر في صفحة التواصل الاجتماعي الخاصة بالبطاقة
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="form-grid">
             {getVisibleFields(categories.find(c => c._id === categoryId) || null).map(f => (
               <div key={f.key} className="form-group" style={f.gridFull ? { gridColumn: '1 / -1' } : undefined}>
                 <label className="form-label">

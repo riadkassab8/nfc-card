@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cardsApi, categoriesApi } from '../../services';
 import { ApiCard, ApiCategory, fmtDate, isSubscriptionExpired } from '../../types';
+import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import {
   CreditCard, Tags, CheckCircle2, XCircle,
   RefreshCw, ArrowLeft, Plus, TrendingUp,
@@ -10,9 +11,9 @@ import {
 /* ── بطاقة إحصائية ─────────────────────────────────────────────── */
 const StatCard: React.FC<{
   label: string; value: number; icon: React.ReactNode;
-  accent: string; loading?: boolean;
-}> = ({ label, value, icon, accent, loading }) => (
-  <div className="stat-card">
+  accent: string; loading?: boolean; onClick?: () => void;
+}> = ({ label, value, icon, accent, loading, onClick }) => (
+  <div className="stat-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default', transition: 'all 0.2s', ...(onClick ? { ':hover': { opacity: 0.9 } } as any : {}) }}>
     <div className="stat-card-icon" style={{ backgroundColor: accent + '18', color: accent }}>
       {icon}
     </div>
@@ -49,8 +50,25 @@ const TypeBadge: React.FC<{ type: string }> = ({ type }) => {
   );
 };
 
+type ToastType = 'success' | 'error' | 'info';
+const Toast: React.FC<{ msg: string; type: ToastType; onClose: () => void }> = ({ msg, type, onClose }) => {
+  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
+  const cls = type === 'success' ? 'toast-success' : type === 'error' ? 'toast-error' : 'toast-info';
+  return (
+    <div className={`toast ${cls}`}>
+      <span style={{ flex: 1 }}>{msg}</span>
+      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '1rem', padding: '0 2px' }}>✕</button>
+    </div>
+  );
+};
+
 /* ── المكوّن الرئيسي ───────────────────────────────────────────── */
 export const AdminOverviewPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [drawerCard, setDrawerCard] = useState<ApiCard | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
+  const showToast = (msg: string, type: ToastType = 'success') => setToast({ msg, type });
+
   const [cards, setCards]             = useState<ApiCard[]>([]);
   const [categories, setCategories]   = useState<ApiCategory[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -88,6 +106,15 @@ export const AdminOverviewPage: React.FC = () => {
 
   return (
     <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', fontFamily: 'var(--font)' }}>
+      {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
+
+      <CardDetailsDrawer
+        card={drawerCard} categories={categories}
+        onClose={() => setDrawerCard(null)}
+        onUpdated={() => { load(); setDrawerCard(null); }}
+        onDeleted={(id) => { if (drawerCard?._id === id) setDrawerCard(null); load(); }}
+        onToast={showToast}
+      />
 
       {/* ── Hero ── */}
       <div className="page-hero">
@@ -97,9 +124,6 @@ export const AdminOverviewPage: React.FC = () => {
           <p>إحصائيات مباشرة من قاعدة البيانات</p>
         </div>
         <div style={{ zIndex: 1, display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button onClick={load} className="page-hero-btn">
-            <RefreshCw size={15} /> تحديث
-          </button>
           <Link to="/admin/cards">
             <button className="page-hero-btn page-hero-btn-solid">
               <CreditCard size={15} /> إدارة البطاقات
@@ -133,11 +157,11 @@ export const AdminOverviewPage: React.FC = () => {
         gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
         gap: '14px',
       }}>
-        <StatCard label="إجمالي البطاقات"     value={total}    icon={<CreditCard size={20} />}     accent="var(--clr-primary-500)" loading={loading} />
-        <StatCard label="بطاقات نشطة"          value={active}   icon={<CheckCircle2 size={20} />}   accent="#16a34a"                 loading={loading} />
-        <StatCard label="بطاقات معطلة"         value={inactive} icon={<XCircle size={20} />}        accent="var(--clr-error)"        loading={loading} />
-        <StatCard label="التصنيفات"             value={categories.length} icon={<Tags size={20} />}  accent="#d97706"                 loading={loading} />
-        <StatCard label="منتهية الاشتراك"      value={expired}  icon={<TrendingUp size={20} />}    accent="#dc2626"                  loading={loading} />
+        <StatCard label="إجمالي البطاقات"     value={total}    icon={<CreditCard size={20} />}     accent="var(--clr-primary-500)" loading={loading} onClick={() => navigate('/admin/cards')} />
+        <StatCard label="بطاقات نشطة"          value={active}   icon={<CheckCircle2 size={20} />}   accent="#16a34a"                 loading={loading} onClick={() => navigate('/admin/cards?status=active')} />
+        <StatCard label="بطاقات معطلة"         value={inactive} icon={<XCircle size={20} />}        accent="var(--clr-error)"        loading={loading} onClick={() => navigate('/admin/cards?status=inactive')} />
+        <StatCard label="التصنيفات"             value={categories.length} icon={<Tags size={20} />}  accent="#d97706"                 loading={loading} onClick={() => navigate('/admin/categories')} />
+        <StatCard label="منتهية الاشتراك"      value={expired}  icon={<TrendingUp size={20} />}    accent="#dc2626"                  loading={loading} onClick={() => navigate('/admin/cards?status=expired')} />
       </div>
 
       {/* ── محتوى مزدوج ── */}
@@ -178,14 +202,19 @@ export const AdminOverviewPage: React.FC = () => {
                 </div>
               )
               : recent.map((card) => (
-                <div key={card._id} style={{
+                <div key={card._id} onClick={() => setDrawerCard(card)} style={{
                   padding: '12px 20px',
                   borderBottom: '1px solid var(--bg-subtle)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   gap: '12px',
-                }}>
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
                   <div style={{ minWidth: 0 }}>
                     <div style={{
                       fontSize: 'var(--fs-sm)', fontWeight: 700,

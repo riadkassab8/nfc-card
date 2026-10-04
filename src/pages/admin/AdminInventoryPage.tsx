@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { cardsApi, categoriesApi } from '../../services';
 import {
   ApiCard, ApiCategory, fmtDate, isSubscriptionExpired,
@@ -59,6 +60,7 @@ const Confirm: React.FC<{ msg: string; onConfirm: () => void; onCancel: () => vo
 
 /* ── Main ─────────────────────────────────────────────────────── */
 export const AdminInventoryPage: React.FC = () => {
+  const navigate = useNavigate();
   const [cards, setCards]           = useState<ApiCard[]>([]);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -68,14 +70,30 @@ export const AdminInventoryPage: React.FC = () => {
   const [active, setActive] = useState(0);
   const [inactive, setInact] = useState(0);
 
+  const getDurationText = (startStr: string, endStr: string) => {
+    const s = new Date(startStr);
+    const e = new Date(endStr);
+    let m = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
+    if (e.getDate() < s.getDate()) m--; // adjust for partial month
+    if (m < 1) return 'أقل من شهر';
+    if (m === 12) return 'سنة واحدة';
+    if (m === 24) return 'سنتين';
+    if (m % 12 === 0 && m <= 120) return `${m / 12} سنوات`;
+    return `${m} شهر`;
+  };
+
+  const [searchParams] = useSearchParams();
+  const initStatus = (searchParams.get('status') as any) || 'all';
+
   const [search, setSearch]         = useState('');
-  const [statusF, setStatusF]       = useState<'all' | 'active' | 'inactive'>('all');
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [statusF, setStatusF]       = useState<'all' | 'active' | 'inactive' | 'expired'>(initStatus);
   const [typeF, setTypeF]           = useState('');
   const [catF, setCatF]             = useState('');
 
   const [page, setPage]         = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const LIMIT = 20;
+  const [limit, setLimit]       = useState(20);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [drawerCard, setDrawerCard] = useState<ApiCard | null>(null);
@@ -85,44 +103,76 @@ export const AdminInventoryPage: React.FC = () => {
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
   const [copiedId, setCopied] = useState<string | null>(null);
 
+  const [sortConfig, setSortConfig] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
+
+  const requestSort = (key: string) => {
+    let dir: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.dir === 'asc') {
+      dir = 'desc';
+    } else if (sortConfig && sortConfig.key === key && sortConfig.dir === 'desc') {
+      setSortConfig(null);
+      return;
+    }
+    setSortConfig({ key, dir });
+  };
+
+  const sortedCards = React.useMemo(() => {
+    if (!sortConfig) return cards;
+    return [...cards].sort((a, b) => {
+      let aVal: any = ''; let bVal: any = '';
+      switch (sortConfig.key) {
+        case 'code':     aVal = a.card_code; bVal = b.card_code; break;
+        case 'type':     aVal = a.card_type; bVal = b.card_type; break;
+        case 'business': aVal = a.business_data?.business_name || ''; bVal = b.business_data?.business_name || ''; break;
+        case 'category': aVal = getPopulatedCategory(a.category_id)?.name || ''; bVal = getPopulatedCategory(b.category_id)?.name || ''; break;
+        case 'status':   aVal = a.status; bVal = b.status; break;
+        case 'sub':      aVal = new Date(a.subscription_end_date).getTime(); bVal = new Date(b.subscription_end_date).getTime(); break;
+      }
+      if (aVal < bVal) return sortConfig.dir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [cards, sortConfig]);
+
   const showToast = (msg: string, type: ToastType = 'success') => setToast({ msg, type });
 
-  const fetchCards = useCallback(async (pg = page) => {
+  const fetchCards = async (pg: number, currentLimit: number) => {
     setLoading(true); setError(null);
     try {
-      const [cr, catR] = await Promise.all([
-        cardsApi.getCards({
-          page: pg, limit: LIMIT,
-          search: search || undefined,
-          status: statusF !== 'all' ? statusF : undefined,
-          card_type: typeF || undefined,
-          category_id: catF || undefined,
-        }),
-        categoriesApi.getCategories({ limit: 100 }),
-      ]);
+      const cr = await cardsApi.getCards({
+        page: pg, limit: currentLimit,
+        search: appliedSearch || undefined,
+        status: statusF !== 'all' ? statusF : undefined,
+        card_type: typeF || undefined,
+        category_id: catF || undefined,
+      });
       const all = cr.data ?? [];
       setCards(all);
       setTotalPages(cr.totalPages ?? 1);
       setTotal(cr.total ?? all.length);
       setActive(all.filter(c => c.status === 'active').length);
       setInact(all.filter(c => c.status === 'inactive').length);
-      setCategories(catR.data ?? []);
     } catch (e: any) {
       setError(e?.message || 'فشل التحميل');
     } finally {
       setLoading(false);
     }
-  }, [search, statusF, typeF, catF, page]);
+  };
 
-  useEffect(() => { setPage(1); fetchCards(1); }, [search, statusF, typeF, catF]);
-  useEffect(() => { fetchCards(page); }, [page]);
+  useEffect(() => {
+    categoriesApi.getCategories({ limit: 100 }).then(res => setCategories(res.data ?? [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchCards(page, limit);
+  }, [page, limit, appliedSearch, statusF, typeF, catF]);
 
   /* actions */
   const handleToggle = async (card: ApiCard) => {
     try {
       await cardsApi.toggleCard(card._id);
       showToast(card.status === 'active' ? `تم تعطيل ${card.card_code}` : `تم تفعيل ${card.card_code}`);
-      fetchCards();
+      fetchCards(page, limit);
     } catch (e: any) { showToast(e?.message || 'فشل', 'error'); }
   };
 
@@ -134,7 +184,7 @@ export const AdminInventoryPage: React.FC = () => {
       showToast(`تم حذف ${deleteTarget.card_code}`);
       setDeleteTarget(null);
       setDrawerCard(null);
-      fetchCards();
+      fetchCards(page, limit);
     } catch (e: any) { showToast(e?.message || 'فشل الحذف', 'error'); }
     finally { setDeleteLoading(false); }
   };
@@ -163,13 +213,13 @@ export const AdminInventoryPage: React.FC = () => {
     const toChange = cards.filter(c => selected.has(c._id) && c.status !== target);
     await Promise.allSettled(toChange.map(c => cardsApi.toggleCard(c._id)));
     showToast(`تم تحديث ${toChange.length} بطاقة`);
-    setSelected(new Set()); fetchCards();
+    setSelected(new Set()); fetchCards(page, limit);
   };
 
   const bulkDelete = async () => {
     await Promise.allSettled([...selected].map(id => cardsApi.deleteCard(id)));
     showToast(`تم حذف ${selected.size} بطاقة`);
-    setSelected(new Set()); fetchCards();
+    setSelected(new Set()); fetchCards(page, limit);
   };
 
   /* ── select styles ── */
@@ -194,8 +244,8 @@ export const AdminInventoryPage: React.FC = () => {
       <CardDetailsDrawer
         card={drawerCard} categories={categories}
         onClose={() => setDrawerCard(null)}
-        onUpdated={() => { fetchCards(); setDrawerCard(null); }}
-        onDeleted={(id) => { if (drawerCard?._id === id) setDrawerCard(null); fetchCards(); }}
+        onUpdated={() => { fetchCards(page, limit); setDrawerCard(null); }}
+        onDeleted={(id) => { if (drawerCard?._id === id) setDrawerCard(null); fetchCards(page, limit); }}
         onToast={showToast}
       />
 
@@ -203,7 +253,7 @@ export const AdminInventoryPage: React.FC = () => {
         <BatchGenerateCardsModal
           categories={categories}
           onClose={() => setBatchOpen(false)}
-          onCreated={() => { setBatchOpen(false); fetchCards(); showToast('تم إنشاء البطاقات بنجاح'); }}
+          onCreated={() => { setBatchOpen(false); setPage(1); fetchCards(1, limit); showToast('تم إنشاء البطاقات بنجاح'); }}
         />
       )}
 
@@ -214,7 +264,7 @@ export const AdminInventoryPage: React.FC = () => {
           <h2>إدارة البطاقات</h2>
           <p>إجمالي: <strong style={{ color: '#fff' }}>{total}</strong> بطاقة</p>
         </div>
-        <button className="page-hero-btn page-hero-btn-solid" style={{ zIndex: 1 }} onClick={() => setBatchOpen(true)}>
+        <button className="page-hero-btn page-hero-btn-solid" style={{ zIndex: 1 }} onClick={() => navigate('/admin/add-card')}>
           <Plus size={18} /> إنشاء بطاقة جديدة
         </button>
       </div>
@@ -242,28 +292,35 @@ export const AdminInventoryPage: React.FC = () => {
         borderRadius: 'var(--r-xl)', padding: '14px 16px',
         display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center',
       }}>
-        <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
-          <Search size={14} style={{ position: 'absolute', right: '11px', top: '50%', transform: 'translateY(-50%)', color: 'var(--txt-muted)', pointerEvents: 'none' }} />
-          <input
-            value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="بحث بكود البطاقة أو NFC..."
-            className="form-input" style={{ paddingRight: '34px' }}
-          />
+        <div style={{ position: 'relative', flex: '1', minWidth: '200px', display: 'flex', gap: '8px' }}>
+          <div style={{ position: 'relative', flex: '1' }}>
+            <Search size={14} style={{ position: 'absolute', right: '11px', top: '50%', transform: 'translateY(-50%)', color: 'var(--txt-muted)', pointerEvents: 'none' }} />
+            <input
+              value={search} onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { setAppliedSearch(search); setPage(1); } }}
+              placeholder="بحث بكود البطاقة أو NFC..."
+              className="form-input" style={{ paddingRight: '34px' }}
+            />
+          </div>
+          <button className="btn-primary" onClick={() => { setAppliedSearch(search); setPage(1); }} style={{ padding: '8px 16px', fontSize: 'var(--fs-sm)' }}>
+            بحث
+          </button>
         </div>
-        <select value={statusF} onChange={e => setStatusF(e.target.value as any)} style={selStyle}>
+        <select value={statusF} onChange={e => { setStatusF(e.target.value as any); setPage(1); }} style={selStyle}>
           <option value="all">كل الحالات</option>
           <option value="active">نشطة</option>
           <option value="inactive">معطلة</option>
+          <option value="expired">منتهية الاشتراك</option>
         </select>
-        <select value={typeF} onChange={e => setTypeF(e.target.value)} style={selStyle}>
+        <select value={typeF} onChange={e => { setTypeF(e.target.value); setPage(1); }} style={selStyle}>
           <option value="">كل الأنواع</option>
           {CARD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
-        <select value={catF} onChange={e => setCatF(e.target.value)} style={selStyle}>
+        <select value={catF} onChange={e => { setCatF(e.target.value); setPage(1); }} style={selStyle}>
           <option value="">كل التصنيفات</option>
           {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
         </select>
-        <button className="btn-outline" onClick={() => fetchCards()} style={{ padding: '8px 14px', fontSize: 'var(--fs-sm)' }}>
+        <button className="btn-outline" onClick={() => fetchCards(page, limit)} style={{ padding: '8px 14px', fontSize: 'var(--fs-sm)' }}>
           <RefreshCw size={14} /> تحديث
         </button>
       </div>
@@ -304,7 +361,7 @@ export const AdminInventoryPage: React.FC = () => {
         <div style={{ background: 'var(--clr-error-bg)', border: '1px solid var(--clr-error-bdr)', borderRadius: 'var(--r-lg)', padding: '13px 16px', color: 'var(--clr-error)', display: 'flex', gap: '10px', alignItems: 'center' }}>
           <XCircle size={17} />
           <span style={{ flex: 1, fontWeight: 600 }}>{error}</span>
-          <button onClick={() => fetchCards()} className="btn-outline" style={{ fontSize: 'var(--fs-xs)', padding: '5px 12px' }}>إعادة</button>
+          <button onClick={() => fetchCards(page, limit)} className="btn-outline" style={{ fontSize: 'var(--fs-xs)', padding: '5px 12px' }}>إعادة</button>
         </div>
       )}
 
@@ -317,12 +374,12 @@ export const AdminInventoryPage: React.FC = () => {
                 <th style={{ width: '40px', textAlign: 'center' }}>
                   <input type="checkbox" checked={allSel} onChange={toggleAll} style={{ cursor: 'pointer', accentColor: 'var(--clr-primary-500)' }} />
                 </th>
-                <th>الكارت</th>
-                <th>النوع</th>
-                <th>النشاط</th>
-                <th>التصنيف</th>
-                <th>الحالة</th>
-                <th>الاشتراك</th>
+                <th onClick={() => requestSort('code')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>الكارت {sortConfig?.key === 'code' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
+                <th onClick={() => requestSort('type')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>النوع {sortConfig?.key === 'type' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
+                <th onClick={() => requestSort('business')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>النشاط {sortConfig?.key === 'business' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
+                <th onClick={() => requestSort('category')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>التصنيف {sortConfig?.key === 'category' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
+                <th onClick={() => requestSort('status')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>الحالة {sortConfig?.key === 'status' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
+                <th onClick={() => requestSort('sub')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>الاشتراك {sortConfig?.key === 'sub' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
                 <th style={{ textAlign: 'center' }}>إجراءات</th>
               </tr>
             </thead>
@@ -337,7 +394,7 @@ export const AdminInventoryPage: React.FC = () => {
                       ))}
                     </tr>
                   ))
-                : cards.length === 0
+                : sortedCards.length === 0
                   ? (
                     <tr>
                       <td colSpan={8} style={{ textAlign: 'center', padding: '56px 20px', color: 'var(--txt-muted)' }}>
@@ -346,7 +403,7 @@ export const AdminInventoryPage: React.FC = () => {
                       </td>
                     </tr>
                   )
-                  : cards.map(card => {
+                  : sortedCards.map(card => {
                       const cat = getPopulatedCategory(card.category_id);
                       const exp = isSubscriptionExpired(card);
                       const isSel = selected.has(card._id);
@@ -376,15 +433,24 @@ export const AdminInventoryPage: React.FC = () => {
                               {card.status === 'active' ? 'نشطة' : 'معطلة'}
                             </span>
                           </td>
-                          <td style={{ fontSize: 'var(--fs-xs)', color: exp ? 'var(--clr-error)' : 'var(--txt-secondary)', fontWeight: exp ? 700 : 400 }}>
-                            {exp ? '⚠ منتهية' : fmtDate(card.subscription_end_date)}
+                          <td style={{ fontSize: 'var(--fs-xs)', whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ color: 'var(--clr-primary-700)', fontWeight: 700, fontSize: '10px', backgroundColor: 'var(--clr-primary-50)', border: '1px solid var(--clr-primary-200)', padding: '2px 6px', borderRadius: '4px' }}>
+                                  {getDurationText(card.subscription_start_date, card.subscription_end_date)}
+                                </span>
+                                {exp && <span title="منتهية" style={{ color: 'var(--clr-error)', fontWeight: 700, fontSize: '10px', backgroundColor: 'var(--clr-error-bg)', padding: '2px 6px', borderRadius: '4px' }}>منتهية</span>}
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', color: exp ? 'var(--clr-error)' : 'var(--txt-body)', fontWeight: 600 }}>
+                                <span><span style={{ color: 'var(--txt-muted)', fontWeight: 400, marginInlineEnd: '4px' }}>إلى:</span>{fmtDate(card.subscription_end_date)}</span>
+                                <span style={{ fontSize: '11px', color: 'var(--txt-secondary)', fontWeight: 400 }}><span style={{ color: 'var(--txt-muted)', marginInlineEnd: '4px' }}>من:</span>{fmtDate(card.subscription_start_date)}</span>
+                              </div>
+                            </div>
                           </td>
                           <td>
                             <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                               <IBtn title="تفاصيل" color="var(--clr-primary-600)" bg="var(--clr-primary-50)"   onClick={() => setDrawerCard(card)}><Eye size={14} /></IBtn>
-                              <IBtn title="نسخ"    color={copiedId === card._id ? '#16a34a' : 'var(--txt-secondary)'} bg={copiedId === card._id ? 'var(--clr-success-bg)' : 'var(--bg-hover)'} onClick={() => copy(card.card_code, card._id)}>
-                                {copiedId === card._id ? <Check size={14} /> : <Copy size={14} />}
-                              </IBtn>
+
                               <IBtn title="QR"     color="var(--clr-primary-500)" bg="var(--clr-primary-50)"  onClick={() => downloadQR(card)}><Download size={14} /></IBtn>
                               <IBtn title={card.status === 'active' ? 'تعطيل' : 'تفعيل'} color={card.status === 'active' ? 'var(--clr-warning)' : 'var(--clr-success)'} bg={card.status === 'active' ? 'var(--clr-warning-bg)' : 'var(--clr-success-bg)'} onClick={() => handleToggle(card)}><Power size={14} /></IBtn>
                               <IBtn title="حذف"    color="var(--clr-error)"        bg="var(--clr-error-bg)"   onClick={() => setDeleteTarget(card)}><Trash2 size={14} /></IBtn>
@@ -398,25 +464,46 @@ export const AdminInventoryPage: React.FC = () => {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {(totalPages > 1 || cards.length > 0) && (
           <div style={{
-            padding: '11px 18px', borderTop: '1px solid var(--bdr-light)',
+            padding: '16px 20px', borderTop: '1px solid var(--bdr-light)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            flexWrap: 'wrap', gap: '10px',
+            flexWrap: 'wrap', gap: '16px', backgroundColor: 'var(--bg-subtle)'
           }}>
-            <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', fontWeight: 600 }}>
-              صفحة {page} من {totalPages}
-            </span>
-            <div style={{ display: 'flex', gap: '5px' }}>
-              <PageBtn disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}><ChevronRight size={15} /></PageBtn>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pg = page <= 3 ? i + 1 : page - 2 + i;
-                if (pg < 1 || pg > totalPages) return null;
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', fontWeight: 600 }}>
+                إجمالي <strong style={{ color: 'var(--txt-body)' }}>{total}</strong> بطاقات
+              </span>
+              <div style={{ height: '20px', width: '1px', backgroundColor: 'var(--bdr-light)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)' }}>الصفوف في الصفحة:</span>
+                <select value={limit} onChange={e => { setLimit(Number(e.target.value)); setPage(1); }} style={selStyle}>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', marginInlineEnd: '10px' }}>
+                صفحة <strong style={{ color: 'var(--txt-body)' }}>{page}</strong> من <strong>{totalPages || 1}</strong>
+              </span>
+              <PageBtn disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}><ChevronRight size={15} /></PageBtn>
+              {Array.from({ length: Math.min(5, Math.max(1, totalPages)) }, (_, i) => {
+                let pg = i + 1;
+                if (totalPages > 5) {
+                  if (page <= 3) pg = i + 1;
+                  else if (page >= totalPages - 2) pg = totalPages - 4 + i;
+                  else pg = page - 2 + i;
+                }
+                if (pg < 1 || pg > Math.max(1, totalPages)) return null;
                 return (
                   <PageBtn key={pg} active={pg === page} onClick={() => setPage(pg)}>{pg}</PageBtn>
                 );
               })}
-              <PageBtn disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}><ChevronLeft size={15} /></PageBtn>
+              <PageBtn disabled={page >= totalPages} onClick={() => setPage(p => Math.min(Math.max(1, totalPages), p + 1))}><ChevronLeft size={15} /></PageBtn>
             </div>
           </div>
         )}

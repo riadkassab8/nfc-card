@@ -9,7 +9,6 @@ export interface AdminSidebarProps {
 const NAV = [
   { path: '/admin',            label: 'نظرة عامة',      icon: LayoutDashboard, exact: true },
   { path: '/admin/cards',      label: 'إدارة البطاقات',  icon: CreditCard },
-  { path: '/admin/add-card',   label: 'إضافة بطاقة',    icon: Plus },
   { path: '/admin/categories', label: 'التصنيفات',       icon: Tags },
   { path: '/admin/scan',       label: 'فحص وتجهيز',      icon: Scan },
 ];
@@ -123,32 +122,5 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLinkClick }) => (
       ))}
     </nav>
 
-    {/* Footer */}
-    <div style={{
-      padding: '14px 18px',
-      borderTop: '1px solid var(--bdr-light)',
-      backgroundColor: 'var(--bg-subtle)',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-        <span style={{
-          width: '7px', height: '7px',
-          borderRadius: '50%',
-          backgroundColor: '#22c55e',
-          flexShrink: 0,
-          boxShadow: '0 0 0 2px #dcfce7',
-        }} />
-        <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--txt-secondary)' }}>
-          متصل بالسيرفر
-        </span>
-      </div>
-      <div style={{
-        fontSize: '0.68rem',
-        color: 'var(--txt-muted)',
-        marginTop: '3px',
-        fontFamily: 'monospace',
-      }}>
-        smart-card-qr-api.koyeb.app
-      </div>
-    </div>
   </aside>
 );

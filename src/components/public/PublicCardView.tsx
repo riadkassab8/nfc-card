@@ -154,6 +154,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           display: flex;
           flex-direction: column;
           align-items: center;
+          flex: 1;
         }
 
         .nfc-grid {
@@ -265,7 +266,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           
           {renderContent()}
 
-          <div className="gsap-footer" style={{ marginTop: '64px', width: '100%' }}>
+          <div className="gsap-footer" style={{ marginTop: 'auto', paddingTop: '64px', width: '100%' }}>
             <PublicCardFooter />
           </div>
         </div>

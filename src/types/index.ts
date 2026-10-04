@@ -75,13 +75,17 @@ export interface BusinessData {
 
 // ── Card Types ────────────────────────────────────────────────────────────
 
-export const CARD_TYPES = [
-  'Card',
-  'Stand',
-  'Medal',
-] as const;
+export enum CardType {
+  MEDAL = 'ميدالية',
+  STAND = 'استاند',
+  CARD = 'كارت',
+}
 
-export type CardType = (typeof CARD_TYPES)[number] | string;
+export const CARD_TYPES = [
+  CardType.CARD,
+  CardType.STAND,
+  CardType.MEDAL,
+];
 
 export type CardStatus = 'active' | 'inactive';
 

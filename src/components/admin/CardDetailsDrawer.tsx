@@ -116,7 +116,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   const isActive = card.status === 'active';
   const expired  = isSubscriptionExpired(card);
   const cat      = getPopulatedCategory(card.category_id);
-  const staticUrl = `https://smart-card-qr-api.koyeb.app/r/${card.card_code}`;
+  const staticUrl = `${window.location.origin}/r/${card.card_code}`;
 
   const copyText = (text: string, key: string) => {
     navigator.clipboard.writeText(text);

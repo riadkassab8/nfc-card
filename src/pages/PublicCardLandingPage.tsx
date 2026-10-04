@@ -39,6 +39,25 @@ export const PublicCardLandingPage: React.FC = () => {
       ) ?? null;
 
       if (!found) { setState('not_found'); return; }
+
+      const biz = found.business_data;
+      const links: string[] = [];
+      if (biz?.whatsapp?.trim()) links.push(biz.whatsapp.trim());
+      if (biz?.instagram?.trim()) links.push(biz.instagram.trim());
+      if (biz?.facebook?.trim()) links.push(biz.facebook.trim());
+      if (biz?.tiktok?.trim()) links.push(biz.tiktok.trim());
+      if (biz?.google_maps?.trim()) links.push(biz.google_maps.trim());
+      if (biz?.phone?.trim()) links.push(`tel:${biz.phone.trim()}`);
+      if (biz?.email?.trim()) links.push(`mailto:${biz.email.trim()}`);
+      if (biz?.website?.trim()) links.push(biz.website.trim());
+      if (biz?.instapay?.trim()) links.push(biz.instapay.trim());
+      if (biz?.vodafone_cash?.trim()) links.push(`tel:${biz.vodafone_cash.trim()}`);
+
+      if (links.length === 1) {
+        window.location.replace(links[0]);
+        return;
+      }
+
       setCard(found); setState('ok');
     } catch {
       setState('error');

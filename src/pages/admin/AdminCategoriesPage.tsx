@@ -322,9 +322,6 @@ export const AdminCategoriesPage: React.FC = () => {
                   <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', fontWeight: 600 }}>
                     الإجمالي: <strong style={{ color: 'var(--txt-heading)' }}>{cats.length}</strong> تصنيف
                   </span>
-                  <button className="btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }} style={{ padding: '7px 16px', fontSize: 'var(--fs-sm)' }}>
-                    <Plus size={14} /> إضافة
-                  </button>
                 </div>
               </>
             )}

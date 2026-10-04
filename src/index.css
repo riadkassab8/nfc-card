@@ -89,14 +89,14 @@
   --font-mono:  'Courier New', monospace;
 
   /* ═══ حجم الخط ═══ */
-  --fs-xs:   0.75rem;    /* 12px */
-  --fs-sm:   0.8125rem;  /* 13px */
-  --fs-base: 0.9375rem;  /* 15px */
-  --fs-md:   1rem;       /* 16px */
-  --fs-lg:   1.125rem;   /* 18px */
-  --fs-xl:   1.25rem;    /* 20px */
-  --fs-2xl:  1.5rem;     /* 24px */
-  --fs-3xl:  1.875rem;   /* 30px */
+  --fs-xs:   0.8125rem;  /* 13px */
+  --fs-sm:   0.9375rem;  /* 15px */
+  --fs-base: 1rem;       /* 16px */
+  --fs-md:   1.125rem;   /* 18px */
+  --fs-lg:   1.25rem;    /* 20px */
+  --fs-xl:   1.375rem;   /* 22px */
+  --fs-2xl:  1.625rem;   /* 26px */
+  --fs-3xl:  2rem;       /* 32px */
 
   /* ═══ الانتقالات ═══ */
   --ease:      cubic-bezier(0.4, 0, 0.2, 1);
@@ -480,9 +480,9 @@ tbody tr:hover {
   border-bottom: 1px solid var(--bdr-light);
 }
 .data-table th {
-  padding: 11px 14px;
-  font-size: var(--fs-xs);
-  font-weight: 700;
+  padding: 16px 18px;
+  font-size: var(--fs-base);
+  font-weight: 800;
   color: var(--txt-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -490,8 +490,8 @@ tbody tr:hover {
   text-align: right;
 }
 .data-table td {
-  padding: 13px 14px;
-  font-size: var(--fs-sm);
+  padding: 18px 18px;
+  font-size: var(--fs-md);
   color: var(--txt-body);
   border-bottom: 1px solid #f8fafc;
   vertical-align: middle;
@@ -507,8 +507,8 @@ tbody tr:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--r-sm);
   border: 1px solid transparent;
   cursor: pointer;
@@ -680,4 +680,47 @@ tbody tr:hover {
   background-color: #fff;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   transition: left 200ms var(--ease), right 200ms var(--ease);
+}
+
+/* ─────────────────────────────────────────────────────────────────── */
+/*  RESPONSIVE TWEAKS                                                   */
+/* ─────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  :root {
+    --fs-3xl: 1.5rem;
+    --fs-2xl: 1.25rem;
+    --fs-xl: 1.125rem;
+    --fs-lg: 1rem;
+    --sp-8: 24px;
+    --sp-6: 20px;
+    --sp-5: 16px;
+    --sp-4: 12px;
+  }
+  .page-hero {
+    padding: var(--sp-5) var(--sp-5);
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .page-hero-btn {
+    justify-content: center;
+    flex: 1;
+  }
+  .stat-card {
+    padding: var(--sp-4);
+  }
+  .data-table th, .data-table td {
+    padding: 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
