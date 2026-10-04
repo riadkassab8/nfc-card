@@ -170,7 +170,7 @@ export const AdminAddCardPage: React.FC = () => {
     const business: BusinessData = {};
     let hasBiz = false;
     for (const [k, v] of Object.entries(bizData)) {
-      if (v.trim()) {
+      if (v.trim() && k !== 'instapay' && k !== 'vodafone_cash') {
         (business as any)[k] = v.trim();
         hasBiz = true;
       }
@@ -183,15 +183,9 @@ export const AdminAddCardPage: React.FC = () => {
     // Replace localhost or 127.0.0.1 with a valid domain format so backend validator passes seamlessly
     formattedUrl = formattedUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smartcard-app.com');
 
-    const category = categories.find(c => c._id === categoryId);
-    const catName = category?.name || 'Social Page';
-    const validEnums = ['Google Review', 'Instagram', 'TikTok', 'InstaPay', 'Google Maps', 'WhatsApp', 'Social Page'];
-    // We must send a valid backend enum for card_type to bypass backend validation errors
-    const backendCardType = validEnums.includes(catName) ? catName : 'Social Page';
-
     const dto: ApiCreateCardDto = {
       card_code: cardCode.trim().toUpperCase(),
-      card_type: backendCardType,
+      card_type: cardType,
       current_redirect_url: formattedUrl,
       category_id: categoryId,
     };
