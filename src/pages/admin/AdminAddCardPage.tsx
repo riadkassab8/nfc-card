@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cardsApi, categoriesApi } from '../../services';
-import { ApiCategory, ApiCreateCardDto, CARD_TYPES, CardType, BusinessData } from '../../types';
+import { ApiCard, ApiCategory, ApiCreateCardDto, CARD_TYPES, CardType, BusinessData, getCategoryId } from '../../types';
 import Swal from 'sweetalert2';
 import {
   ArrowRight, CreditCard, Plus, Building2, Globe, Phone, Mail,
@@ -80,7 +80,7 @@ export const AdminAddCardPage: React.FC = () => {
   const [nfcUid, setNfcUid]         = useState(editCard?.nfc_uid || '');
   const [cardType, setCardType]     = useState<string>(editCard?.card_type || CardType.CARD);
   const [redirectUrl, setRedirectUrl] = useState(editCard?.current_redirect_url || '');
-  const [categoryId, setCategoryId] = useState(editCard?.category_id?._id || '');
+  const [categoryId, setCategoryId] = useState(getCategoryId(editCard?.category_id) || '');
 
   /* Business data state */
   const [bizData, setBizData] = useState<Record<string, string>>({

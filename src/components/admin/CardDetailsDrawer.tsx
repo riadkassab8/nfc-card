@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { cardsApi } from '../../services';
 import {
-  ApiCard, ApiCategory, ApiCardHistory, ApiUpdateCardDto,
-  BusinessData, CARD_TYPES, fmtDate, isSubscriptionExpired,
-  getPopulatedCategory, getCategoryId,
+  ApiCard, ApiCategory, ApiCardHistory,
+  BusinessData, fmtDate, isSubscriptionExpired,
+  getPopulatedCategory,
 } from '../../types';
 import {
   X, Info, Link as LinkIcon, QrCode, History,
@@ -55,7 +55,7 @@ const Tab: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNod
 
 /* ── Main ─────────────────────────────────────────────────────── */
 export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
-  card, categories, onClose, onUpdated, onDeleted, onToast,
+  card, onClose, onUpdated, onDeleted, onToast,
 }) => {
   const navigate = useNavigate();
   const [tab, setTab]               = useState<Tab>('info');
@@ -66,11 +66,6 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   const [history, setHistory]       = useState<ApiCardHistory[]>([]);
   const [histLoading, setHistLoading] = useState(false);
   const [histLoaded, setHistLoaded] = useState(false);
-  const [editMode, setEditMode]     = useState(false);
-  const [editType, setEditType]     = useState('');
-  const [editNfc, setEditNfc]       = useState('');
-  const [editCat, setEditCat]       = useState('');
-  const [editSaving, setEditSaving] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting]     = useState(false);
   const [toggling, setToggling]     = useState(false);
@@ -80,11 +75,8 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   /* ── reset on card change ── */
   useEffect(() => {
     if (!card) return;
-    setTab('info'); setEditMode(false); setConfirmDel(false);
+    setTab('info'); setConfirmDel(false);
     setNewUrl(card.current_redirect_url || '');
-    setEditType(card.card_type || '');
-    setEditNfc(card.nfc_uid || '');
-    setEditCat(getCategoryId(card.category_id) || '');
     setQrDataUrl(null); setHistory([]); setHistLoaded(false);
   }, [card]);
 
@@ -181,12 +173,6 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
     } catch { onToast('فشل تحميل QR', 'error'); }
   };
 
-  /* ── shared styles ── */
-  const inlineInput: React.CSSProperties = {
-    boxSizing: 'border-box', padding: '7px 10px',
-    borderRadius: 'var(--r-sm)', border: '1.5px solid var(--clr-primary-400)',
-    fontSize: 'var(--fs-sm)', fontFamily: 'var(--font)', width: '100%', outline: 'none',
-  };
 
   return (
     <>
