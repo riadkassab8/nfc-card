@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CreditCard, Tags, Scan, Zap } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Tags, Scan, Zap, Plus } from 'lucide-react';
 
 export interface AdminSidebarProps {
   onLinkClick?: () => void;
@@ -9,6 +9,7 @@ export interface AdminSidebarProps {
 const NAV = [
   { path: '/admin',            label: 'نظرة عامة',      icon: LayoutDashboard, exact: true },
   { path: '/admin/cards',      label: 'إدارة البطاقات',  icon: CreditCard },
+  { path: '/admin/add-card',   label: 'إضافة بطاقة',    icon: Plus },
   { path: '/admin/categories', label: 'التصنيفات',       icon: Tags },
   { path: '/admin/scan',       label: 'فحص وتجهيز',      icon: Scan },
 ];

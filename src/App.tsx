@@ -8,6 +8,7 @@ import { AdminShell } from './components/admin/AdminShell';
 import { LoginPage }               from './pages/LoginPage';
 import { AdminOverviewPage }        from './pages/admin/AdminOverviewPage';
 import { AdminInventoryPage }       from './pages/admin/AdminInventoryPage';
+import { AdminAddCardPage }         from './pages/admin/AdminAddCardPage';
 import { AdminCategoriesPage }      from './pages/admin/AdminCategoriesPage';
 import { AdminScanPage }            from './pages/admin/AdminScanPage';
 import { PublicCardLandingPage }    from './pages/PublicCardLandingPage';
@@ -70,8 +71,19 @@ export const App: React.FC = () => (
         />
         
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/admin" replace />} />
+        <Route
+          path="/admin/add-card"
+          element={
+            <ProtectedRoute>
+              <AdminShell title="إضافة بطاقة">
+                <AdminAddCardPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Fallback — go to login for unauthenticated, admin guards handle redirect */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   </AuthProvider>

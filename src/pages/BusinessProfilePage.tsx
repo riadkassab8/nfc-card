@@ -11,7 +11,7 @@ import { ApiCard, BusinessData } from '../types';
 import {
   Building2, Phone, Mail, Globe, MapPin, MessageCircle,
   Instagram, Facebook, Video, AlertCircle, RefreshCw,
-  ExternalLink, Image as ImageIcon,
+  ExternalLink,
 } from 'lucide-react';
 
 type State = 'loading' | 'ok' | 'not_found' | 'error';

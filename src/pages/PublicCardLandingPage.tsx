@@ -31,11 +31,12 @@ export const PublicCardLandingPage: React.FC = () => {
     setState('loading');
     try {
       const res = await cardsApi.getCards({ search: code.trim(), limit: 10 });
+      // Exact match only — never fall back to first result
       const found = (res.data ?? []).find(
         (c) => c.card_code.toLowerCase() === code.toLowerCase() ||
                (c.nfc_uid && c.nfc_uid.toLowerCase() === code.toLowerCase()) ||
                c._id === code,
-      ) ?? res.data?.[0] ?? null;
+      ) ?? null;
 
       if (!found) { setState('not_found'); return; }
       setCard(found); setState('ok');

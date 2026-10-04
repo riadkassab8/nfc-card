@@ -349,6 +349,27 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                 </div>
               </div>
 
+              {/* Social Page Link */}
+              <div style={{
+                backgroundColor: '#f0fdf4', borderRadius: 'var(--r-lg)',
+                padding: '13px 16px', border: '1px solid #bbf7d0',
+              }}>
+                <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: '#15803d', marginBottom: '6px' }}>
+                  صفحة الأزرار التفاعلية (Social Page)
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <code style={{ fontSize: 'var(--fs-xs)', color: '#166534', flex: 1, wordBreak: 'break-all' }}>
+                    {`${window.location.origin}/social/${card.card_code}`}
+                  </code>
+                  <button onClick={() => copyText(`${window.location.origin}/social/${card.card_code}`, 'socialPreview')} style={iconBtnStyle}>
+                    {copied === 'socialPreview' ? <Check size={12} style={{ color: 'var(--clr-success)' }} /> : <Copy size={12} />}
+                  </button>
+                  <a href={`/social/${card.card_code}`} target="_blank" rel="noopener noreferrer" style={{ ...iconBtnStyle, textDecoration: 'none', color: '#fff', backgroundColor: '#16a34a', padding: '4px 10px', borderRadius: 'var(--r-md)', fontSize: 'var(--fs-xs)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                    <ExternalLink size={12} /> فتح
+                  </a>
+                </div>
+              </div>
+
               {/* Business data */}
               {card.business_data && Object.values(card.business_data).some(Boolean) && (
                 <div style={{

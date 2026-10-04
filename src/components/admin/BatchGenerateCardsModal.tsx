@@ -18,7 +18,7 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
 
   /* batch */
   const [qty, setQty]         = useState(1);
-  const [bType, setBType]     = useState('Social Page');
+  const [bType, setBType]     = useState<string>(CARD_TYPES[0]);
   const [bCat, setBCat]       = useState('');
   const [bRunning, setBRunning] = useState(false);
   const [bDone, setBDone]     = useState(false);
@@ -28,7 +28,7 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
   /* single */
   const [sCode, setSCode]     = useState('');
   const [sNfc, setSNfc]       = useState('');
-  const [sType, setSType]     = useState('Social Page');
+  const [sType, setSType]     = useState<string>(CARD_TYPES[0]);
   const [sCat, setSCat]       = useState('');
   const [sUrl, setSUrl]       = useState('');
   const [sBiz, setSBiz]       = useState('');
@@ -38,15 +38,21 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
 
   const runBatch = async () => {
     if (qty < 1 || qty > 500) { setBErr('الكمية بين 1 و 500'); return; }
+    if (!bCat) { setBErr('يجب اختيار تصنيف أولاً'); return; }
     setBRunning(true); setBErr(null);
     let created = 0;
     try {
-      const existing = await cardsApi.getCards({ limit: 100 });
+      // Step 1: get the real total count to avoid missing codes beyond the first page
+      const countRes = await cardsApi.getCards({ limit: 1 });
+      const realTotal = countRes.total ?? 0;
+      // Step 2: fetch all existing cards (up to realTotal + safety buffer)
+      const safeLimit = Math.max(realTotal + qty + 50, 200);
+      const existing = await cardsApi.getCards({ limit: safeLimit });
       const nums = (existing.data ?? [])
         .map(c => { const m = c.card_code.match(/^CARD-(\d+)$/); return m ? parseInt(m[1]) : 0; })
         .filter(Boolean);
       let next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
-      const origin = window.location.origin;
+      const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smartcard-app.com');
 
       for (let i = 0; i < qty; i++) {
         const code = `CARD-${padNum(next + i)}`;
@@ -54,9 +60,9 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
           card_code: code,
           nfc_uid: `NFC-${padNum(next + i).padStart(6, '0')}`,
           card_type: bType,
-          current_redirect_url: `${origin}/social/${code}`,
+          current_redirect_url: `${domainOrigin}/social/${code}`,
         };
-        if (bCat) dto.category_id = bCat;
+        dto.category_id = bCat;
         await cardsApi.createCard(dto);
         created++;
       }
@@ -69,15 +75,21 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
   const runSingle = async () => {
     if (!sCode.trim()) { setSErr('كود البطاقة مطلوب'); return; }
     if (!sUrl.trim())  { setSErr('رابط التوجيه مطلوب'); return; }
+    if (!sCat)         { setSErr('يجب اختيار تصنيف أولاً'); return; }
     setSRunning(true); setSErr(null);
     try {
+      let formattedUrl = sUrl.trim();
+      if (!/^https?:\/\//i.test(formattedUrl)) {
+        formattedUrl = `https://${formattedUrl}`;
+      }
+      formattedUrl = formattedUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smartcard-app.com');
       const dto: ApiCreateCardDto = {
         card_code: sCode.trim().toUpperCase(),
         card_type: sType,
-        current_redirect_url: sUrl.trim(),
+        current_redirect_url: formattedUrl,
       };
       if (sNfc.trim()) dto.nfc_uid = sNfc.trim().toUpperCase();
-      if (sCat)        dto.category_id = sCat;
+      dto.category_id = sCat;
       if (sBiz.trim()) dto.business_data = { business_name: sBiz.trim() };
       await cardsApi.createCard(dto);
       setSDone(true);
@@ -149,8 +161,9 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">التصنيف *</label>
+                    <label className="form-label">التصنيف <span style={{ color: 'var(--clr-error)' }}>*</span></label>
                     <select value={bCat} onChange={e => setBCat(e.target.value)} className="form-input">
+                      <option value="">— اختر تصنيفاً —</option>
                       {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                     </select>
                   </div>
@@ -198,9 +211,9 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
                     <input className="form-input" value={sUrl} onChange={e => setSUrl(e.target.value)} placeholder="https://..." />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">التصنيف *</label>
+                    <label className="form-label">التصنيف <span style={{ color: 'var(--clr-error)' }}>*</span></label>
                     <select value={sCat} onChange={e => setSCat(e.target.value)} className="form-input">
-                      <option value="">— بدون تصنيف —</option>
+                      <option value="">— اختر تصنيفاً —</option>
                       {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                     </select>
                   </div>

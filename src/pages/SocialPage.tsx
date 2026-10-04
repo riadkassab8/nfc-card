@@ -21,11 +21,12 @@ export const SocialPage: React.FC = () => {
     if (!publicCode?.trim()) { setState('not_found'); return; }
     setState('loading');
     try {
-      const res = await cardsApi.getCards({ search: publicCode.trim(), limit: 5 });
+      const res = await cardsApi.getCards({ search: publicCode.trim(), limit: 10 });
+      // Exact match only — never fall back to first result
       const found = (res.data ?? []).find(
         (c) => c.card_code.toLowerCase() === publicCode.toLowerCase() ||
                (c.nfc_uid && c.nfc_uid.toLowerCase() === publicCode.toLowerCase()),
-      ) ?? res.data?.[0] ?? null;
+      ) ?? null;
 
       if (!found)                   { setState('not_found'); return; }
       if (!found.business_data || !Object.values(found.business_data).some(Boolean)) {

@@ -62,7 +62,7 @@ export const AdminScanPage: React.FC = () => {
       const found = (res.data ?? []).find(c =>
         c.card_code.toLowerCase() === term.toLowerCase() ||
         (c.nfc_uid && c.nfc_uid.toLowerCase() === term.toLowerCase())
-      ) ?? res.data?.[0] ?? null;
+      ) ?? null;
       if (found) { setCard(found); setForm({ ...EMPTY, ...(found.business_data ?? {}) }); }
       else setNotFound(true);
     } catch (e: any) {

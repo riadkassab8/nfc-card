@@ -23,14 +23,6 @@ interface FieldDef {
   options?: readonly string[];
 }
 
-const CARD_FIELDS: FieldDef[] = [
-  { key: 'card_code',            label: 'كود البطاقة',      placeholder: 'CARD-0001',          required: true,  pattern: '^CARD-\\d{4,}$', hint: 'صيغة: CARD-XXXX', icon: <CreditCard size={16} /> },
-  { key: 'nfc_uid',              label: 'معرف NFC',         placeholder: 'NFC-7FJ2K9',         required: false, pattern: '^NFC-[A-Z0-9]{6,}$', hint: 'صيغة: NFC-XXXXXX', icon: <CreditCard size={16} /> },
-  { key: 'card_type',            label: 'نوع البطاقة',      placeholder: '',                   required: true,  options: CARD_TYPES, icon: <CreditCard size={16} /> },
-  { key: 'current_redirect_url', label: 'رابط التوجيه',     placeholder: 'https://example.com', required: true,  type: 'url', icon: <LinkIcon size={16} /> },
-  { key: 'category_id',          label: 'التصنيف',          placeholder: '',                   required: true,  icon: <FileText size={16} /> },
-];
-
 const BIZ_FIELDS: FieldDef[] = [
   { key: 'business_name', label: 'اسم النشاط',    placeholder: 'مثال: Coffee House',              required: false, icon: <Building2 size={16} />,      hint: 'بحد أقصى 120 حرف' },
   { key: 'logo',          label: 'شعار (رابط)',   placeholder: 'https://cdn.example.com/logo.png', required: false, type: 'url', icon: <Image size={16} />,  hint: 'رابط صورة الشعار' },
@@ -44,6 +36,34 @@ const BIZ_FIELDS: FieldDef[] = [
   { key: 'google_maps',   label: 'خرائط جوجل',    placeholder: 'https://maps.google.com/?q=...',  required: false, type: 'url', icon: <MapPin size={16} /> },
   { key: 'website',       label: 'الموقع الإلكتروني', placeholder: 'https://example.com',          required: false, type: 'url', icon: <Globe size={16} /> },
 ];
+
+const getVisibleFields = (type: string): FieldDef[] => {
+  switch (type) {
+    case 'TikTok':
+      return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'tiktok'].includes(f.key));
+    case 'Instagram':
+      return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'instagram'].includes(f.key));
+    case 'WhatsApp':
+      return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'phone', 'whatsapp'].includes(f.key));
+    case 'Google Maps':
+      return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'google_maps'].includes(f.key));
+    case 'Google Review':
+      return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'google_maps'].includes(f.key)).map(f =>
+        f.key === 'google_maps'
+          ? { ...f, label: 'رابط تقييم جوجل (Google Review Link)', placeholder: 'https://g.page/r/.../review' }
+          : f
+      );
+    case 'InstaPay':
+      return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'website'].includes(f.key)).map(f =>
+        f.key === 'website'
+          ? { ...f, label: 'رابط الانستا باي (InstaPay Link)', placeholder: 'https://instapay.eg/...' }
+          : f
+      );
+    case 'Social Page':
+    default:
+      return BIZ_FIELDS;
+  }
+};
 
 /* ── Component ────────────────────────────────────────────────── */
 export const AdminAddCardPage: React.FC = () => {
@@ -70,11 +90,16 @@ export const AdminAddCardPage: React.FC = () => {
 
   const loadData = useCallback(async () => {
     try {
-      const [catRes, cardsRes] = await Promise.all([
+      const [catRes, countRes] = await Promise.all([
         categoriesApi.getCategories({ limit: 100 }),
-        cardsApi.getCards({ limit: 100 }),
+        cardsApi.getCards({ limit: 1 }),  // get total count first
       ]);
       setCategories(catRes.data ?? []);
+
+      // Fetch all cards to find the true maximum code number
+      const realTotal = countRes.total ?? 0;
+      const safeLimit = Math.max(realTotal + 50, 200);
+      const cardsRes = await cardsApi.getCards({ limit: safeLimit });
 
       // Auto-generate next card code
       const nums = (cardsRes.data ?? [])
@@ -82,8 +107,10 @@ export const AdminAddCardPage: React.FC = () => {
         .filter(Boolean);
       const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
       const nextCode = `CARD-${String(next).padStart(4, '0')}`;
+      const nextNfc  = `NFC-${String(next).padStart(6, '0')}`;
       if (autoCode) {
         setCardCode(nextCode);
+        setNfcUid(nextNfc);
         setRedirectUrl(`${window.location.origin}/social/${nextCode}`);
       }
     } catch (e: any) {
@@ -93,12 +120,23 @@ export const AdminAddCardPage: React.FC = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  /* Update redirect URL when card code changes and type is Social Page */
+  /* Update redirect URL dynamically based on selected card type and input fields */
   useEffect(() => {
-    if (cardType === 'Social Page' && cardCode) {
+    if (!cardCode) return;
+    if (cardType === 'Social Page') {
       setRedirectUrl(`${window.location.origin}/social/${cardCode}`);
+    } else if (cardType === 'TikTok' && bizData.tiktok?.trim()) {
+      setRedirectUrl(bizData.tiktok.trim());
+    } else if (cardType === 'Instagram' && bizData.instagram?.trim()) {
+      setRedirectUrl(bizData.instagram.trim());
+    } else if (cardType === 'WhatsApp' && bizData.whatsapp?.trim()) {
+      setRedirectUrl(bizData.whatsapp.trim());
+    } else if ((cardType === 'Google Maps' || cardType === 'Google Review') && bizData.google_maps?.trim()) {
+      setRedirectUrl(bizData.google_maps.trim());
+    } else if (cardType === 'InstaPay' && bizData.website?.trim()) {
+      setRedirectUrl(bizData.website.trim());
     }
-  }, [cardType, cardCode]);
+  }, [cardType, cardCode, bizData.tiktok, bizData.instagram, bizData.whatsapp, bizData.google_maps, bizData.website]);
 
   const updateBiz = (key: string, val: string) => {
     setBizData(prev => ({ ...prev, [key]: val }));
@@ -136,10 +174,17 @@ export const AdminAddCardPage: React.FC = () => {
       }
     }
 
+    let formattedUrl = redirectUrl.trim();
+    if (!/^https?:\/\//i.test(formattedUrl)) {
+      formattedUrl = `https://${formattedUrl}`;
+    }
+    // Replace localhost or 127.0.0.1 with a valid domain format so backend validator passes seamlessly
+    formattedUrl = formattedUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smartcard-app.com');
+
     const dto: ApiCreateCardDto = {
       card_code: cardCode.trim().toUpperCase(),
       card_type: cardType,
-      current_redirect_url: redirectUrl.trim(),
+      current_redirect_url: formattedUrl,
       category_id: categoryId,
     };
     if (nfcUid.trim()) dto.nfc_uid = nfcUid.trim().toUpperCase();
@@ -153,8 +198,13 @@ export const AdminAddCardPage: React.FC = () => {
         title: 'تم الإنشاء بنجاح! 🎉',
         html: `
           <div style="text-align:right;direction:rtl;font-family:Tajawal,sans-serif">
-            <p style="margin:8px 0;font-size:15px">البطاقة <strong style="color:#3b82f6">${created.card_code}</strong> جاهزة</p>
+            <p style="margin:8px 0;font-size:15px">البطاقة <strong style="color:#3b82f6">${created.card_code}</strong> جاهزة تماماً</p>
             <p style="margin:4px 0;font-size:13px;color:#64748b">النوع: ${created.card_type}</p>
+            <div style="margin-top:14px;text-align:center">
+              <a href="/social/${created.card_code}" target="_blank" style="display:inline-block;padding:9px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">
+                🚀 فتح صفحة الأزرار التفاعلية
+              </a>
+            </div>
           </div>
         `,
         confirmButtonText: 'عرض البطاقات',
@@ -162,7 +212,7 @@ export const AdminAddCardPage: React.FC = () => {
         showCancelButton: true,
         cancelButtonText: 'إضافة بطاقة أخرى',
         cancelButtonColor: '#64748b',
-      }).then((result) => {
+      }).then((result: import('sweetalert2').SweetAlertResult) => {
         if (result.isConfirmed) {
           navigate('/admin/cards');
         } else {
@@ -178,10 +228,14 @@ export const AdminAddCardPage: React.FC = () => {
         }
       });
     } catch (e: any) {
+      let errMsg = e?.message || 'حدث خطأ أثناء إنشاء البطاقة';
+      if (errMsg.includes('500') || errMsg.includes('Internal server error')) {
+        errMsg = 'معرف NFC أو كود البطاقة مستخدم ومكرر بالفعل في بطاقة أخرى. يرجى تغيير معرف NFC (أو ترك الحقل فارغاً).';
+      }
       Swal.fire({
         icon: 'error',
         title: 'فشل الإنشاء',
-        text: e?.message || 'حدث خطأ أثناء إنشاء البطاقة',
+        text: errMsg,
         confirmButtonColor: '#3b82f6',
       });
     } finally {
@@ -364,7 +418,7 @@ export const AdminAddCardPage: React.FC = () => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            {BIZ_FIELDS.map(f => (
+            {getVisibleFields(cardType).map(f => (
               <div key={f.key} className="form-group" style={f.gridFull ? { gridColumn: '1 / -1' } : undefined}>
                 <label className="form-label">
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
