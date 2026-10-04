@@ -1,131 +1,88 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CreditCard, Scan, Settings, Sparkles, Tags } from 'lucide-react';
-import { useTranslation } from '../../i18n';
+import { LayoutDashboard, CreditCard, Tags, Scan, Settings, Sparkles } from 'lucide-react';
 
 export interface AdminSidebarProps {
   onLinkClick?: () => void;
 }
 
-export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLinkClick }) => {
-  const { t } = useTranslation();
+const NAV = [
+  { path: '/admin',            label: 'نظرة عامة',    icon: <LayoutDashboard size={18} />, exact: true },
+  { path: '/admin/cards',      label: 'إدارة البطاقات', icon: <CreditCard size={18} /> },
+  { path: '/admin/categories', label: 'التصنيفات',     icon: <Tags size={18} /> },
+  { path: '/admin/scan',       label: 'فحص وتجهيز',    icon: <Scan size={18} /> },
+  { path: '/admin/settings',   label: 'الإعدادات',     icon: <Settings size={18} /> },
+];
 
-  const adminSidebarItems = [
-    { path: '/admin', label: t('admin.nav.overview'), icon: <LayoutDashboard size={18} /> },
-    { path: '/admin/cards', label: t('admin.nav.cards'), icon: <CreditCard size={18} /> },
-    { path: '/admin/categories', label: 'التصنيفات', icon: <Tags size={18} /> },
-    { path: '/admin/scan', label: t('admin.nav.scan'), icon: <Scan size={18} /> },
-    { path: '/admin/settings', label: t('admin.nav.settings'), icon: <Settings size={18} /> },
-  ];
+export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLinkClick }) => (
+  <aside style={{
+    width: '256px',
+    backgroundColor: '#0f172a',
+    color: '#f8fafc',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    padding: '20px 12px',
+    boxSizing: 'border-box',
+    boxShadow: '4px 0 24px rgba(15,23,42,0.18)',
+  }}>
+    {/* Brand */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px 8px', marginBottom: '28px' }}>
+      <div style={{
+        width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
+        background: 'linear-gradient(135deg,#6366f1,#a855f7)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
+      }}>
+        <Sparkles size={22} color="#fff" />
+      </div>
+      <div>
+        <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: 'Cairo, sans-serif' }}>
+          NFC Smart Cards
+        </div>
+        <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>لوحة الإدارة</div>
+      </div>
+    </div>
 
-  return (
-    <aside
-      style={{
-        width: '260px',
-        backgroundColor: '#0f172a',
-        color: '#f8fafc',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        padding: 'var(--space-xl) var(--space-md)',
-        boxSizing: 'border-box',
-        boxShadow: '4px 0 24px rgba(15, 23, 42, 0.12)',
-      }}
-    >
-      {/* Brand Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--space-md)',
-          padding: 'var(--space-xs) var(--space-md)',
-          marginBottom: 'var(--space-2xl)',
-        }}
-      >
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
-          }}
+    {/* Nav */}
+    <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+      <div style={{ padding: '0 10px 8px', fontSize: '0.7rem', fontWeight: 700, color: '#475569', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+        القائمة الرئيسية
+      </div>
+      {NAV.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          end={item.exact}
+          onClick={onLinkClick}
+          style={({ isActive }) => ({
+            display: 'flex', alignItems: 'center', gap: '11px',
+            padding: '10px 12px', borderRadius: '10px',
+            textDecoration: 'none', fontSize: '0.875rem', fontFamily: 'Cairo, sans-serif',
+            fontWeight: isActive ? 700 : 500,
+            backgroundColor: isActive ? 'rgba(99,102,241,0.16)' : 'transparent',
+            color: isActive ? '#e0e7ff' : '#94a3b8',
+            borderInlineStart: `3px solid ${isActive ? '#6366f1' : 'transparent'}`,
+            transition: 'all 150ms ease',
+          })}
         >
-          <Sparkles size={22} />
-        </div>
-        <div>
-          <span
-            style={{
-              fontSize: '1.125rem',
-              fontWeight: 800,
-              display: 'block',
-              letterSpacing: '-0.02em',
-              color: '#ffffff',
-              fontFamily: 'var(--font-family-arabic)',
-            }}
-          >
-            DynamicQR Pro
-          </span>
-          <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>
-            {t('common.adminDashboard')}
-          </span>
-        </div>
-      </div>
+          <span style={{ display: 'inline-flex', flexShrink: 0 }}>{item.icon}</span>
+          {item.label}
+        </NavLink>
+      ))}
+    </nav>
 
-      {/* Navigation List */}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-        <div style={{ padding: '0 12px 6px', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-          القائمة الرئيسية
-        </div>
-        {adminSidebarItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.path === '/admin'}
-            onClick={onLinkClick}
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '10px 14px',
-              borderRadius: '10px',
-              textDecoration: 'none',
-              fontSize: '0.875rem',
-              fontWeight: isActive ? 700 : 500,
-              backgroundColor: isActive ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-              color: isActive ? '#ffffff' : '#94a3b8',
-              borderInlineStart: isActive ? '3px solid #6366f1' : '3px solid transparent',
-              transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
-            })}
-          >
-            <span style={{ display: 'inline-flex', opacity: 0.9 }}>{item.icon}</span>
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
-      </nav>
-
-      {/* Workspace Footer Card */}
-      <div
-        style={{
-          padding: '14px',
-          borderRadius: '12px',
-          backgroundColor: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          marginTop: 'auto',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#e2e8f0' }}>النظام يعمل بنجاح</span>
-        </div>
-        <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>
-          إصدار المنصة: 2.5.0 HD
-        </span>
+    {/* Footer status */}
+    <div style={{
+      padding: '12px 14px', borderRadius: '10px',
+      backgroundColor: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.07)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
+        <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block', flexShrink: 0 }} />
+        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#e2e8f0' }}>النظام يعمل</span>
       </div>
-    </aside>
-  );
-};
+      <span style={{ fontSize: '0.68rem', color: '#475569' }}>v3.0 — smart-card-qr-api.koyeb.app</span>
+    </div>
+  </aside>
+);

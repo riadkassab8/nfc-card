@@ -1,8 +1,5 @@
-/* ==========================================================================
-   CENTRALIZED API SERVICES EXPORTS (src/services/api/index.ts)
-   ========================================================================== */
-
-export * from './client';
-export * from './authApi';
-export * from './cardsApi';
-export * from './categoriesApi';
+export { apiClient, getToken, setToken, clearToken, isAuthenticated, getApiBaseUrl, ApiError } from './client';
+export type { RequestOptions } from './client';
+export { authApi } from './authApi';
+export { cardsApi } from './cardsApi';
+export { categoriesApi } from './categoriesApi';

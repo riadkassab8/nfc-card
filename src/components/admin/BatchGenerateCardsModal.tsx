@@ -1,451 +1,284 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Input, Button, Select } from '../ui';
-import { cardService } from '../../services';
-import { categoriesApi, apiClient } from '../../services/api';
-import { CardItem, ApiCategory, ApiLookupEntry } from '../../types';
-import { getCategoryConfig } from '../../config/CategoryRegistry';
-import { useTranslation } from '../../i18n';
-import { Layers, CheckCircle2, CreditCard, Plus } from 'lucide-react';
+/* ==========================================================================
+   BATCH GENERATE CARDS MODAL
+   Tab 1 — Batch: quantity + type + category → creates N cards
+   Tab 2 — Single: full manual form for one card
+   ========================================================================== */
 
-export interface BatchGenerateCardsModalProps {
-  isOpen: boolean;
+import React, { useState } from 'react';
+import { cardsApi } from '../../services';
+import { ApiCategory, ApiCreateCardDto, CARD_TYPES } from '../../types';
+import { X, Plus, Layers, CreditCard, RefreshCw, CheckCircle2 } from 'lucide-react';
+
+type TabId = 'batch' | 'single';
+
+interface Props {
+  categories: ApiCategory[];
   onClose: () => void;
-  onSuccess: (generatedCards: CardItem[]) => void;
+  onCreated: () => void;
 }
 
-type ActiveTab = 'batch' | 'single';
+// ── helpers ───────────────────────────────────────────────────────────────
+function padNum(n: number) {
+  return String(n).padStart(4, '0');
+}
 
-/* ──────────────────────────────────────────────────────────────── */
-/*  Inline tab-pill styles                                          */
-/* ──────────────────────────────────────────────────────────────── */
-const tabStyle = (active: boolean): React.CSSProperties => ({
-  flex: 1,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '8px',
-  padding: '10px 16px',
-  borderRadius: '10px',
-  fontSize: '0.875rem',
-  fontWeight: active ? 700 : 500,
-  cursor: 'pointer',
-  border: 'none',
-  transition: 'all 200ms ease',
-  backgroundColor: active ? '#ffffff' : 'transparent',
-  color: active ? '#0f172a' : '#64748b',
-  boxShadow: active ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-});
+export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, onCreated }) => {
+  const [tab, setTab]         = useState<TabId>('batch');
 
+  // Batch state
+  const [qty, setQty]         = useState(1);
+  const [bType, setBType]     = useState<string>('Social Page');
+  const [bCat, setBCat]       = useState('');
+  const [bRunning, setBRunning] = useState(false);
+  const [bDone, setBDone]     = useState(false);
+  const [bCount, setBCount]   = useState(0);
+  const [bError, setBError]   = useState<string | null>(null);
 
-/* ================================================================ */
-export const BatchGenerateCardsModal: React.FC<BatchGenerateCardsModalProps> = ({
-  isOpen,
-  onClose,
-  onSuccess,
-}) => {
-  const { t } = useTranslation();
+  // Single state
+  const [sCode, setSCode]     = useState('');
+  const [sNfc, setSNfc]       = useState('');
+  const [sType, setSType]     = useState<string>('Social Page');
+  const [sCat, setSCat]       = useState('');
+  const [sUrl, setSUrl]       = useState('');
+  const [sBizName, setSBizName] = useState('');
+  const [sRunning, setSRunning] = useState(false);
+  const [sDone, setSDone]     = useState(false);
+  const [sError, setSError]   = useState<string | null>(null);
 
-  /* ── shared ── */
-  const [activeTab, setActiveTab] = useState<ActiveTab>('batch');
-  const [successCount, setSuccessCount] = useState<number | null>(null);
+  // ── Batch create ─────────────────────────────────────────────────────────
+  const runBatch = async () => {
+    if (qty < 1 || qty > 500) { setBError('الكمية يجب أن تكون بين 1 و 500'); return; }
+    setBRunning(true); setBError(null);
+    let created = 0;
+    try {
+      // Determine next card number
+      const existing = await cardsApi.getCards({ limit: 100 });
+      const nums = (existing.data ?? [])
+        .map((c) => { const m = c.card_code.match(/^CARD-(\d+)$/); return m ? parseInt(m[1], 10) : 0; })
+        .filter(Boolean);
+      let next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
 
-  /* ── dynamic data ── */
-  const [categories, setCategories] = useState<ApiCategory[]>([]);
-  const [cardTypes, setCardTypes] = useState<ApiLookupEntry[]>([]);
+      const origin = window.location.origin;
 
-  useEffect(() => {
-    if (isOpen) {
-      const loadData = async () => {
-        try {
-          const [catsRes, typesRes] = await Promise.all([
-            categoriesApi.getCategories({ limit: 100 }),
-            apiClient<ApiLookupEntry[]>('/lookup/group/card_type'),
-          ]);
-          setCategories(catsRes.data || []);
-          setCardTypes(typesRes || []);
-        } catch (err) {
-          console.error('Failed to load modal dependencies:', err);
-        }
-      };
-      loadData();
+      for (let i = 0; i < qty; i++) {
+        const cardCode = `CARD-${padNum(next + i)}`;
+        const nfcUid   = `NFC-${padNum(next + i).padStart(6, '0')}`;
+        const redirectUrl = `${origin}/social/${cardCode}`;
+        const dto: ApiCreateCardDto = {
+          card_code:            cardCode,
+          nfc_uid:              nfcUid,
+          card_type:            bType,
+          current_redirect_url: redirectUrl,
+        };
+        if (bCat) dto.category_id = bCat;
+        await cardsApi.createCard(dto);
+        created++;
+      }
+      setBCount(created);
+      setBDone(true);
+    } catch (err: any) {
+      setBError(err?.message || `فشل الإنشاء — تم إنشاء ${created} بطاقة`);
+    } finally {
+      setBRunning(false);
     }
-  }, [isOpen]);
-
-  const typeOptions = cardTypes.length > 0 
-    ? cardTypes.map(t => ({ value: t.key, label: t.label }))
-    : [
-        { value: 'Google Review', label: '🌟 تقييمات جوجل (Google Review)' },
-        { value: 'Instagram',     label: '🌐 تواصل اجتماعي (Social)' },
-        { value: 'InstaPay',      label: '💳 دفع (Payment)' },
-        { value: 'Social Page',   label: '📱 صفحة تواصل اجتماعي (Social Page)' },
-      ];
-      
-  const catOptions = [
-    { value: '', label: '-- بدون تصنيف --' },
-    ...categories.map(c => ({ value: c._id, label: c.name }))
-  ];
-
-  /* ── batch tab ── */
-  const [quantity, setQuantity]       = useState<string>('10');
-  const [batchCardType, setBatchCardType] = useState<string>('Social Page');
-  const [batchCategoryId, setBatchCategoryId] = useState<string>('');
-  const [batchError, setBatchError]   = useState<string | null>(null);
-  const [batchLoading, setBatchLoading] = useState(false);
-
-  /* ── single tab ── */
-  const [cardCode, setCardCode]       = useState('');
-  const [nfcUid, setNfcUid]           = useState('');
-  const [singleCardType, setSingleCardType] = useState<string>('Social Page');
-  const [singleCategoryId, setSingleCategoryId] = useState<string>('');
-  const [redirectUrl, setRedirectUrl] = useState('');
-  const [singleError, setSingleError] = useState<string | null>(null);
-  const [singleLoading, setSingleLoading] = useState(false);
-
-  /* ────────────────────────────────── */
-  /*  Helpers                           */
-  /* ────────────────────────────────── */
-  const numVal    = parseInt(quantity, 10);
-  const isValidNum = !isNaN(numVal) && numVal >= 1 && numVal <= 500 && String(numVal) === quantity.trim();
-
-  const resetAll = () => {
-    setActiveTab('batch');
-    setSuccessCount(null);
-    setQuantity('10');
-    setBatchCardType('Social Page');
-    setBatchCategoryId('');
-    setBatchError(null);
-    setCardCode('');
-    setNfcUid('');
-    setSingleCardType('Social Page');
-    setSingleCategoryId('');
-    setRedirectUrl('');
-    setSingleError(null);
   };
 
-  const handleClose = () => {
-    resetAll();
+  // ── Single create ─────────────────────────────────────────────────────────
+  const runSingle = async () => {
+    if (!sCode.trim()) { setSError('كود البطاقة مطلوب'); return; }
+    if (!sUrl.trim())  { setSError('رابط التوجيه مطلوب'); return; }
+    setSRunning(true); setSError(null);
+    try {
+      const dto: ApiCreateCardDto = {
+        card_code:            sCode.trim().toUpperCase(),
+        card_type:            sType,
+        current_redirect_url: sUrl.trim(),
+      };
+      if (sNfc.trim())    dto.nfc_uid     = sNfc.trim().toUpperCase();
+      if (sCat)           dto.category_id = sCat;
+      if (sBizName.trim()) dto.business_data = { business_name: sBizName.trim() };
+      await cardsApi.createCard(dto);
+      setSDone(true);
+    } catch (err: any) {
+      setSError(err?.message || 'فشل إنشاء البطاقة');
+    } finally {
+      setSRunning(false);
+    }
+  };
+
+  const handleDone = () => {
+    onCreated();
     onClose();
   };
 
-  /* ────────────────────────────────── */
-  /*  Submit – Batch                    */
-  /* ────────────────────────────────── */
-  const handleBatchSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBatchError(null);
-
-    if (!isValidNum) {
-      setBatchError(t('cards.batchModal.countHelper'));
-      return;
-    }
-
-    setBatchLoading(true);
-    try {
-      const result = await cardService.generateCardBatch(numVal, batchCardType, batchCategoryId || undefined);
-      setSuccessCount(numVal);
-      onSuccess(result.cards);
-    } catch (err) {
-      setBatchError(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setBatchLoading(false);
-    }
-  };
-
-  /* ────────────────────────────────── */
-  /*  Submit – Single                   */
-  /* ────────────────────────────────── */
-  const handleSingleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSingleError(null);
-
-    const trimCode = cardCode.trim();
-    const trimUrl  = redirectUrl.trim();
-
-    if (!trimCode) {
-      setSingleError('كود الكارت مطلوب');
-      return;
-    }
-    if (!trimUrl) {
-      setSingleError('رابط التوجيه مطلوب');
-      return;
-    }
-
-    setSingleLoading(true);
-    try {
-      const config = getCategoryConfig(singleCategoryId, categories);
-      const initialBusinessData: Record<string, string> = {};
-      
-      // Route the redirect URL to the appropriate business data field based on category configuration
-      if (config.allowedFields.includes('google_maps') && config.landingRoute === 'google-review') {
-        initialBusinessData.google_maps = trimUrl;
-      } else if (config.landingRoute === 'payment') {
-        initialBusinessData.website = trimUrl;
-      } else {
-        // generic fallback
-        initialBusinessData.website = trimUrl;
-      }
-
-      const created = await cardService.createCard({
-        card_code:            trimCode.toUpperCase(),
-        nfc_uid:              nfcUid.trim() || undefined,
-        card_type:            singleCardType,
-        category_id:          singleCategoryId || undefined,
-        current_redirect_url: trimUrl,
-        business_data:        initialBusinessData,
-      });
-      setSuccessCount(1);
-      onSuccess([created]);
-    } catch (err) {
-      setSingleError(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setSingleLoading(false);
-    }
-  };
-
-  /* ────────────────────────────────── */
-  /*  Render                            */
-  /* ────────────────────────────────── */
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={successCount ? t('common.success') : 'إضافة كارت جديد'}
-      maxWidth="500px"
-    >
-      {/* ── Success Screen ── */}
-      {successCount ? (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 'var(--space-xl)',
-            textAlign: 'center',
-          }}
-        >
-          <CheckCircle2 size={52} style={{ color: 'var(--success-text)' }} />
-          <div>
-            <h3 className="text-title" style={{ fontSize: '1.25rem' }}>
-              {successCount === 1
-                ? 'تم إنشاء الكارت بنجاح! 🎉'
-                : t('cards.batchModal.toastSuccess', { count: successCount })}
-            </h3>
-            <p
-              className="text-body"
-              style={{ color: 'var(--text-secondary)', marginTop: 'var(--space-xs)' }}
-            >
-              {successCount === 1
-                ? 'تم إضافة الكارت إلى المخزون بنجاح.'
-                : t('cards.batchModal.summaryBody', { count: successCount })}
-            </p>
-          </div>
-          <Button variant="primary" fullWidth onClick={handleClose}>
-            {t('common.close')}
-          </Button>
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.5)', zIndex: 400 }} />
+      <div
+        dir="rtl"
+        style={{
+          position: 'fixed', top: '50%', left: '50%',
+          transform: 'translate(-50%,-50%)',
+          width: 'min(520px, calc(100vw - 32px))',
+          maxHeight: 'calc(100vh - 48px)',
+          backgroundColor: '#fff', borderRadius: '20px',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.22)',
+          display: 'flex', flexDirection: 'column',
+          zIndex: 401, fontFamily: 'Cairo, sans-serif',
+          animation: 'modalIn 220ms cubic-bezier(0.16,1,0.3,1) both',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header */}
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+          <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 900, color: '#0f172a' }}>إنشاء بطاقات جديدة</h2>
+          <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', borderRadius: '9px', width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
+            <X size={17} />
+          </button>
         </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
 
-          {/* ── Tab Switcher ── */}
-          <div
-            style={{
-              display: 'flex',
-              backgroundColor: '#f1f5f9',
-              borderRadius: '12px',
-              padding: '4px',
-              gap: '4px',
-            }}
-          >
-            <button
-              type="button"
-              style={tabStyle(activeTab === 'batch')}
-              onClick={() => setActiveTab('batch')}
-            >
-              <Layers size={16} />
-              إضافة عدة كروت
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '4px', padding: '12px 16px 0', flexShrink: 0 }}>
+          {([['batch', 'إنشاء مجموعة', <Layers size={15} />], ['single', 'بطاقة واحدة', <CreditCard size={15} />]] as const).map(([id, label, icon]) => (
+            <button key={id} onClick={() => setTab(id)} style={{
+              display: 'flex', alignItems: 'center', gap: '7px',
+              padding: '8px 16px', borderRadius: '9px', border: 'none',
+              cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontWeight: 700, fontSize: '0.875rem',
+              backgroundColor: tab === id ? '#6366f1' : '#f1f5f9',
+              color: tab === id ? '#fff' : '#64748b',
+              transition: 'all 150ms',
+            }}>
+              {icon}{label}
             </button>
-            <button
-              type="button"
-              style={tabStyle(activeTab === 'single')}
-              onClick={() => setActiveTab('single')}
-            >
-              <CreditCard size={16} />
-              إضافة كارت واحد
-            </button>
-          </div>
+          ))}
+        </div>
 
-          {/* ════════════════════════════════ */}
-          {/* TAB 1 – Batch (no data)         */}
-          {/* ════════════════════════════════ */}
-          {activeTab === 'batch' && (
-            <form
-              onSubmit={handleBatchSubmit}
-              style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}
-            >
-              {/* description chip */}
-              <div
-                style={{
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '10px 14px',
-                  fontSize: '0.8125rem',
-                  color: '#64748b',
-                  lineHeight: 1.5,
-                }}
-              >
-                سيتم إنشاء الكروت بدون بيانات تجارية، يمكنك تعيينها لاحقاً من صفحة المسح.
-              </div>
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
 
-              <Select
-                label="نوع الكارت *"
-                value={batchCardType}
-                onChange={(e) => setBatchCardType(e.target.value)}
-                options={typeOptions}
-              />
-
-              <Select
-                label="التصنيف (اختياري)"
-                value={batchCategoryId}
-                onChange={(e) => setBatchCategoryId(e.target.value)}
-                options={catOptions}
-              />
-
-              <Input
-                label={`${t('cards.batchModal.countLabel')} *`}
-                type="number"
-                min={1}
-                max={500}
-                step={1}
-                value={quantity}
-                onChange={(e) => {
-                  setQuantity(e.target.value);
-                  setBatchError(null);
-                }}
-                error={batchError || undefined}
-                helperText="من 1 إلى 500 كارت في المرة الواحدة"
-                required
-              />
-
-              {/* Summary Preview */}
-              {isValidNum && (
-                <div
-                  style={{
-                    padding: 'var(--space-md)',
-                    backgroundColor: 'var(--bg-surface-hover)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-md)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 'var(--space-xs)',
-                  }}
-                >
-                  <span className="text-label" style={{ color: 'var(--text-secondary)' }}>
-                    {t('cards.batchModal.summaryTitle')}
-                  </span>
-                  <span className="text-body-medium">
-                    {t('cards.batchModal.summaryBody', { count: numVal })}
-                  </span>
+          {/* ── BATCH TAB ── */}
+          {tab === 'batch' && (
+            bDone
+              ? <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+                  <CheckCircle2 size={52} style={{ color: '#10b981', marginBottom: '16px' }} />
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}>تم الإنشاء بنجاح!</h3>
+                  <p style={{ color: '#64748b', marginBottom: '24px' }}>تم إنشاء <strong style={{ color: '#6366f1' }}>{bCount}</strong> بطاقة جديدة.</p>
+                  <button onClick={handleDone} style={{ ...primBtn, margin: '0 auto' }}>عرض البطاقات</button>
                 </div>
-              )}
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  {bError && <div style={errBanner}>{bError}</div>}
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: 'var(--space-md)',
-                  marginTop: 'var(--space-sm)',
-                }}
-              >
-                <Button type="button" variant="secondary" onClick={handleClose}>
-                  {t('common.cancel')}
-                </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  isLoading={batchLoading}
-                  disabled={!isValidNum}
-                >
-                  <Layers size={16} /> {t('cards.batchModal.submit')}
-                </Button>
-              </div>
-            </form>
+                  <div>
+                    <label style={lbl}>الكمية (1 – 500)</label>
+                    <input type="number" min={1} max={500} value={qty} onChange={(e) => setQty(Number(e.target.value))} style={inp} />
+                  </div>
+
+                  <div>
+                    <label style={lbl}>نوع البطاقة</label>
+                    <select value={bType} onChange={(e) => setBType(e.target.value)} style={inp}>
+                      {CARD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={lbl}>التصنيف (اختياري)</label>
+                    <select value={bCat} onChange={(e) => setBCat(e.target.value)} style={inp}>
+                      <option value="">— بدون تصنيف —</option>
+                      {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                    </select>
+                  </div>
+
+                  <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px 14px', fontSize: '0.8125rem', color: '#1e40af' }}>
+                    💡 سيتم إنشاء {qty} بطاقة بأكواد تسلسلية تلقائية (CARD-XXXX + NFC-XXXXXX)
+                  </div>
+
+                  <button onClick={runBatch} disabled={bRunning} style={{ ...primBtn, justifyContent: 'center', opacity: bRunning ? 0.7 : 1, cursor: bRunning ? 'not-allowed' : 'pointer' }}>
+                    {bRunning ? <><RefreshCw size={16} className="spin" /> جاري الإنشاء...</> : <><Plus size={16} /> إنشاء {qty} بطاقة</>}
+                  </button>
+                </div>
           )}
 
-          {/* ════════════════════════════════ */}
-          {/* TAB 2 – Single card with data   */}
-          {/* ════════════════════════════════ */}
-          {activeTab === 'single' && (
-            <form
-              onSubmit={handleSingleSubmit}
-              style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}
-            >
-              <Input
-                label="كود الكارت *"
-                placeholder="CARD-0001"
-                helperText="الصيغة: CARD-XXXX"
-                value={cardCode}
-                onChange={(e) => {
-                  setCardCode(e.target.value);
-                  setSingleError(null);
-                }}
-                required
-              />
+          {/* ── SINGLE TAB ── */}
+          {tab === 'single' && (
+            sDone
+              ? <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+                  <CheckCircle2 size={52} style={{ color: '#10b981', marginBottom: '16px' }} />
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}>تم الإنشاء!</h3>
+                  <p style={{ color: '#64748b', marginBottom: '24px' }}>تم إنشاء البطاقة <strong style={{ color: '#6366f1' }}>{sCode}</strong> بنجاح.</p>
+                  <button onClick={handleDone} style={{ ...primBtn, margin: '0 auto' }}>عرض البطاقات</button>
+                </div>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {sError && <div style={errBanner}>{sError}</div>}
 
-              <Input
-                label="NFC UID"
-                placeholder="NFC-7FJ2K9"
-                helperText="اختياري — المعرّف الفيزيائي للشريحة"
-                value={nfcUid}
-                onChange={(e) => setNfcUid(e.target.value)}
-              />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={lbl}>كود البطاقة * (CARD-XXXX)</label>
+                      <input value={sCode} onChange={(e) => setSCode(e.target.value)} placeholder="CARD-0001" style={inp} />
+                    </div>
+                    <div>
+                      <label style={lbl}>معرف NFC (اختياري)</label>
+                      <input value={sNfc} onChange={(e) => setSNfc(e.target.value)} placeholder="NFC-7FJ2K9" style={inp} />
+                    </div>
+                  </div>
 
-              <Select
-                label="نوع الكارت *"
-                value={singleCardType}
-                onChange={(e) => setSingleCardType(e.target.value)}
-                options={typeOptions}
-              />
+                  <div>
+                    <label style={lbl}>نوع البطاقة *</label>
+                    <select value={sType} onChange={(e) => setSType(e.target.value)} style={inp}>
+                      {CARD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
 
-              <Select
-                label="التصنيف (اختياري)"
-                value={singleCategoryId}
-                onChange={(e) => setSingleCategoryId(e.target.value)}
-                options={catOptions}
-              />
+                  <div>
+                    <label style={lbl}>رابط التوجيه *</label>
+                    <input value={sUrl} onChange={(e) => setSUrl(e.target.value)} placeholder="https://..." style={inp} />
+                  </div>
 
-              <Input
-                label="رابط التوجيه *"
-                placeholder="https://g.page/r/..."
-                value={redirectUrl}
-                onChange={(e) => {
-                  setRedirectUrl(e.target.value);
-                  setSingleError(null);
-                }}
-                error={singleError || undefined}
-                required
-              />
+                  <div>
+                    <label style={lbl}>التصنيف (اختياري)</label>
+                    <select value={sCat} onChange={(e) => setSCat(e.target.value)} style={inp}>
+                      <option value="">— بدون تصنيف —</option>
+                      {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                    </select>
+                  </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: 'var(--space-md)',
-                  marginTop: 'var(--space-sm)',
-                }}
-              >
-                <Button type="button" variant="secondary" onClick={handleClose}>
-                  {t('common.cancel')}
-                </Button>
-                <Button type="submit" variant="primary" isLoading={singleLoading}>
-                  <Plus size={16} /> حفظ
-                </Button>
-              </div>
-            </form>
+                  <div>
+                    <label style={lbl}>اسم النشاط التجاري (اختياري)</label>
+                    <input value={sBizName} onChange={(e) => setSBizName(e.target.value)} placeholder="مثال: Coffee House" style={inp} />
+                  </div>
+
+                  <button onClick={runSingle} disabled={sRunning} style={{ ...primBtn, justifyContent: 'center', opacity: sRunning ? 0.7 : 1, cursor: sRunning ? 'not-allowed' : 'pointer' }}>
+                    {sRunning ? <><RefreshCw size={16} className="spin" /> جاري الإنشاء...</> : <><Plus size={16} /> إنشاء البطاقة</>}
+                  </button>
+                </div>
           )}
-
         </div>
-      )}
-    </Modal>
+      </div>
+    </>
   );
+};
+
+// ── Style atoms ────────────────────────────────────────────────────────────
+const primBtn: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '8px',
+  padding: '11px 22px', borderRadius: '11px', border: 'none',
+  background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+  color: '#fff', fontFamily: 'Cairo, sans-serif', fontWeight: 800, fontSize: '0.9375rem',
+  boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
+};
+
+const lbl: React.CSSProperties = {
+  display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#334155', marginBottom: '6px',
+};
+
+const inp: React.CSSProperties = {
+  width: '100%', boxSizing: 'border-box',
+  padding: '9px 12px', borderRadius: '9px', border: '1.5px solid #e2e8f0',
+  fontSize: '0.9rem', fontFamily: 'Cairo, sans-serif', color: '#0f172a',
+  backgroundColor: '#f8fafc', outline: 'none',
+};
+
+const errBanner: React.CSSProperties = {
+  backgroundColor: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '10px',
+  padding: '10px 14px', fontSize: '0.875rem', fontWeight: 700, color: '#991b1b',
 };

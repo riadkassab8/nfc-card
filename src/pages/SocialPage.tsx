@@ -1,213 +1,84 @@
+/* ==========================================================================
+   SOCIAL PAGE  /social/:code
+   Resolves a card and renders the PublicCardView if it has business_data.
+   ========================================================================== */
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { cardService } from '../services';
-import { CardItem } from '../types';
+import { cardsApi } from '../services';
+import { ApiCard } from '../types';
 import { PublicCardView } from '../components/public/PublicCardView';
-import { Skeleton, Button } from '../components/ui';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
+type State = 'loading' | 'ok' | 'not_found' | 'no_data' | 'error';
+
 export const SocialPage: React.FC = () => {
-  const { publicCode } = useParams<{ publicCode?: string }>();
+  const { publicCode } = useParams<{ publicCode: string }>();
+  const [card, setCard]   = useState<ApiCard | null>(null);
+  const [state, setState] = useState<State>('loading');
 
-  const [loading, setLoading] = useState<boolean>(true);
-  const [card, setCard] = useState<CardItem | null>(null);
-  const [errorState, setErrorState] = useState<'none' | 'not_found' | 'wrong_type' | 'error'>('none');
-
-  const fetchCardData = async () => {
-    if (!publicCode || publicCode.trim().length === 0) {
-      setErrorState('not_found');
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setErrorState('none');
-
+  const load = async () => {
+    if (!publicCode?.trim()) { setState('not_found'); return; }
+    setState('loading');
     try {
-      const resolvedCard = await cardService.resolveCardByPayload(publicCode.trim());
-      if (resolvedCard) {
-        // Only Social Page card_type should render this page
-        // We render if the card exists and has business_data
-        if (resolvedCard.business_data) {
-          setCard(resolvedCard);
-        } else {
-          // Card exists but has no business_data
-          setErrorState('wrong_type');
-        }
-      } else {
-        setErrorState('not_found');
+      const res = await cardsApi.getCards({ search: publicCode.trim(), limit: 5 });
+      const found = (res.data ?? []).find(
+        (c) => c.card_code.toLowerCase() === publicCode.toLowerCase() ||
+               (c.nfc_uid && c.nfc_uid.toLowerCase() === publicCode.toLowerCase()),
+      ) ?? res.data?.[0] ?? null;
+
+      if (!found)                   { setState('not_found'); return; }
+      if (!found.business_data || !Object.values(found.business_data).some(Boolean)) {
+        setState('no_data'); return;
       }
-    } catch (err) {
-      console.error('Failed to resolve social page:', err);
-      setErrorState('error');
-    } finally {
-      setLoading(false);
+      setCard(found); setState('ok');
+    } catch {
+      setState('error');
     }
   };
 
-  useEffect(() => {
-    fetchCardData();
-  }, [publicCode]);
+  useEffect(() => { load(); }, [publicCode]);
 
-  // 1. LOADING SKELETON STATE
-  if (loading) {
-    return (
-      <div
-        dir="rtl"
-        style={{
-          minHeight: '100vh',
-          backgroundColor: '#fafafa',
-          padding: '40px 20px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '24px',
-        }}
-      >
-        <div style={{ width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          <Skeleton style={{ width: '100px', height: '100px', borderRadius: '50%', border: '4px solid #ffffff' }} />
-          <Skeleton style={{ width: '200px', height: '28px', borderRadius: '8px', marginTop: '8px' }} />
-          <Skeleton style={{ width: '120px', height: '20px', borderRadius: '9999px', marginTop: '4px' }} />
-          
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '32px' }}>
-            <Skeleton style={{ width: '100%', height: '80px', borderRadius: '16px' }} />
-            <Skeleton style={{ width: '100%', height: '80px', borderRadius: '16px' }} />
-            <Skeleton style={{ width: '100%', height: '80px', borderRadius: '16px' }} />
-          </div>
-        </div>
+  if (state === 'ok' && card) return <PublicCardView card={card} />;
+
+  return (
+    <div dir="rtl" style={{ minHeight: '100vh', backgroundColor: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Cairo, sans-serif' }}>
+      <div style={{ maxWidth: '400px', width: '100%', backgroundColor: '#fff', borderRadius: '20px', padding: '36px 28px', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.08)', textAlign: 'center' }}>
+
+        {state === 'loading' && (
+          <>
+            <div style={{ width: '44px', height: '44px', borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#6366f1', animation: 'spin 0.65s linear infinite', margin: '0 auto 20px' }} />
+            <p style={{ color: '#64748b', fontWeight: 600 }}>جاري التحميل...</p>
+          </>
+        )}
+
+        {(state === 'not_found' || state === 'no_data') && (
+          <>
+            <div style={{ width: '60px', height: '60px', borderRadius: '16px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+              <AlertCircle size={30} style={{ color: '#ef4444' }} />
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}>
+              {state === 'not_found' ? 'الكارت غير موجود' : 'لا توجد بيانات'}
+            </h2>
+            <p style={{ color: '#64748b', fontSize: '0.9375rem' }}>
+              {state === 'not_found' ? 'هذا الكارت غير متوفر أو تم حذفه.' : 'هذا الكارت لا يحتوي على صفحة تواصل اجتماعي.'}
+            </p>
+          </>
+        )}
+
+        {state === 'error' && (
+          <>
+            <div style={{ width: '60px', height: '60px', borderRadius: '16px', backgroundColor: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+              <AlertCircle size={30} style={{ color: '#f97316' }} />
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}>خطأ في الاتصال</h2>
+            <p style={{ color: '#64748b', fontSize: '0.9375rem', marginBottom: '20px' }}>تعذر تحميل البيانات. تحقق من الإنترنت.</p>
+            <button onClick={load} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '10px 22px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontWeight: 800 }}>
+              <RefreshCw size={16} /> إعادة المحاولة
+            </button>
+          </>
+        )}
       </div>
-    );
-  }
-
-  // 2. NOT FOUND STATE
-  if (errorState === 'not_found' || (!card && errorState === 'none')) {
-    return (
-      <div
-        dir="rtl"
-        style={{
-          minHeight: '100vh',
-          backgroundColor: '#fafafa',
-          padding: '40px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-        }}
-      >
-        <div style={{
-          backgroundColor: '#ffffff',
-          padding: '40px 32px',
-          borderRadius: '24px',
-          boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05)',
-          maxWidth: '420px',
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '16px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-            <AlertCircle size={32} style={{ color: '#ef4444' }} />
-          </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>
-            عذراً، الكارت غير موجود
-          </h2>
-          <p style={{ color: '#64748b', marginBottom: '24px', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-            هذا الكارت غير متوفر أو تم حذفه من النظام. يرجى التأكد من مسح الرمز الصحيح.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // 3. WRONG TYPE STATE
-  if (errorState === 'wrong_type') {
-    return (
-      <div
-        dir="rtl"
-        style={{
-          minHeight: '100vh',
-          backgroundColor: '#fafafa',
-          padding: '40px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-        }}
-      >
-        <div style={{
-          backgroundColor: '#ffffff',
-          padding: '40px 32px',
-          borderRadius: '24px',
-          boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05)',
-          maxWidth: '420px',
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '16px', backgroundColor: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-            <AlertCircle size={32} style={{ color: '#f97316' }} />
-          </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>
-            هذا الكارت ليس صفحة تواصل اجتماعي
-          </h2>
-          <p style={{ color: '#64748b', marginBottom: '24px', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-            هذا الكارت من نوع مختلف ولا يحتوي على صفحة تواصل اجتماعي.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // 4. ERROR STATE
-  if (errorState === 'error') {
-    return (
-      <div
-        dir="rtl"
-        style={{
-          minHeight: '100vh',
-          backgroundColor: '#fafafa',
-          padding: '40px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-        }}
-      >
-        <div style={{
-          backgroundColor: '#ffffff',
-          padding: '40px 32px',
-          borderRadius: '24px',
-          boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05)',
-          maxWidth: '420px',
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '16px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-            <AlertCircle size={32} style={{ color: '#ef4444' }} />
-          </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>
-            خطأ في الاتصال
-          </h2>
-          <p style={{ color: '#64748b', marginBottom: '24px', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-            حدث خطأ أثناء محاولة جلب بيانات الكارت. يرجى المحاولة مرة أخرى.
-          </p>
-          <Button 
-            onClick={fetchCardData}
-            style={{ backgroundColor: '#065f46', marginTop: '8px' }}
-          >
-            <RefreshCw size={16} /> إعادة المحاولة
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // 5. SUCCESS STATE: Render Public Card View
-  return <PublicCardView card={card!} />;
+    </div>
+  );
 };

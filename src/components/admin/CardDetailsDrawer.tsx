@@ -1,885 +1,525 @@
-import React, { useState, useEffect } from 'react';
-import { Drawer, Button, Input, Select } from '../ui';
-import { CardItem, ApiUpdateCardDto, ApiCategory, ApiLookupEntry } from '../../types';
-import {
-  Download,
-  Cpu,
-  Building2,
-  Copy,
-  Check,
-  RefreshCw,
-  Save,
-  Link as LinkIcon,
-  Eye,
-  CreditCard,
-  QrCode as QrIcon,
-  Power,
-  Trash2,
-  Printer,
-  Edit2,
-  X,
-  ShieldCheck,
-} from 'lucide-react';
-import { generateRealQRCode, decodeQRCodeDataUrl, getCardPublicUrl } from '../../utils/qrGenerator';
-import { getCategoryConfig, resolveLandingUrl } from '../../config/CategoryRegistry';
-import { cardService } from '../../services';
-import { PhysicalCardPreview } from './PhysicalCardPreview';
-import { DigitalProfilePreview } from '../digital-profile';
-import { cardsApi, categoriesApi, apiClient } from '../../services/api';
+/* ==========================================================================
+   CARD DETAILS DRAWER
+   Tabs: info | redirect | qr | history
+   All API calls use cardsApi directly — no service layer in between.
+   ========================================================================== */
 
+import React, { useState, useEffect, useCallback } from 'react';
+import { cardsApi } from '../../services';
+import {
+  ApiCard, ApiCategory, ApiCardHistory, ApiUpdateCardDto,
+  BusinessData, CARD_TYPES, fmtDate, isSubscriptionExpired,
+  getPopulatedCategory, getCategoryId,
+} from '../../types';
+import {
+  X, Info, Link as LinkIcon, QrCode, History,
+  Copy, Check, Download, Power, Trash2, RefreshCw,
+  Save, Edit2, ExternalLink,
+} from 'lucide-react';
+import QRCode from 'qrcode';
+
+type ToastType = 'success' | 'error' | 'info';
+type Tab = 'info' | 'redirect' | 'qr' | 'history';
+
+// ── Props ─────────────────────────────────────────────────────────────────
 export interface CardDetailsDrawerProps {
-  isOpen: boolean;
+  card: ApiCard | null;
+  categories: ApiCategory[];
   onClose: () => void;
-  card: CardItem | null;
-  onAssignRequest?: (card: CardItem) => void;
-  onCardUpdated?: (card: CardItem) => void;
-  onCardDeleted?: (cardId: string) => void;
+  onUpdated: (card: ApiCard) => void;
+  onDeleted: (id: string) => void;
+  onToast: (msg: string, type?: ToastType) => void;
 }
 
-/* ── helper ── */
-const fmtDate = (iso?: string) =>
-  iso
-    ? new Date(iso).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
-    : '—';
+// ── Field row ─────────────────────────────────────────────────────────────
+const Field: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#0f172a', wordBreak: 'break-all' }}>{value || <span style={{ color: '#cbd5e1' }}>—</span>}</span>
+  </div>
+);
 
+// ── Tab button ────────────────────────────────────────────────────────────
+const TabBtn: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
+  <button onClick={onClick} style={{
+    display: 'flex', alignItems: 'center', gap: '6px',
+    padding: '9px 14px', borderRadius: '9px', border: 'none',
+    cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: '0.8125rem', fontWeight: 700,
+    backgroundColor: active ? '#6366f1' : 'transparent',
+    color: active ? '#fff' : '#64748b',
+    transition: 'all 150ms',
+  }}>
+    {icon} {label}
+  </button>
+);
 
-/* ──────────────────────────────────────────── */
+// ── Main ──────────────────────────────────────────────────────────────────
 export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
-  isOpen,
-  onClose,
-  card,
-  onAssignRequest,
-  onCardUpdated,
-  onCardDeleted,
+  card, categories, onClose, onUpdated, onDeleted, onToast,
 }) => {
-  /* ── tabs ── */
-  const [activeTab, setActiveTab] = useState<'info' | 'link' | 'qr' | 'print'>('info');
+  const [tab, setTab]             = useState<Tab>('info');
+  // Redirect tab
+  const [newUrl, setNewUrl]       = useState('');
+  const [savingUrl, setSavingUrl] = useState(false);
 
-  /* ── QR ── */
-  const [qrDataUrl, setQrDataUrl]     = useState<string | null>(null);
-  const [qrSvgString, setQrSvgString] = useState<string | null>(null);
-  const [decodedResult, setDecodedResult] = useState<{ success: boolean; decodedPayload: string | null } | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
+  // QR tab
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
 
-  /* ── redirect url editor ── */
-  const [redirectUrl, setRedirectUrl]     = useState('');
-  const [isSavingUrl, setIsSavingUrl]     = useState(false);
-  const [urlSaved, setUrlSaved]           = useState(false);
+  // History tab
+  const [history, setHistory]     = useState<ApiCardHistory[]>([]);
+  const [histLoading, setHistLoading] = useState(false);
+  const [histLoaded, setHistLoaded]   = useState(false);
 
-  /* ── dynamic data ── */
-  const [categories, setCategories] = useState<ApiCategory[]>([]);
-  const [cardTypes, setCardTypes] = useState<ApiLookupEntry[]>([]);
+  // Edit mode (info tab)
+  const [editMode, setEditMode]         = useState(false);
+  const [editType, setEditType]         = useState('');
+  const [editNfc, setEditNfc]           = useState('');
+  const [editCat, setEditCat]           = useState('');
+  const [editSaving, setEditSaving]     = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      const loadData = async () => {
-        try {
-          const [catsRes, typesRes] = await Promise.all([
-            categoriesApi.getCategories({ limit: 100 }),
-            apiClient<ApiLookupEntry[]>('/lookup/group/card_type'),
-          ]);
-          setCategories(catsRes.data || []);
-          setCardTypes(typesRes || []);
-        } catch (err) {
-          console.error('Failed to load categories/types:', err);
-        }
-      };
-      loadData();
-    }
-  }, [isOpen]);
-
-  const typeOptions = cardTypes.length > 0 
-    ? cardTypes.map(t => ({ value: t.key, label: t.label }))
-    : [
-        { value: 'Google Review', label: '🌟 تقييمات جوجل (Google Review)' },
-        { value: 'Instagram',     label: '🌐 تواصل اجتماعي (Social)' },
-        { value: 'InstaPay',      label: '💳 دفع (Payment)' },
-        { value: 'Social Page',   label: '📱 صفحة تواصل اجتماعي (Social Page)' },
-      ];
-      
-  const catOptions = [
-    { value: '', label: '-- بدون تصنيف --' },
-    ...categories.map(c => ({ value: c._id, label: c.name }))
-  ];
-
-  /* ── edit card fields ── */
-  const [editMode, setEditMode]           = useState(false);
-  const [editCardCode, setEditCardCode]   = useState('');
-  const [editNfcUid, setEditNfcUid]       = useState('');
-  const [editCardType, setEditCardType]   = useState<string>('Google Review');
-  const [editCategoryId, setEditCategoryId] = useState<string>('');
-  const [isSavingEdit, setIsSavingEdit]   = useState(false);
-  const [editSavedMsg, setEditSavedMsg]   = useState<string | null>(null);
-
-  /* ── toggle / renew / delete ── */
-  const [isToggling, setIsToggling]       = useState(false);
-  const [isRenewing, setIsRenewing]       = useState(false);
-  const [isDeleting, setIsDeleting]       = useState(false);
+  // Delete confirm
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting]           = useState(false);
 
-  /* ── misc ── */
-  const [copiedLink, setCopiedLink]       = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [toastMsg, setToastMsg]           = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  // Renew / toggle
+  const [toggling, setToggling]   = useState(false);
+  const [renewing, setRenewing]   = useState(false);
 
-  /* ────────────────────────────────── */
-  const showToast = (type: 'success' | 'error', text: string) => {
-    setToastMsg({ type, text });
-    setTimeout(() => setToastMsg(null), 3000);
-  };
+  // Copy
+  const [copied, setCopied]       = useState<string | null>(null);
 
-  const generateQR = async (url: string) => {
-    setIsVerifying(true);
-    const result = await generateRealQRCode(url);
-    setQrDataUrl(result.dataUrl);
-    setQrSvgString(result.svgString);
-    const dec = await decodeQRCodeDataUrl(result.dataUrl);
-    setDecodedResult(dec);
-    setIsVerifying(false);
-  };
+  // ── Reset on card change ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!card) return;
+    setTab('info');
+    setEditMode(false);
+    setConfirmDelete(false);
+    setNewUrl(card.current_redirect_url || '');
+    setEditType(card.card_type || '');
+    setEditNfc(card.nfc_uid || '');
+    setEditCat(getCategoryId(card.category_id) || '');
+    setQrDataUrl(null);
+    setHistory([]);
+    setHistLoaded(false);
+  }, [card]);
+
+  // ── Generate QR when tab opens ─────────────────────────────────────────
+  const genQr = useCallback(async (url: string) => {
+    setQrLoading(true);
+    try {
+      const dataUrl = await QRCode.toDataURL(url, { width: 360, margin: 2, errorCorrectionLevel: 'H' });
+      setQrDataUrl(dataUrl);
+    } catch {
+      setQrDataUrl(null);
+    } finally {
+      setQrLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (card && isOpen) {
-      const url = getCardPublicUrl(card);
-      setRedirectUrl(url);
-      setActiveTab('info');
-      setEditMode(false);
-      setConfirmDelete(false);
-      setEditCardCode(card.card_code);
-      setEditNfcUid(card.nfc?.identifier || '');
-      setEditCardType(card.card_type || '');
-      setEditCategoryId((typeof card.category_id === 'string' ? card.category_id : card.category_id?._id) || '');
-      generateQR(url);
+    if (tab === 'qr' && card && !qrDataUrl) {
+      genQr(card.current_redirect_url);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card, isOpen]);
+  }, [tab, card, qrDataUrl, genQr]);
+
+  // ── Load history when tab opens ────────────────────────────────────────
+  useEffect(() => {
+    if (tab === 'history' && card && !histLoaded) {
+      setHistLoading(true);
+      cardsApi.getCardHistory(card._id)
+        .then((h) => { setHistory(h); setHistLoaded(true); })
+        .catch(() => { /* silently fail */ })
+        .finally(() => setHistLoading(false));
+    }
+  }, [tab, card, histLoaded]);
 
   if (!card) return null;
 
-  const isActive  = card.status === 'ACTIVE';
+  const isActive  = card.status === 'active';
+  const expired   = isSubscriptionExpired(card);
   const staticUrl = `https://smart-card-qr-api.koyeb.app/r/${card.card_code}`;
+  const cat       = getPopulatedCategory(card.category_id);
 
-  /* ── handlers ── */
+  const copyText = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  // ── Actions ─────────────────────────────────────────────────────────────
   const handleSaveUrl = async () => {
-    if (!redirectUrl.trim()) return;
-    setIsSavingUrl(true);
+    if (!newUrl.trim()) return;
+    setSavingUrl(true);
     try {
-      const updated = await cardService.updateCardPublicUrl(card.id, redirectUrl.trim());
-      onCardUpdated?.(updated);
-      await generateQR(redirectUrl.trim());
-      setUrlSaved(true);
-      setTimeout(() => setUrlSaved(false), 2500);
-      showToast('success', '✅ تم تغيير رابط التوجيه بنجاح');
-    } catch {
-      showToast('error', '❌ فشل تحديث الرابط');
+      const updated = await cardsApi.changeRedirect(card._id, newUrl.trim());
+      onUpdated(updated);
+      onToast('✅ تم تغيير رابط التوجيه');
+      setQrDataUrl(null); // regenerate QR
+    } catch (err: any) {
+      onToast(err?.message || 'فشل تحديث الرابط', 'error');
     } finally {
-      setIsSavingUrl(false);
+      setSavingUrl(false);
     }
   };
 
   const handleSaveEdit = async () => {
-    if (!editCardCode.trim()) return;
-    setIsSavingEdit(true);
-    const dto: ApiUpdateCardDto = {
-      card_type: editCardType,
-      nfc_uid:   editNfcUid.trim() || undefined,
-      category_id: editCategoryId || undefined,
-    };
+    setEditSaving(true);
     try {
-      const updated = await cardsApi.updateCard(card.id, dto);
-      const { apiCardToCardItem } = await import('../../types');
-      const mapped = apiCardToCardItem(updated);
-      onCardUpdated?.(mapped);
+      const dto: ApiUpdateCardDto = {
+        card_type:   editType || undefined,
+        nfc_uid:     editNfc.trim() || undefined,
+        category_id: editCat || undefined,
+      };
+      const updated = await cardsApi.updateCard(card._id, dto);
+      onUpdated(updated);
       setEditMode(false);
-      setEditSavedMsg('✅ تم حفظ التعديلات');
-      setTimeout(() => setEditSavedMsg(null), 2500);
-      showToast('success', '✅ تم تحديث بيانات الكارت');
-    } catch {
-      showToast('error', '❌ فشل حفظ التعديلات');
+      onToast('✅ تم حفظ التعديلات');
+    } catch (err: any) {
+      onToast(err?.message || 'فشل الحفظ', 'error');
     } finally {
-      setIsSavingEdit(false);
+      setEditSaving(false);
     }
   };
 
   const handleToggle = async () => {
-    setIsToggling(true);
+    setToggling(true);
     try {
-      const updated = await cardService.toggleCardStatus(card.id);
-      onCardUpdated?.(updated);
-      showToast('success', updated.status === 'ACTIVE' ? '🟢 تم تفعيل الكارت' : '🔴 تم إيقاف الكارت');
-    } catch {
-      showToast('error', '❌ فشل تغيير الحالة');
+      const updated = await cardsApi.toggleCard(card._id);
+      onUpdated(updated);
+      onToast(updated.status === 'active' ? '🟢 تم تفعيل البطاقة' : '🔴 تم تعطيل البطاقة');
+    } catch (err: any) {
+      onToast(err?.message || 'فشل تغيير الحالة', 'error');
     } finally {
-      setIsToggling(false);
+      setToggling(false);
     }
   };
 
   const handleRenew = async () => {
-    setIsRenewing(true);
+    setRenewing(true);
     try {
-      const updated = await cardService.renewCardSubscription(card.id);
-      onCardUpdated?.(updated);
-      showToast('success', '🔁 تم تجديد الاشتراك سنة إضافية');
-    } catch {
-      showToast('error', '❌ فشل تجديد الاشتراك');
+      const updated = await cardsApi.renewCard(card._id);
+      onUpdated(updated);
+      onToast('🔁 تم تجديد الاشتراك سنة إضافية');
+    } catch (err: any) {
+      onToast(err?.message || 'فشل التجديد', 'error');
     } finally {
-      setIsRenewing(false);
+      setRenewing(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirmDelete) { setConfirmDelete(true); return; }
-    setIsDeleting(true);
+    setDeleting(true);
     try {
-      await cardService.deleteCard(card.id);
-      onCardDeleted?.(card.id);
+      await cardsApi.deleteCard(card._id);
+      onDeleted(card._id);
+      onToast(`🗑️ تم حذف ${card.card_code}`);
       onClose();
-    } catch {
-      showToast('error', '❌ فشل حذف الكارت');
-      setIsDeleting(false);
+    } catch (err: any) {
+      onToast(err?.message || 'فشل الحذف', 'error');
+    } finally {
+      setDeleting(false);
       setConfirmDelete(false);
     }
   };
 
-  const handleDownloadQR = async () => {
+  const downloadQrPng = async () => {
     try {
-      const blob = await cardsApi.getCardQrBlob(card.id);
+      const blob = await cardsApi.getCardQrBlob(card._id);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = `qr-${card.card_code}.png`;
       document.body.appendChild(a); a.click();
       document.body.removeChild(a); URL.revokeObjectURL(url);
     } catch {
-      if (!qrSvgString) return;
-      const blob = new Blob([qrSvgString], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `qr-${card.card_code}.svg`;
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a); URL.revokeObjectURL(url);
+      onToast('فشل تحميل QR', 'error');
     }
   };
 
-  const copyStatic = () => {
-    navigator.clipboard.writeText(staticUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
-
-  /* ── Tab button style ── */
-  const tabBtn = (key: typeof activeTab): React.CSSProperties => ({
-    flex: 1,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    gap: '5px',
-    padding: '9px 6px',
-    borderRadius: '8px',
-    fontSize: '0.775rem',
-    fontWeight: activeTab === key ? 800 : 600,
-    backgroundColor: activeTab === key ? '#0f172a' : 'transparent',
-    color: activeTab === key ? '#dfb75c' : '#64748b',
-    border: 'none', cursor: 'pointer',
-    transition: 'all 150ms ease-out',
-    whiteSpace: 'nowrap',
-  });
-
-  /* ── info row helper ── */
-  /* ── info row helper (removed unused InfoRow) ── */
-
-  /* ────────────────────────────────── */
+  // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title="تفاصيل الكارت" width="540px">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '24px' }}>
+    <>
+      {/* Overlay */}
+      <div
+        onClick={onClose}
+        style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.45)', zIndex: 300 }}
+      />
 
-        {/* ── Toast ── */}
-        {toastMsg && (
-          <div style={{
-            position: 'sticky', top: 0, zIndex: 10,
-            padding: '10px 16px', borderRadius: '10px', fontWeight: 700, fontSize: '0.875rem',
-            backgroundColor: toastMsg.type === 'success' ? '#d1fae5' : '#fee2e2',
-            color: toastMsg.type === 'success' ? '#065f46' : '#991b1b',
-            border: `1px solid ${toastMsg.type === 'success' ? '#a7f3d0' : '#fca5a5'}`,
-          }}>
-            {toastMsg.text}
-          </div>
-        )}
-
-        {/* ── Hero Banner ── */}
-        <div style={{
-          background: 'linear-gradient(135deg, #090d16 0%, #1a2540 100%)',
-          border: '1px solid rgba(223,183,92,0.25)',
-          borderRadius: '18px',
-          padding: '20px 22px',
-          color: '#fff',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.22)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
-          {/* decorative glow */}
-          <div style={{
-            position: 'absolute', insetInlineEnd: '-30px', top: '-30px',
-            width: '120px', height: '120px', borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(223,183,92,0.12) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }} />
-
-          {/* top row: status badge + type badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
-            {/* Status */}
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              backgroundColor: isActive ? 'rgba(16,185,129,0.18)' : 'rgba(239,68,68,0.18)',
-              color: isActive ? '#34d399' : '#f87171',
-              padding: '4px 12px', borderRadius: '99px',
-              fontSize: '0.8rem', fontWeight: 700,
-              border: `1px solid ${isActive ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)'}`,
-            }}>
-              <span style={{
-                width: '7px', height: '7px', borderRadius: '50%',
-                backgroundColor: isActive ? '#34d399' : '#f87171',
-                flexShrink: 0,
-              }} />
-              {isActive ? 'نشط' : 'متوقف'}
-            </span>
-
-            {/* Type */}
-            {(() => {
-              return (
-                <span style={{
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  color: '#e2e8f0',
-                  padding: '4px 12px', borderRadius: '99px',
-                  fontSize: '0.8rem', fontWeight: 700,
-                  border: '1px solid rgba(255,255,255,0.15)',
-                }}>
-                  {card.card_type}
-                </span>
-              );
-            })()}
-
-            {/* Preview Button */}
-            <a
-              href={resolveLandingUrl(card.public_code, getCategoryConfig(typeof card.category_id === 'string' ? card.category_id : card.category_id?._id, categories))}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                backgroundColor: 'rgba(255,255,255,0.95)',
-                color: '#0f172a',
-                padding: '4px 12px', borderRadius: '99px',
-                fontSize: '0.8rem', fontWeight: 700,
-                textDecoration: 'none',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                transition: 'all 0.2s',
-                marginInlineStart: 'auto',
-              }}
-            >
-              👁️ معاينة الكارت
-            </a>
-          </div>
-
-          {/* bottom row: card code (right) + NFC (left in RTL) */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '12px' }}>
-            <div>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginBottom: '3px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>NFC UID</div>
-              <div style={{ fontSize: '0.875rem', fontFamily: 'monospace', color: '#94a3b8', letterSpacing: '0.04em' }}>
-                {card.nfc.identifier}
-              </div>
-            </div>
-            <div style={{ textAlign: 'end' }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginBottom: '3px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>كود الكارت</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#dfb75c', fontFamily: 'monospace', letterSpacing: '0.03em' }}>
-                {card.card_code}
-              </div>
+      {/* Panel */}
+      <div
+        dir="rtl"
+        style={{
+          position: 'fixed', top: 0, right: 0, bottom: 0,
+          width: 'min(520px, 100vw)',
+          backgroundColor: '#fff', zIndex: 301,
+          display: 'flex', flexDirection: 'column',
+          boxShadow: '-8px 0 40px rgba(15,23,42,0.15)',
+          fontFamily: 'Cairo, sans-serif',
+          animation: 'drawerInLtr 250ms cubic-bezier(0.16,1,0.3,1) both',
+        }}
+      >
+        {/* Header */}
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 900, color: '#0f172a' }}>{card.card_code}</h2>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '5px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.72rem', padding: '2px 9px', borderRadius: '99px', backgroundColor: '#f1f5f9', color: '#334155', fontWeight: 700 }}>{card.card_type}</span>
+              <span style={{ fontSize: '0.72rem', padding: '2px 9px', borderRadius: '99px', fontWeight: 700, backgroundColor: isActive ? '#d1fae5' : '#fee2e2', color: isActive ? '#047857' : '#dc2626' }}>
+                {isActive ? '🟢 نشطة' : '🔴 معطلة'}
+              </span>
+              {expired && <span style={{ fontSize: '0.72rem', padding: '2px 9px', borderRadius: '99px', fontWeight: 700, backgroundColor: '#fef3c7', color: '#d97706' }}>⚠️ منتهية الاشتراك</span>}
             </div>
           </div>
-        </div>
-
-        {/* ── Tabs ── */}
-        <div style={{
-          display: 'flex', backgroundColor: '#f1f5f9',
-          padding: '4px', borderRadius: '12px', border: '1px solid #e2e8f0', gap: '3px',
-        }}>
-          <button type="button" style={tabBtn('info')}    onClick={() => setActiveTab('info')}>
-            <CreditCard size={14} /> معلومات
-          </button>
-          <button type="button" style={tabBtn('link')}    onClick={() => setActiveTab('link')}>
-            <LinkIcon size={14} /> الرابط
-          </button>
-          <button type="button" style={tabBtn('qr')}      onClick={() => setActiveTab('qr')}>
-            <QrIcon size={14} /> QR Code
-          </button>
-          <button type="button" style={tabBtn('print')}   onClick={() => setActiveTab('print')}>
-            <Printer size={14} /> الطباعة
+          <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', borderRadius: '9px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', flexShrink: 0 }}>
+            <X size={18} />
           </button>
         </div>
 
-        {/* ═══════════════════════════════════════ */}
-        {/* TAB: INFO                               */}
-        {/* ═══════════════════════════════════════ */}
-        {activeTab === 'info' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* Tabs */}
+        <div style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '4px', flexShrink: 0, overflowX: 'auto' }}>
+          <TabBtn active={tab === 'info'}     onClick={() => setTab('info')}     icon={<Info size={14} />}     label="المعلومات" />
+          <TabBtn active={tab === 'redirect'} onClick={() => setTab('redirect')} icon={<LinkIcon size={14} />}  label="رابط التوجيه" />
+          <TabBtn active={tab === 'qr'}       onClick={() => setTab('qr')}       icon={<QrCode size={14} />}   label="رمز QR" />
+          <TabBtn active={tab === 'history'}  onClick={() => setTab('history')}  icon={<History size={14} />}  label="السجل" />
+        </div>
 
-            {/* Info Grid */}
-            <div style={{
-              backgroundColor: '#fff', borderRadius: '14px',
-              border: '1px solid #e2e8f0',
-              overflow: 'hidden',
-            }}>
-              {[
-                { label: 'كود الكارت',     value: card.card_code,        mono: true,  accent: true },
-                { label: 'NFC UID',         value: card.nfc.identifier,  mono: true,  accent: false },
-                { label: 'النوع',           value: card.card_type,       mono: false, accent: false },
-                { label: 'الحالة',          value: null,                 mono: false, accent: false },
-                { label: 'بداية الاشتراك', value: fmtDate(card.created_at), mono: false, accent: false },
-                { label: 'نهاية الاشتراك', value: fmtDate(
-                  new Date(new Date(card.created_at).setFullYear(
-                    new Date(card.created_at).getFullYear() + 1
-                  )).toISOString()
-                ), mono: false, accent: false },
-              ].map((row, i) => (
-                <div key={i} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '13px 18px',
-                  borderBottom: i < 5 ? '1px solid #f1f5f9' : 'none',
-                  backgroundColor: i % 2 === 0 ? '#ffffff' : '#fafbff',
-                }}>
-                  <span style={{ fontSize: '0.8125rem', color: '#94a3b8', fontWeight: 600 }}>{row.label}</span>
-                  {row.label === 'الحالة' ? (
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '5px',
-                      fontSize: '0.875rem', fontWeight: 700,
-                      color: isActive ? '#047857' : '#dc2626',
-                    }}>
-                      <span style={{
-                        width: '7px', height: '7px', borderRadius: '50%',
-                        backgroundColor: isActive ? '#10b981' : '#ef4444',
-                        display: 'inline-block',
-                      }} />
-                      {isActive ? 'نشط' : 'متوقف'}
-                    </span>
-                  ) : (
-                    <span style={{
-                      fontSize: '0.9rem',
-                      fontWeight: 700,
-                      fontFamily: row.mono ? 'monospace' : 'Cairo, sans-serif',
-                      color: row.accent ? '#4f46e5' : '#0f172a',
-                      letterSpacing: row.mono ? '0.03em' : undefined,
-                    }}>
-                      {row.value as string}
-                    </span>
-                  )}
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+
+          {/* ── INFO TAB ── */}
+          {tab === 'info' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+              {/* Edit / Save buttons */}
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                {editMode
+                  ? <>
+                      <button onClick={() => setEditMode(false)} style={outlineBtn}>إلغاء</button>
+                      <button onClick={handleSaveEdit} disabled={editSaving} style={primaryBtn}>
+                        {editSaving ? <><RefreshCw size={14} className="spin" /> حفظ...</> : <><Save size={14} /> حفظ التعديلات</>}
+                      </button>
+                    </>
+                  : <button onClick={() => setEditMode(true)} style={outlineBtn}><Edit2 size={14} /> تعديل</button>}
+              </div>
+
+              {/* Fields grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <Field label="كود البطاقة" value={
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <code>{card.card_code}</code>
+                    <button onClick={() => copyText(card.card_code, 'code')} style={iconBtn}>{copied === 'code' ? <Check size={13} /> : <Copy size={13} />}</button>
+                  </span>
+                } />
+                <Field label="معرف NFC" value={
+                  editMode
+                    ? <input value={editNfc} onChange={(e) => setEditNfc(e.target.value)} placeholder="NFC-XXXXXX" style={inlineInput} />
+                    : card.nfc_uid || '—'
+                } />
+                <Field label="نوع البطاقة" value={
+                  editMode
+                    ? <select value={editType} onChange={(e) => setEditType(e.target.value)} style={inlineInput}>
+                        {CARD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    : card.card_type
+                } />
+                <Field label="التصنيف" value={
+                  editMode
+                    ? <select value={editCat} onChange={(e) => setEditCat(e.target.value)} style={inlineInput}>
+                        <option value="">— بدون تصنيف —</option>
+                        {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                      </select>
+                    : cat?.name || '—'
+                } />
+                <Field label="تاريخ بداية الاشتراك" value={fmtDate(card.subscription_start_date)} />
+                <Field label="تاريخ انتهاء الاشتراك" value={
+                  <span style={{ color: expired ? '#dc2626' : undefined }}>
+                    {fmtDate(card.subscription_end_date)}
+                    {expired && ' ⚠️'}
+                  </span>
+                } />
+                <Field label="تاريخ الإنشاء" value={fmtDate(card.createdAt)} />
+                <Field label="آخر تحديث" value={fmtDate(card.updatedAt)} />
+              </div>
+
+              {/* Static URL */}
+              <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '14px 16px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e40af', marginBottom: '6px' }}>رابط NFC / QR الثابت (لا يتغير)</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <code style={{ fontSize: '0.78rem', color: '#1d4ed8', flex: 1, wordBreak: 'break-all' }}>{staticUrl}</code>
+                  <button onClick={() => copyText(staticUrl, 'static')} style={iconBtn}>{copied === 'static' ? <Check size={13} /> : <Copy size={13} />}</button>
+                  <a href={staticUrl} target="_blank" rel="noopener noreferrer" style={{ ...iconBtn, textDecoration: 'none', color: '#1d4ed8' }}><ExternalLink size={13} /></a>
                 </div>
-              ))}
-            </div>
-
-            {/* Redirect URL display */}
-            <div style={{ padding: '14px 16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>
-                رابط التوجيه الحالي
-              </div>
-              <a
-                href={redirectUrl} target="_blank" rel="noreferrer"
-                style={{ fontSize: '0.875rem', color: '#4f46e5', fontWeight: 600, wordBreak: 'break-all', textDecoration: 'none' }}
-              >
-                {redirectUrl || '—'}
-              </a>
-            </div>
-
-            {/* Static QR/NFC URL */}
-            <div style={{ padding: '14px 16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-                رابط الـ QR / NFC (الثابت)
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <code style={{ fontSize: '0.8125rem', color: '#475569', flex: 1, wordBreak: 'break-all' }}>
-                  {staticUrl}
-                </code>
-                <button
-                  type="button" onClick={copyStatic}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px', flexShrink: 0 }}
-                  title="نسخ الرابط"
-                >
-                  {copiedLink ? <Check size={16} color="#047857" /> : <Copy size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {/* ── Action Buttons ── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-
-              {/* Row 1 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => { setEditMode(true); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    padding: '10px 14px', borderRadius: '10px', cursor: 'pointer',
-                    fontSize: '0.875rem', fontWeight: 700, fontFamily: 'Cairo, sans-serif',
-                    border: '1.5px solid #cbd5e1', backgroundColor: '#fff', color: '#0f172a',
-                    transition: 'all 150ms ease',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = '#f8fafc'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = '#fff'; }}
-                >
-                  <Edit2 size={15} /> تعديل
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => { setActiveTab('link'); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    padding: '10px 14px', borderRadius: '10px', cursor: 'pointer',
-                    fontSize: '0.875rem', fontWeight: 700, fontFamily: 'Cairo, sans-serif',
-                    border: '1.5px solid #818cf8', backgroundColor: '#eef2ff', color: '#4338ca',
-                    transition: 'all 150ms ease',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = '#e0e7ff'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = '#eef2ff'; }}
-                >
-                  <LinkIcon size={15} /> تغيير الرابط
-                </button>
               </div>
 
-              {/* Row 2 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={handleRenew}
-                  disabled={isRenewing}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    padding: '10px 14px', borderRadius: '10px', cursor: isRenewing ? 'not-allowed' : 'pointer',
-                    fontSize: '0.875rem', fontWeight: 700, fontFamily: 'Cairo, sans-serif',
-                    border: '1.5px solid #6ee7b7', backgroundColor: '#d1fae5', color: '#065f46',
-                    transition: 'all 150ms ease', opacity: isRenewing ? 0.6 : 1,
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = '#a7f3d0'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = '#d1fae5'; }}
-                >
-                  {isRenewing
-                    ? <><RefreshCw size={15} className="spin" /> جاري...</>
-                    : <><RefreshCw size={15} /> تجديد سنة</>}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleToggle}
-                  disabled={isToggling}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    padding: '10px 14px', borderRadius: '10px', cursor: isToggling ? 'not-allowed' : 'pointer',
-                    fontSize: '0.875rem', fontWeight: 700, fontFamily: 'Cairo, sans-serif',
-                    border: `1.5px solid ${isActive ? '#fcd34d' : '#6ee7b7'}`,
-                    backgroundColor: isActive ? '#fef9c3' : '#d1fae5',
-                    color: isActive ? '#92400e' : '#065f46',
-                    transition: 'all 150ms ease', opacity: isToggling ? 0.6 : 1,
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = isActive ? '#fef08a' : '#a7f3d0';
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = isActive ? '#fef9c3' : '#d1fae5';
-                  }}
-                >
-                  {isToggling
-                    ? <><Power size={15} className="spin" /> جاري...</>
-                    : <><Power size={15} /> {isActive ? 'إيقاف (Inactive)' : 'تفعيل (Active)'}</>}
-                </button>
-              </div>
-
-              {/* Row 3 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={handleDownloadQR}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    padding: '10px 14px', borderRadius: '10px', cursor: 'pointer',
-                    fontSize: '0.875rem', fontWeight: 700, fontFamily: 'Cairo, sans-serif',
-                    border: '1.5px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#334155',
-                    transition: 'all 150ms ease',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = '#f1f5f9'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = '#f8fafc'; }}
-                >
-                  <Download size={15} /> تحميل QR
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('print')}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    padding: '10px 14px', borderRadius: '10px', cursor: 'pointer',
-                    fontSize: '0.875rem', fontWeight: 700, fontFamily: 'Cairo, sans-serif',
-                    border: '1.5px solid #ddd6fe', backgroundColor: '#ede9fe', color: '#5b21b6',
-                    transition: 'all 150ms ease',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = '#ddd6fe'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = '#ede9fe'; }}
-                >
-                  <Printer size={15} /> طباعة الكارت
-                </button>
-              </div>
-
-              {/* Delete Row */}
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                  width: '100%', padding: '11px 14px', borderRadius: '10px',
-                  cursor: isDeleting ? 'not-allowed' : 'pointer',
-                  fontSize: '0.875rem', fontWeight: 700, fontFamily: 'Cairo, sans-serif',
-                  border: `1.5px solid ${confirmDelete ? '#ef4444' : '#fca5a5'}`,
-                  backgroundColor: confirmDelete ? '#fee2e2' : '#fff5f5',
-                  color: '#dc2626',
-                  transition: 'all 150ms ease', opacity: isDeleting ? 0.6 : 1,
-                  marginTop: '4px',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = '#fee2e2'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = confirmDelete ? '#fee2e2' : '#fff5f5'; }}
-              >
-                <Trash2 size={15} />
-                {confirmDelete ? 'تأكيد الحذف — اضغط مرة ثانية' : 'حذف الكارت'}
-              </button>
-
-              {confirmDelete && (
-                <button
-                  type="button"
-                  onClick={() => setConfirmDelete(false)}
-                  style={{
-                    fontSize: '0.8125rem', color: '#64748b', background: 'none', border: 'none',
-                    cursor: 'pointer', textAlign: 'center', fontFamily: 'Cairo, sans-serif',
-                  }}
-                >
-                  إلغاء الحذف
-                </button>
-              )}
-            </div>
-
-            {editSavedMsg && (
-              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#047857', backgroundColor: '#d1fae5', padding: '8px 14px', borderRadius: '8px', textAlign: 'center' }}>
-                {editSavedMsg}
-              </div>
-            )}
-          </div>
-        )}
-
-
-        {/* ═══════════════════════════════════════ */}
-        {/* TAB: INFO → EDIT MODE (inline)          */}
-        {/* ═══════════════════════════════════════ */}
-        {activeTab === 'info' && editMode && (
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 999,
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <div style={{
-              backgroundColor: '#fff', borderRadius: '20px',
-              padding: '24px', width: '440px', maxWidth: '90vw',
-              display: 'flex', flexDirection: 'column', gap: '16px',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem' }}>تعديل بيانات الكارت</h3>
-                <button type="button" onClick={() => setEditMode(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                  <X size={20} />
-                </button>
-              </div>
-
-              <Input
-                label="كود الكارت"
-                value={editCardCode}
-                onChange={(e) => setEditCardCode(e.target.value)}
-                helperText="لا يمكن تعديل الكود من الـ API حالياً"
-                disabled
-              />
-
-              <Input
-                label="NFC UID"
-                value={editNfcUid}
-                onChange={(e) => setEditNfcUid(e.target.value)}
-                placeholder="NFC-XXXXXXXX"
-              />
-
-              <Select
-                label="نوع الكارت"
-                value={editCardType}
-                onChange={(e) => setEditCardType(e.target.value)}
-                options={typeOptions}
-              />
-
-              <Select
-                label="التصنيف (اختياري)"
-                value={editCategoryId}
-                onChange={(e) => setEditCategoryId(e.target.value)}
-                options={catOptions}
-              />
-
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <Button variant="secondary" fullWidth onClick={() => setEditMode(false)}>إلغاء</Button>
-                <Button variant="primary" fullWidth isLoading={isSavingEdit} onClick={handleSaveEdit}>
-                  <Save size={15} /> حفظ
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ═══════════════════════════════════════ */}
-        {/* TAB: LINK                               */}
-        {/* ═══════════════════════════════════════ */}
-        {activeTab === 'link' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{
-              padding: '18px', backgroundColor: '#fff',
-              border: '1px solid #e2e8f0', borderRadius: '14px',
-              display: 'flex', flexDirection: 'column', gap: '12px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.9375rem' }}>
-                <LinkIcon size={18} color="#4f46e5" />
-                رابط التوجيه الحالي
-              </div>
-
-              <Input
-                value={redirectUrl}
-                onChange={(e) => setRedirectUrl(e.target.value)}
-                placeholder="https://g.page/r/..."
-                helperText="سيتوجه إليه القارئ عند مسح الـ QR أو لمس الـ NFC"
-              />
-
-              <Button
-                variant="primary" fullWidth isLoading={isSavingUrl}
-                onClick={handleSaveUrl}
-                style={{ backgroundColor: '#4f46e5', fontWeight: 800 }}
-              >
-                {urlSaved
-                  ? <><Check size={16} /> تم الحفظ!</>
-                  : <><Save size={16} /> حفظ الرابط الجديد</>}
-              </Button>
-            </div>
-
-            {/* Business */}
-            <div style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '14px', backgroundColor: '#fff' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '8px' }}>
-                <Building2 size={16} /> النشاط التجاري المرتبط
-              </div>
-              <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
-                {card.business_data?.business_name || card.business_name || 'غير معين'}
-              </span>
-              {onAssignRequest && (
-                <Button variant="outline" size="sm" style={{ marginTop: '10px' }}
-                  onClick={() => { onClose(); onAssignRequest(card); }}>
-                  <Edit2 size={14} /> ربط / تعيين نشاط
-                </Button>
-              )}
-            </div>
-
-            {/* Digital Preview */}
-            <Button
-              variant="outline" fullWidth onClick={() => setIsPreviewOpen(true)}
-              style={{ backgroundColor: '#0f172a', color: '#dfb75c', borderColor: '#dfb75c', fontWeight: 800 }}
-            >
-              <Eye size={17} /> معاينة بروفايل العميل
-            </Button>
-          </div>
-        )}
-
-        {/* ═══════════════════════════════════════ */}
-        {/* TAB: QR                                 */}
-        {/* ═══════════════════════════════════════ */}
-        {activeTab === 'qr' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center' }}>
-            <div style={{
-              padding: '20px', backgroundColor: '#fff', border: '1px solid #e2e8f0',
-              borderRadius: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%',
-            }}>
-              <span style={{ fontWeight: 800, fontSize: '0.9375rem' }}>
-                رمز الـ QR المباشر لكارت {card.card_code}
-              </span>
-
-              <div style={{
-                padding: '16px', backgroundColor: '#fff', borderRadius: '16px',
-                border: '1px solid #cbd5e1', boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
-                display: 'inline-flex', justifyContent: 'center', alignItems: 'center',
-                minWidth: '200px', minHeight: '200px',
-              }}>
-                {qrDataUrl ? (
-                  <img src={qrDataUrl} alt={`QR ${card.card_code}`} style={{ width: '200px', height: '200px' }} />
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b' }}>
-                    <RefreshCw size={20} className="spin" /> جاري التوليد...
+              {/* Business data */}
+              {card.business_data && Object.values(card.business_data).some(Boolean) && (
+                <div style={{ backgroundColor: '#f8fafc', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>بيانات النشاط التجاري</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    {(Object.entries(card.business_data) as [keyof BusinessData, string | null | undefined][])
+                      .filter(([, v]) => v)
+                      .map(([k, v]) => (
+                        <Field key={k} label={k.replace(/_/g, ' ')} value={v} />
+                      ))}
                   </div>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
+                <button onClick={handleToggle} disabled={toggling} style={{ ...outlineBtn, borderColor: isActive ? '#f59e0b' : '#10b981', color: isActive ? '#d97706' : '#059669' }}>
+                  {toggling ? <RefreshCw size={14} className="spin" /> : <Power size={14} />}
+                  {isActive ? 'تعطيل' : 'تفعيل'}
+                </button>
+                <button onClick={handleRenew} disabled={renewing} style={outlineBtn}>
+                  {renewing ? <RefreshCw size={14} className="spin" /> : <RefreshCw size={14} />}
+                  تجديد الاشتراك
+                </button>
+                {!confirmDelete
+                  ? <button onClick={() => setConfirmDelete(true)} style={{ ...outlineBtn, borderColor: '#fca5a5', color: '#ef4444' }}><Trash2 size={14} /> حذف</button>
+                  : <button onClick={handleDelete} disabled={deleting} style={{ ...outlineBtn, borderColor: '#ef4444', backgroundColor: '#ef4444', color: '#fff' }}>
+                      {deleting ? 'جاري الحذف...' : '⚠️ تأكيد الحذف'}
+                    </button>}
+                {confirmDelete && !deleting && (
+                  <button onClick={() => setConfirmDelete(false)} style={outlineBtn}>إلغاء</button>
                 )}
               </div>
-
-              {/* Verification */}
-              <div style={{
-                width: '100%', padding: '12px', borderRadius: '12px', textAlign: 'start',
-                backgroundColor: decodedResult?.success ? '#ecfdf5' : '#fffbeb',
-                border: `1px solid ${decodedResult?.success ? '#a7f3d0' : '#fde68a'}`,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ShieldCheck size={18} style={{ color: decodedResult?.success ? '#047857' : '#b45309' }} />
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: decodedResult?.success ? '#047857' : '#b45309' }}>
-                    {isVerifying ? 'جاري الفحص...' : decodedResult?.success
-                      ? '✓ تم التحقق من سلامة الـ QR'
-                      : 'تعذر فك التشفير تلقائياً'}
-                  </span>
-                </div>
-              </div>
-
-              <Button variant="primary" fullWidth onClick={handleDownloadQR}
-                style={{ backgroundColor: '#0f172a', color: '#dfb75c', fontWeight: 800 }}>
-                <Download size={16} /> تحميل QR بجودة عالية (PNG / SVG)
-              </Button>
-
-              <Button variant="outline" fullWidth onClick={copyStatic}>
-                {copiedLink ? <Check size={16} /> : <Copy size={16} />}
-                {copiedLink ? 'تم النسخ!' : 'نسخ رابط الكارت الثابت'}
-              </Button>
             </div>
+          )}
 
-            {/* NFC chip info */}
-            <div style={{
-              width: '100%', padding: '14px 16px', border: '1px solid #e2e8f0',
-              borderRadius: '14px', backgroundColor: '#fff', display: 'flex', alignItems: 'center', gap: '12px',
-            }}>
-              <div style={{ padding: '8px', backgroundColor: '#f1f5f9', borderRadius: '10px' }}>
-                <Cpu size={20} color="#0f172a" />
+          {/* ── REDIRECT TAB ── */}
+          {tab === 'redirect' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: '#475569', lineHeight: 1.6 }}>
+                غيّر رابط التوجيه الذي تنتقل إليه عند مسح الكارت. الكارت الفيزيائي لا يتغير.
+              </p>
+              <div style={{ backgroundColor: '#f8fafc', borderRadius: '10px', padding: '12px 14px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, marginBottom: '4px' }}>الرابط الحالي</div>
+                <code style={{ fontSize: '0.8rem', color: '#4f46e5', wordBreak: 'break-all' }}>{card.current_redirect_url}</code>
               </div>
               <div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 700 }}>شريحة NFC المزدوجة</div>
-                <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#64748b' }}>
-                  {card.nfc.identifier}
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>الرابط الجديد</label>
+                <input
+                  value={newUrl}
+                  onChange={(e) => setNewUrl(e.target.value)}
+                  placeholder="https://..."
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '9px', border: '1.5px solid #e2e8f0', fontSize: '0.9rem', fontFamily: 'monospace', outline: 'none' }}
+                  onFocus={(e) => (e.target.style.borderColor = '#6366f1')}
+                  onBlur={(e) => (e.target.style.borderColor = '#e2e8f0')}
+                />
+              </div>
+              <button onClick={handleSaveUrl} disabled={savingUrl || !newUrl.trim()} style={{ ...primaryBtn, justifyContent: 'center', opacity: !newUrl.trim() ? 0.5 : 1 }}>
+                {savingUrl ? <><RefreshCw size={15} className="spin" /> جاري الحفظ...</> : <><Save size={15} /> تغيير الرابط</>}
+              </button>
+            </div>
+          )}
+
+          {/* ── QR TAB ── */}
+          {tab === 'qr' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+              {qrLoading
+                ? <div style={{ width: '240px', height: '240px', borderRadius: '12px', ...shimmerStyle }} />
+                : qrDataUrl
+                ? <img src={qrDataUrl} alt="QR Code" style={{ width: '240px', height: '240px', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
+                : <div style={{ width: '240px', height: '240px', borderRadius: '12px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                    <QrCode size={48} />
+                  </div>}
+
+              <code style={{ fontSize: '0.75rem', color: '#4f46e5', wordBreak: 'break-all', textAlign: 'center', maxWidth: '320px' }}>
+                {card.current_redirect_url}
+              </code>
+
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button onClick={downloadQrPng} style={primaryBtn}>
+                  <Download size={15} /> تحميل PNG
+                </button>
+                <button onClick={() => genQr(card.current_redirect_url)} style={outlineBtn}>
+                  <RefreshCw size={15} /> إعادة توليد
+                </button>
+              </div>
+
+              <div style={{ backgroundColor: '#f8fafc', borderRadius: '10px', padding: '12px 16px', border: '1px solid #e2e8f0', width: '100%' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>الرابط الثابت للبطاقة</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <code style={{ fontSize: '0.75rem', color: '#1d4ed8', flex: 1, wordBreak: 'break-all' }}>{staticUrl}</code>
+                  <button onClick={() => copyText(staticUrl, 'qr-static')} style={iconBtn}>{copied === 'qr-static' ? <Check size={13} /> : <Copy size={13} />}</button>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ═══════════════════════════════════════ */}
-        {/* TAB: PRINT                              */}
-        {/* ═══════════════════════════════════════ */}
-        {activeTab === 'print' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <PhysicalCardPreview card={card} showPrintControls={true} />
-          </div>
-        )}
-
+          {/* ── HISTORY TAB ── */}
+          {tab === 'history' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {histLoading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} style={{ height: '72px', borderRadius: '10px', ...shimmerStyle }} />
+                  ))
+                : history.length === 0
+                ? <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8', fontSize: '0.875rem' }}>
+                    <History size={36} style={{ marginBottom: '10px' }} />
+                    <p style={{ margin: 0 }}>لا يوجد سجل لهذه البطاقة</p>
+                  </div>
+                : history.map((h) => (
+                    <div key={h._id} style={{ backgroundColor: '#f8fafc', borderRadius: '10px', padding: '12px 14px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{
+                          fontSize: '0.75rem', fontWeight: 700, padding: '2px 9px', borderRadius: '99px',
+                          backgroundColor: h.action === 'created' ? '#d1fae5' : h.action === 'deleted' ? '#fee2e2' : '#fef3c7',
+                          color:           h.action === 'created' ? '#047857' : h.action === 'deleted' ? '#dc2626' : '#d97706',
+                        }}>
+                          {h.action === 'created' ? '✅ إنشاء' : h.action === 'deleted' ? '🗑️ حذف' : '✏️ تعديل'}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{fmtDate(h.recorded_at)}</span>
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#475569' }}>
+                        {h.snapshot.current_redirect_url && (
+                          <div>رابط: <code style={{ color: '#4f46e5' }}>{h.snapshot.current_redirect_url}</code></div>
+                        )}
+                        <div>الحالة: <strong>{h.snapshot.status === 'active' ? 'نشطة' : 'معطلة'}</strong></div>
+                      </div>
+                    </div>
+                  ))}
+            </div>
+          )}
+        </div>
       </div>
-
-      {/* Digital Profile Preview Modal */}
-      <DigitalProfilePreview
-        card={card}
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-      />
-    </Drawer>
+    </>
   );
+};
+
+// ── Style atoms ────────────────────────────────────────────────────────────
+const primaryBtn: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '7px',
+  padding: '9px 18px', borderRadius: '10px', border: 'none',
+  background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+  color: '#fff', cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
+  fontWeight: 700, fontSize: '0.875rem',
+};
+
+const outlineBtn: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '7px',
+  padding: '9px 16px', borderRadius: '10px', border: '1.5px solid #e2e8f0',
+  backgroundColor: '#f8fafc', color: '#334155', cursor: 'pointer',
+  fontFamily: 'Cairo, sans-serif', fontWeight: 700, fontSize: '0.875rem',
+};
+
+const iconBtn: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  width: '26px', height: '26px', borderRadius: '7px',
+  border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc',
+  color: '#64748b', cursor: 'pointer', flexShrink: 0,
+};
+
+const inlineInput: React.CSSProperties = {
+  width: '100%', boxSizing: 'border-box',
+  padding: '6px 8px', borderRadius: '7px',
+  border: '1.5px solid #6366f1', fontSize: '0.875rem',
+  fontFamily: 'Cairo, sans-serif', outline: 'none',
+};
+
+const shimmerStyle: React.CSSProperties = {
+  background: 'linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)',
+  backgroundSize: '200% auto',
+  animation: 'shimmer 1.4s linear infinite',
 };

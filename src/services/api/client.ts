@@ -1,191 +1,141 @@
 /* ==========================================================================
-   CENTRALIZED API CLIENT (src/services/api/client.ts)
-   Strictly enforces the exact Authentication Matrix:
-   - NO TOKEN: POST /api/auth/login, GET /api/cards/:id/qr, GET /r/:identifier
-   - TOKEN REQUIRED: ALL OTHER /api endpoints
+   API CLIENT (src/services/api/client.ts)
+   Base URL: VITE_API_BASE_URL || https://smart-card-qr-api.koyeb.app/api
+   Auth matrix enforced via requiresAuth flag on every call.
    ========================================================================== */
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://smart-card-qr-api.koyeb.app/api').replace(/\/$/, '');
-const PUBLIC_REDIRECT_BASE_URL = (import.meta.env.VITE_PUBLIC_REDIRECT_BASE_URL || 'https://smart-card-qr-api.koyeb.app/r').replace(/\/$/, '');
+const API_BASE = (
+  (import.meta as any).env?.VITE_API_BASE_URL ||
+  'https://smart-card-qr-api.koyeb.app/api'
+).replace(/\/$/, '');
 
-const TOKEN_STORAGE_KEY = 'nfc_admin_access_token';
+const TOKEN_KEY = 'nfc_admin_token';
 
-export const getStoredToken = (): string | null => {
-  try {
-    return localStorage.getItem(TOKEN_STORAGE_KEY);
-  } catch (e) {
-    return null;
-  }
+// ── Token helpers ─────────────────────────────────────────────────────────
+
+export const getToken = (): string | null => {
+  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
 };
 
-export const setStoredToken = (token: string): void => {
-  try {
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
-  } catch (e) {
-    console.error('Failed to save access_token to storage:', e);
-  }
+export const setToken = (token: string): void => {
+  try { localStorage.setItem(TOKEN_KEY, token); } catch { /* ignore */ }
 };
 
-export const clearStoredToken = (): void => {
-  try {
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
-  } catch (e) {
-    console.error('Failed to clear access_token from storage:', e);
-  }
+export const clearToken = (): void => {
+  try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
 };
+
+export const isAuthenticated = (): boolean => !!getToken();
+
+// ── Error class ───────────────────────────────────────────────────────────
 
 export class ApiError extends Error {
-  statusCode: number;
-  errorType?: string;
-  details?: any;
-
-  constructor(statusCode: number, message: string, errorType?: string, details?: any) {
+  constructor(
+    public statusCode: number,
+    message: string,
+    public errorType?: string,
+    public details?: unknown,
+  ) {
     super(message);
     this.name = 'ApiError';
-    this.statusCode = statusCode;
-    this.errorType = errorType;
-    this.details = details;
   }
 }
+
+// ── Request options ───────────────────────────────────────────────────────
 
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-  headers?: Record<string, string>;
-  body?: any;
-  params?: Record<string, string | number | boolean | undefined>;
-  requiresAuth?: boolean; // Explicit toggle for token inclusion
+  body?: unknown;
+  params?: Record<string, string | number | boolean | undefined | null>;
+  requiresAuth?: boolean;
   responseType?: 'json' | 'blob';
 }
 
-/**
- * Helper to determine if an endpoint MUST NOT receive an Authorization header
- */
-const isUnauthenticatedRoute = (endpoint: string, options?: RequestOptions): boolean => {
-  if (options?.requiresAuth === false) return true;
-  if (options?.requiresAuth === true) return false;
+// ── Core fetch wrapper ────────────────────────────────────────────────────
 
-  // Strict check for documented unauthenticated routes
-  const cleanEndpoint = endpoint.split('?')[0];
-  if (cleanEndpoint === '/auth/login') return true;
-  if (cleanEndpoint.startsWith('/r/')) return true;
-
-  return false;
-};
-
-export const apiClient = async <T = any>(
+export async function apiClient<T = unknown>(
   endpoint: string,
-  options: RequestOptions = {}
-): Promise<T> => {
-  const { method = 'GET', headers = {}, body, params, responseType = 'json' } = options;
+  options: RequestOptions = {},
+): Promise<T> {
+  const {
+    method = 'GET',
+    body,
+    params,
+    requiresAuth = true,
+    responseType = 'json',
+  } = options;
 
-  // Construct Query String if params exist
-  let queryString = '';
+  // Build query string
+  let qs = '';
   if (params) {
-    const validParams = Object.entries(params)
-      .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
-    if (validParams.length > 0) {
-      queryString = `?${validParams.join('&')}`;
-    }
+    const parts = Object.entries(params)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
+    if (parts.length) qs = '?' + parts.join('&');
   }
 
-  // Construct full URL
-  let fullUrl = '';
-  if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
-    fullUrl = `${endpoint}${queryString}`;
-  } else if (endpoint.startsWith('/r/')) {
-    fullUrl = `${PUBLIC_REDIRECT_BASE_URL}${endpoint.substring(2)}${queryString}`;
-  } else {
-    const cleanPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    fullUrl = `${API_BASE_URL}${cleanPath}${queryString}`;
+  const url = `${API_BASE}${endpoint.startsWith('/') ? '' : '/'}${endpoint}${qs}`;
+
+  const headers: Record<string, string> = {};
+
+  if (body && !(body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
   }
 
-  const requestHeaders: Record<string, string> = {
-    ...headers,
-  };
-
-  // Add JSON content type if body is present and not FormData
-  if (body && !(body instanceof FormData) && !requestHeaders['Content-Type']) {
-    requestHeaders['Content-Type'] = 'application/json';
+  if (requiresAuth) {
+    const token = getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // STAGE AUTH MATRIX ENFORCEMENT
-  const noTokenRequired = isUnauthenticatedRoute(endpoint, options);
-
-  if (!noTokenRequired) {
-    const token = getStoredToken();
-    if (token) {
-      requestHeaders['Authorization'] = `Bearer ${token}`;
-    }
-  } else {
-    // Ensure no Authorization header is accidentally sent to unauthenticated routes
-    delete requestHeaders['Authorization'];
-    delete requestHeaders['authorization'];
-  }
-
+  let response: Response;
   try {
-    const fetchOptions: RequestInit = {
+    response = await fetch(url, {
       method,
-      headers: requestHeaders,
-    };
-
-    if (body) {
-      fetchOptions.body = body instanceof FormData ? body : JSON.stringify(body);
-    }
-
-    const response = await fetch(fullUrl, fetchOptions);
-
-    // Handle 401 Unauthorized globally
-    if (response.status === 401 && !noTokenRequired) {
-      clearStoredToken();
-      // Notify application of 401 to trigger redirect to Login
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('api:unauthorized'));
-      }
-    }
-
-    // Handle Error Responses
-    if (!response.ok) {
-      let errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
-      let errorType = 'HttpError';
-      let errorDetails = null;
-
-      try {
-        const errorJson = await response.json();
-        if (errorJson) {
-          errorDetails = errorJson;
-          errorType = errorJson.error || errorType;
-          if (Array.isArray(errorJson.message)) {
-            errorMessage = errorJson.message.join(' | ');
-          } else if (errorJson.message) {
-            errorMessage = errorJson.message;
-          }
-        }
-      } catch (e) {
-        // Response wasn't JSON
-      }
-
-      if (response.status === 429) {
-        errorMessage = 'تم تجاوز عدد محاولات الدخول المسموح بها للسيرفر (Rate Limit). يرجى الانتظار 30-60 ثانية ثم المحاولة مجدداً.';
-      }
-
-      throw new ApiError(response.status, errorMessage, errorType, errorDetails);
-    }
-
-    if (responseType === 'blob') {
-      return (await response.blob()) as T;
-    }
-
-    // Return JSON
-    const data = await response.json();
-    return data as T;
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError(0, error instanceof Error ? error.message : 'Network failure or API server unreachable', 'NetworkError');
+      headers,
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
+    });
+  } catch (err) {
+    throw new ApiError(0, 'فشل الاتصال بالسيرفر. تحقق من الإنترنت.', 'NetworkError');
   }
-};
 
-export const getApiBaseUrl = () => API_BASE_URL;
-export const getPublicRedirectBaseUrl = () => PUBLIC_REDIRECT_BASE_URL;
+  // Global 401 handler
+  if (response.status === 401 && requiresAuth) {
+    clearToken();
+    window.dispatchEvent(new CustomEvent('api:unauthorized'));
+    throw new ApiError(401, 'انتهت جلسة الدخول. يرجى تسجيل الدخول مجدداً.', 'UnauthorizedException');
+  }
+
+  if (!response.ok) {
+    let message = `خطأ ${response.status}: ${response.statusText}`;
+    let errorType = 'HttpError';
+    let details: unknown;
+    try {
+      const err = await response.json();
+      details = err;
+      errorType = err?.error || errorType;
+      if (Array.isArray(err?.message)) message = err.message.join(' | ');
+      else if (err?.message) message = err.message;
+    } catch { /* not JSON */ }
+
+    if (response.status === 429) {
+      message = 'تم تجاوز الحد المسموح به. انتظر دقيقة ثم حاول مجدداً.';
+    }
+
+    throw new ApiError(response.status, message, errorType, details);
+  }
+
+  if (responseType === 'blob') {
+    return (await response.blob()) as T;
+  }
+
+  // Some DELETE responses return 200 with a message body
+  const text = await response.text();
+  if (!text) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return text as unknown as T;
+  }
+}
+
+export const getApiBaseUrl = () => API_BASE;
