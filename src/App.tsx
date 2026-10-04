@@ -68,19 +68,7 @@ export const App: React.FC = () => (
             </ProtectedRoute>
           }
         />
-        {/* Settings — placeholder */}
-        <Route
-          path="/admin/settings"
-          element={
-            <ProtectedRoute>
-              <AdminShell title="الإعدادات">
-                <div dir="rtl" style={{ padding: '40px', textAlign: 'center', fontFamily: 'Cairo, sans-serif', color: '#94a3b8' }}>
-                  <p>صفحة الإعدادات — قريباً</p>
-                </div>
-              </AdminShell>
-            </ProtectedRoute>
-          }
-        />
+        
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/admin" replace />} />

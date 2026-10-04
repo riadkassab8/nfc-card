@@ -1,88 +1,153 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CreditCard, Tags, Scan, Settings, Sparkles } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Tags, Scan, Zap } from 'lucide-react';
 
 export interface AdminSidebarProps {
   onLinkClick?: () => void;
 }
 
 const NAV = [
-  { path: '/admin',            label: 'نظرة عامة',    icon: <LayoutDashboard size={18} />, exact: true },
-  { path: '/admin/cards',      label: 'إدارة البطاقات', icon: <CreditCard size={18} /> },
-  { path: '/admin/categories', label: 'التصنيفات',     icon: <Tags size={18} /> },
-  { path: '/admin/scan',       label: 'فحص وتجهيز',    icon: <Scan size={18} /> },
-  { path: '/admin/settings',   label: 'الإعدادات',     icon: <Settings size={18} /> },
+  { path: '/admin',            label: 'نظرة عامة',      icon: LayoutDashboard, exact: true },
+  { path: '/admin/cards',      label: 'إدارة البطاقات',  icon: CreditCard },
+  { path: '/admin/categories', label: 'التصنيفات',       icon: Tags },
+  { path: '/admin/scan',       label: 'فحص وتجهيز',      icon: Scan },
 ];
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLinkClick }) => (
   <aside style={{
-    width: '256px',
-    backgroundColor: '#0f172a',
-    color: '#f8fafc',
+    width: '248px',
+    height: '100%',
+    backgroundColor: 'var(--bg-white)',
+    borderInlineStart: '1px solid var(--bdr-light)',
     display: 'flex',
     flexDirection: 'column',
-    height: '100%',
-    padding: '20px 12px',
     boxSizing: 'border-box',
-    boxShadow: '4px 0 24px rgba(15,23,42,0.18)',
+    boxShadow: '2px 0 12px rgba(0,0,0,0.04)',
   }}>
+
     {/* Brand */}
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px 8px', marginBottom: '28px' }}>
+    <div style={{
+      padding: '20px 18px 16px',
+      borderBottom: '1px solid var(--bdr-light)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+    }}>
       <div style={{
-        width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
-        background: 'linear-gradient(135deg,#6366f1,#a855f7)',
+        width: '38px', height: '38px',
+        borderRadius: 'var(--r-lg)',
+        backgroundColor: 'var(--clr-primary-500)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
+        flexShrink: 0,
+        boxShadow: 'var(--shadow-blue)',
       }}>
-        <Sparkles size={22} color="#fff" />
+        <Zap size={20} color="#fff" />
       </div>
       <div>
-        <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', fontFamily: 'Cairo, sans-serif' }}>
-          NFC Smart Cards
+        <div style={{
+          fontSize: 'var(--fs-base)',
+          fontWeight: 800,
+          color: 'var(--txt-heading)',
+          lineHeight: 1.2,
+        }}>
+          NFC Smart
         </div>
-        <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>لوحة الإدارة</div>
+        <div style={{
+          fontSize: 'var(--fs-xs)',
+          color: 'var(--txt-muted)',
+          fontWeight: 500,
+          marginTop: '1px',
+        }}>
+          لوحة الإدارة
+        </div>
       </div>
     </div>
 
     {/* Nav */}
-    <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-      <div style={{ padding: '0 10px 8px', fontSize: '0.7rem', fontWeight: 700, color: '#475569', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
-        القائمة الرئيسية
+    <nav style={{
+      flex: 1,
+      padding: '12px 10px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2px',
+      overflowY: 'auto',
+    }}>
+      <div style={{
+        padding: '4px 8px 8px',
+        fontSize: '0.68rem',
+        fontWeight: 700,
+        color: 'var(--txt-muted)',
+        letterSpacing: '0.07em',
+        textTransform: 'uppercase',
+      }}>
+        القائمة
       </div>
-      {NAV.map((item) => (
+
+      {NAV.map(({ path, label, icon: Icon, exact }) => (
         <NavLink
-          key={item.path}
-          to={item.path}
-          end={item.exact}
+          key={path}
+          to={path}
+          end={exact}
           onClick={onLinkClick}
           style={({ isActive }) => ({
-            display: 'flex', alignItems: 'center', gap: '11px',
-            padding: '10px 12px', borderRadius: '10px',
-            textDecoration: 'none', fontSize: '0.875rem', fontFamily: 'Cairo, sans-serif',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '9px 12px',
+            borderRadius: 'var(--r-md)',
+            textDecoration: 'none',
+            fontSize: 'var(--fs-base)',
             fontWeight: isActive ? 700 : 500,
-            backgroundColor: isActive ? 'rgba(99,102,241,0.16)' : 'transparent',
-            color: isActive ? '#e0e7ff' : '#94a3b8',
-            borderInlineStart: `3px solid ${isActive ? '#6366f1' : 'transparent'}`,
-            transition: 'all 150ms ease',
+            color: isActive ? 'var(--clr-primary-700)' : 'var(--txt-secondary)',
+            backgroundColor: isActive ? 'var(--clr-primary-50)' : 'transparent',
+            borderInlineStart: `3px solid ${isActive ? 'var(--clr-primary-500)' : 'transparent'}`,
+            transition: 'all 150ms var(--ease)',
           })}
+          onMouseEnter={(e) => {
+            const el = e.currentTarget as HTMLElement;
+            if (!el.style.backgroundColor.includes('50')) {
+              el.style.backgroundColor = 'var(--bg-hover)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            const el = e.currentTarget as HTMLElement;
+            if (!el.style.backgroundColor.includes('50')) {
+              el.style.backgroundColor = 'transparent';
+            }
+          }}
         >
-          <span style={{ display: 'inline-flex', flexShrink: 0 }}>{item.icon}</span>
-          {item.label}
+          <Icon size={17} style={{ flexShrink: 0 }} />
+          {label}
         </NavLink>
       ))}
     </nav>
 
-    {/* Footer status */}
+    {/* Footer */}
     <div style={{
-      padding: '12px 14px', borderRadius: '10px',
-      backgroundColor: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      padding: '14px 18px',
+      borderTop: '1px solid var(--bdr-light)',
+      backgroundColor: 'var(--bg-subtle)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
-        <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block', flexShrink: 0 }} />
-        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#e2e8f0' }}>النظام يعمل</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+        <span style={{
+          width: '7px', height: '7px',
+          borderRadius: '50%',
+          backgroundColor: '#22c55e',
+          flexShrink: 0,
+          boxShadow: '0 0 0 2px #dcfce7',
+        }} />
+        <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--txt-secondary)' }}>
+          متصل بالسيرفر
+        </span>
       </div>
-      <span style={{ fontSize: '0.68rem', color: '#475569' }}>v3.0 — smart-card-qr-api.koyeb.app</span>
+      <div style={{
+        fontSize: '0.68rem',
+        color: 'var(--txt-muted)',
+        marginTop: '3px',
+        fontFamily: 'monospace',
+      }}>
+        smart-card-qr-api.koyeb.app
+      </div>
     </div>
   </aside>
 );

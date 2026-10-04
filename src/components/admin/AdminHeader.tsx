@@ -13,75 +13,125 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
   return (
     <>
       <header style={{
-        height: '60px',
-        backgroundColor: 'rgba(255,255,255,0.96)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        borderBottom: '1px solid #e2e8f0',
-        padding: '0 20px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        position: 'sticky', top: 0, zIndex: 80, gap: '12px',
-        fontFamily: 'Cairo, sans-serif',
+        height: '58px',
+        backgroundColor: 'var(--bg-white)',
+        borderBottom: '1px solid var(--bdr-light)',
+        padding: '0 22px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: 0,
+        zIndex: 80,
+        gap: '12px',
+        boxShadow: 'var(--shadow-xs)',
       }}>
-        {/* Left: hamburger + title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+
+        {/* Right side: hamburger + title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
           <button
             type="button"
             onClick={onOpenMobileMenu}
-            aria-label="فتح القائمة"
             className="admin-hamburger"
+            aria-label="القائمة"
             style={{
-              display: 'none', background: '#f1f5f9', border: 'none',
-              cursor: 'pointer', color: '#0f172a', padding: '8px',
-              borderRadius: '9px', flexShrink: 0,
+              display: 'none',
+              width: '34px', height: '34px',
+              borderRadius: 'var(--r-sm)',
+              border: '1px solid var(--bdr-light)',
+              backgroundColor: 'var(--bg-subtle)',
+              cursor: 'pointer',
+              color: 'var(--txt-secondary)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
-            <Menu size={20} />
+            <Menu size={18} />
           </button>
 
-          <h1 style={{
-            fontSize: '1.0625rem', fontWeight: 800, color: '#0f172a',
-            letterSpacing: '-0.01em', whiteSpace: 'nowrap',
-            overflow: 'hidden', textOverflow: 'ellipsis', margin: 0,
-          }}>
-            {title}
-          </h1>
-          <span className="admin-header-badge" style={{
-            backgroundColor: '#eff6ff', color: '#3b82f6',
-            fontSize: '0.7rem', fontWeight: 700, padding: '2px 9px',
-            borderRadius: '9999px', border: '1px solid #bfdbfe',
-            whiteSpace: 'nowrap', flexShrink: 0,
-          }}>
-            لوحة الإدارة
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+            <h1 style={{
+              fontSize: 'var(--fs-base)',
+              fontWeight: 700,
+              color: 'var(--txt-heading)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              margin: 0,
+            }}>
+              {title}
+            </h1>
+            <span className="admin-header-badge" style={{
+              padding: '2px 9px',
+              borderRadius: 'var(--r-full)',
+              fontSize: 'var(--fs-xs)',
+              fontWeight: 700,
+              backgroundColor: 'var(--clr-primary-50)',
+              color: 'var(--clr-primary-700)',
+              border: '1px solid var(--clr-primary-200)',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}>
+              الإدارة
+            </span>
+          </div>
         </div>
 
-        {/* Right: user pill + logout */}
+        {/* Left side: user */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          {/* User pill */}
           <div className="admin-user-pill" style={{
-            display: 'flex', alignItems: 'center', gap: '7px',
-            backgroundColor: '#f1f5f9', padding: '6px 12px', borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '7px',
+            padding: '6px 12px',
+            borderRadius: 'var(--r-md)',
+            border: '1px solid var(--bdr-light)',
+            backgroundColor: 'var(--bg-subtle)',
           }}>
-            <User size={14} style={{ color: '#6366f1', flexShrink: 0 }} />
-            <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#0f172a' }}>
+            <div style={{
+              width: '26px', height: '26px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--clr-primary-100)',
+              color: 'var(--clr-primary-700)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <User size={14} />
+            </div>
+            <span style={{
+              fontSize: 'var(--fs-sm)',
+              fontWeight: 600,
+              color: 'var(--txt-body)',
+            }}>
               {admin?.username || 'admin'}
             </span>
           </div>
 
+          {/* Logout */}
           <button
             type="button"
             onClick={logout}
             title="تسجيل الخروج"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: '#fff0f0', border: '1px solid #fecaca',
-              borderRadius: '9px', padding: '8px', cursor: 'pointer',
-              color: '#ef4444', transition: 'background 150ms',
+              width: '34px', height: '34px',
+              borderRadius: 'var(--r-sm)',
+              border: '1px solid var(--clr-error-bdr)',
+              backgroundColor: 'var(--clr-error-bg)',
+              color: 'var(--clr-error)',
+              cursor: 'pointer',
+              transition: 'all 150ms var(--ease)',
             }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = '#fee2e2')}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = '#fff0f0')}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = '#fee2e2';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--clr-error-bg)';
+            }}
           >
-            <LogOut size={16} />
+            <LogOut size={15} />
           </button>
         </div>
       </header>
@@ -90,7 +140,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
         @media (max-width: 992px) {
           .admin-hamburger { display: flex !important; }
         }
-        @media (max-width: 580px) {
+        @media (max-width: 560px) {
           .admin-user-pill    { display: none !important; }
           .admin-header-badge { display: none !important; }
         }

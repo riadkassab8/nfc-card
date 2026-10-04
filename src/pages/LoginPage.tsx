@@ -1,12 +1,7 @@
-/* ==========================================================================
-   ADMIN LOGIN PAGE (src/pages/LoginPage.tsx)
-   POST /api/auth/login  →  stores token  →  redirects to /admin
-   ========================================================================== */
-
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Lock, User, Sparkles, ShieldCheck, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, Zap, ShieldCheck, RefreshCw } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const { login, loading } = useAuth();
@@ -15,157 +10,147 @@ export const LoginPage: React.FC = () => {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
+  const [showPw, setShowPw]     = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]       = useState<string | null>(null);
 
   const from = (location.state as any)?.from?.pathname || '/admin';
+  const busy = submitting || loading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (submitting || loading) return;
+    if (busy) return;
     if (!username.trim() || !password.trim()) {
       setError('يرجى إدخال اسم المستخدم وكلمة المرور');
       return;
     }
-    setSubmitting(true);
-    setError(null);
+    setSubmitting(true); setError(null);
     try {
       await login(username.trim(), password);
       navigate(from, { replace: true });
-    } catch (err: any) {
-      setError(err?.message || 'خطأ في تسجيل الدخول');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (e: any) {
+      setError(e?.message || 'بيانات الدخول غير صحيحة');
+    } finally { setSubmitting(false); }
   };
-
-  const busy = submitting || loading;
 
   return (
     <div
       dir="rtl"
       style={{
         minHeight: '100vh',
-        backgroundColor: '#0f172a',
+        backgroundColor: 'var(--bg-page)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '24px',
-        fontFamily: 'Cairo, sans-serif',
-        position: 'relative',
-        overflow: 'hidden',
+        fontFamily: 'var(--font)',
       }}
     >
-      {/* ambient orbs */}
-      <div style={{ position: 'absolute', top: '-120px', right: '-120px', width: '420px', height: '420px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '-120px', left: '-120px', width: '420px', height: '420px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      {/* Subtle background pattern */}
+      <div style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+        backgroundImage: `radial-gradient(circle at 30% 20%, var(--clr-primary-100) 0%, transparent 50%),
+                          radial-gradient(circle at 70% 80%, var(--clr-primary-50)  0%, transparent 50%)`,
+      }} />
 
-      <div style={{ width: '100%', maxWidth: '440px', zIndex: 1 }}>
-        {/* Brand header */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+      <div style={{ width: '100%', maxWidth: '420px', position: 'relative', zIndex: 1 }}>
+
+        {/* Brand */}
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div style={{
-            width: '60px', height: '60px', borderRadius: '18px',
-            background: 'linear-gradient(135deg,#6366f1,#a855f7)',
+            width: '56px', height: '56px', borderRadius: 'var(--r-xl)',
+            backgroundColor: 'var(--clr-primary-500)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 8px 28px rgba(99,102,241,0.38)', marginBottom: '18px',
+            marginBottom: '16px',
+            boxShadow: 'var(--shadow-blue)',
           }}>
-            <Sparkles size={30} color="#fff" />
+            <Zap size={28} color="#fff" />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', margin: '0 0 8px' }}>
-            لوحة تحكم المسؤول
+          <h1 style={{
+            fontSize: 'var(--fs-2xl)', fontWeight: 800,
+            color: 'var(--txt-heading)', margin: '0 0 6px',
+            letterSpacing: '-0.01em',
+          }}>
+            لوحة الإدارة
           </h1>
-          <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0 }}>
-            أدخل بيانات المسؤول للوصول إلى نظام إدارة البطاقات
-          </p>
+          
         </div>
 
         {/* Card */}
-        <div style={{
-          backgroundColor: '#1e293b',
-          border: '1px solid rgba(255,255,255,0.09)',
-          borderRadius: '20px',
-          padding: '32px',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
-        }}>
-          {/* Error banner */}
+        <div className="card" style={{ padding: '28px' }}>
+
+          {/* Error */}
           {error && (
             <div style={{
-              backgroundColor: '#fee2e2', color: '#991b1b',
-              border: '1px solid #fca5a5', borderRadius: '10px',
-              padding: '12px 16px', fontSize: '0.875rem', fontWeight: 700,
-              marginBottom: '20px',
+              marginBottom: '18px', padding: '11px 14px',
+              borderRadius: 'var(--r-md)',
+              backgroundColor: 'var(--clr-error-bg)',
+              border: '1px solid var(--clr-error-bdr)',
+              color: 'var(--clr-error)',
+              fontSize: 'var(--fs-sm)', fontWeight: 700,
             }}>
-              ❌ {error}
+              {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+
             {/* Username */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '8px' }}>
-                اسم المستخدم
-              </label>
+            <div className="form-group">
+              <label className="form-label">اسم المستخدم</label>
               <div style={{ position: 'relative' }}>
-                <User size={17} style={{ position: 'absolute', right: '13px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', pointerEvents: 'none' }} />
+                <User size={16} style={{
+                  position: 'absolute', right: '12px', top: '50%',
+                  transform: 'translateY(-50%)', color: 'var(--txt-muted)',
+                  pointerEvents: 'none',
+                }} />
                 <input
                   type="text"
+                  className="form-input"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={e => setUsername(e.target.value)}
                   placeholder="admin"
                   autoFocus
                   required
                   disabled={busy}
-                  style={{
-                    width: '100%', boxSizing: 'border-box',
-                    padding: '11px 42px 11px 14px',
-                    backgroundColor: '#0f172a', color: '#f1f5f9',
-                    border: '1.5px solid #334155', borderRadius: '10px',
-                    fontSize: '0.9375rem', fontFamily: 'Cairo, sans-serif',
-                    outline: 'none', transition: 'border-color 150ms',
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = '#6366f1')}
-                  onBlur={(e) => (e.target.style.borderColor = '#334155')}
+                  style={{ paddingRight: '38px' }}
                 />
               </div>
             </div>
 
             {/* Password */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '8px' }}>
-                كلمة المرور
-              </label>
+            <div className="form-group">
+              <label className="form-label">كلمة المرور</label>
               <div style={{ position: 'relative' }}>
-                <Lock size={17} style={{ position: 'absolute', right: '13px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', pointerEvents: 'none' }} />
+                <Lock size={16} style={{
+                  position: 'absolute', right: '12px', top: '50%',
+                  transform: 'translateY(-50%)', color: 'var(--txt-muted)',
+                  pointerEvents: 'none',
+                }} />
                 <input
                   type={showPw ? 'text' : 'password'}
+                  className="form-input"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
                   disabled={busy}
-                  style={{
-                    width: '100%', boxSizing: 'border-box',
-                    padding: '11px 42px',
-                    backgroundColor: '#0f172a', color: '#f1f5f9',
-                    border: '1.5px solid #334155', borderRadius: '10px',
-                    fontSize: '0.9375rem', fontFamily: 'Cairo, sans-serif',
-                    outline: 'none', transition: 'border-color 150ms',
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = '#6366f1')}
-                  onBlur={(e) => (e.target.style.borderColor = '#334155')}
+                  style={{ paddingRight: '38px', paddingLeft: '38px' }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
                   aria-label={showPw ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                   style={{
-                    position: 'absolute', left: '13px', top: '50%', transform: 'translateY(-50%)',
+                    position: 'absolute', left: '12px', top: '50%',
+                    transform: 'translateY(-50%)',
                     background: 'none', border: 'none', cursor: 'pointer',
-                    color: showPw ? '#818cf8' : '#64748b', display: 'flex', padding: '2px',
+                    color: showPw ? 'var(--clr-primary-500)' : 'var(--txt-muted)',
+                    display: 'flex', padding: '2px',
+                    transition: 'color 140ms',
                   }}
                 >
-                  {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
@@ -174,30 +159,26 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={busy}
+              className="btn-primary"
               style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                padding: '13px', borderRadius: '12px', border: 'none', cursor: busy ? 'not-allowed' : 'pointer',
-                background: busy ? '#4b5563' : 'linear-gradient(135deg,#6366f1,#a855f7)',
-                color: '#fff', fontSize: '1rem', fontWeight: 800,
-                fontFamily: 'Cairo, sans-serif', marginTop: '4px',
-                boxShadow: busy ? 'none' : '0 4px 16px rgba(99,102,241,0.4)',
-                transition: 'all 200ms',
+                width: '100%', justifyContent: 'center',
+                padding: '12px', fontSize: 'var(--fs-base)',
+                marginTop: '4px',
               }}
             >
               {busy
-                ? <><Loader2 size={19} className="spin" /> جاري تسجيل الدخول...</>
-                : <><ShieldCheck size={19} /> تسجيل الدخول</>}
+                ? <><RefreshCw size={17} className="spin" /> جاري الدخول...</>
+                : <><ShieldCheck size={17} /> تسجيل الدخول</>}
             </button>
           </form>
 
-          {/* Footer */}
-          <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.07)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.75rem', color: '#475569' }}>
-              السيرفر:{' '}
-              <code style={{ color: '#818cf8', fontFamily: 'monospace' }}>
-                smart-card-qr-api.koyeb.app
-              </code>
-            </span>
+          {/* Server info */}
+          <div style={{
+            marginTop: '20px', paddingTop: '16px',
+            borderTop: '1px solid var(--bdr-light)',
+            textAlign: 'center',
+          }}>
+            
           </div>
         </div>
       </div>
