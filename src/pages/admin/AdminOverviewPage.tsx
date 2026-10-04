@@ -8,7 +8,7 @@ import {
 import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import {
   CreditCard, Tags, CheckCircle2, XCircle,
-  RefreshCw, ArrowLeft, Plus, TrendingUp, BarChart2,
+  RefreshCw, ArrowLeft, TrendingUp, BarChart2,
   Activity,
 } from 'lucide-react';
 

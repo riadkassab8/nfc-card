@@ -72,7 +72,50 @@ const DEVICE_LABELS: Record<string, string> = {
   any: 'أي جهاز', mobile: 'موبايل', tablet: 'تابلت', desktop: 'ديسكتوب',
 };
 
-type DraftRule = RedirectRule & { _key: string };
+/* ── 12-hour helpers ─────────────────────────────────────────────────── */
+type AmPm = 'am' | 'pm';
+
+/** تحويل 24h → 12h (للعرض في الـ UI) */
+const to12h = (hour24: number | null): { hour: number | null; period: AmPm } => {
+  if (hour24 === null || hour24 === undefined) return { hour: null, period: 'am' };
+  if (hour24 === 0)  return { hour: 12, period: 'am' };
+  if (hour24 === 12) return { hour: 12, period: 'pm' };
+  if (hour24 < 12)   return { hour: hour24, period: 'am' };
+  return { hour: hour24 - 12, period: 'pm' };
+};
+
+/** تحويل 12h → 24h (للإرسال للـ API) */
+const to24h = (hour12: number | null, period: AmPm): number | null => {
+  if (hour12 === null) return null;
+  if (period === 'am') {
+    return hour12 === 12 ? 0 : hour12;
+  } else {
+    return hour12 === 12 ? 12 : hour12 + 12;
+  }
+};
+
+type DraftRule = RedirectRule & {
+  _key: string;
+  /* حقول UI فقط — مش بتتبعت للـ API */
+  _hour_from_12: number | null;
+  _period_from: AmPm;
+  _hour_to_12: number | null;
+  _period_to: AmPm;
+};
+
+/** تحويل RedirectRule → DraftRule */
+const toDraft = (r: RedirectRule): DraftRule => {
+  const { hour: hf, period: pf } = to12h(r.hour_from ?? null);
+  const { hour: ht, period: pt } = to12h(r.hour_to ?? null);
+  return {
+    ...r,
+    _key: Math.random().toString(36).slice(2),
+    _hour_from_12: hf,
+    _period_from: pf,
+    _hour_to_12: ht,
+    _period_to: pt,
+  };
+};
 
 const emptyRule = (): DraftRule => ({
   _key: Math.random().toString(36).slice(2),
@@ -83,7 +126,13 @@ const emptyRule = (): DraftRule => ({
   label: '',
   hour_from: null,
   hour_to: null,
+  _hour_from_12: null,
+  _period_from: 'am',
+  _hour_to_12: null,
+  _period_to: 'am',
 });
+
+const HOURS_12 = Array.from({ length: 12 }, (_, i) => i + 1); // 1..12
 
 const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToast: (m: string, t?: ToastType) => void }> = ({ card, onUpdated, onToast }) => {
   const [rules, setRules] = useState<DraftRule[]>([]);
@@ -92,12 +141,27 @@ const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToa
 
   /* seed from card */
   useEffect(() => {
-    setRules((card.redirect_rules ?? []).map(r => ({ ...r, _key: Math.random().toString(36).slice(2) })));
+    setRules((card.redirect_rules ?? []).map(toDraft));
     setDirty(false);
   }, [card._id]);
 
   const update = (key: string, field: keyof DraftRule, value: any) => {
-    setRules(prev => prev.map(r => r._key === key ? { ...r, [field]: value } : r));
+    setRules(prev => prev.map(r => {
+      if (r._key !== key) return r;
+      const next = { ...r, [field]: value };
+      /* لما يتغير الـ 12h hour أو period — نحدّث الـ 24h اللي بيروح للـ API */
+      if (field === '_hour_from_12' || field === '_period_from') {
+        const h12 = field === '_hour_from_12' ? value : next._hour_from_12;
+        const prd = field === '_period_from'  ? value : next._period_from;
+        next.hour_from = to24h(h12, prd);
+      }
+      if (field === '_hour_to_12' || field === '_period_to') {
+        const h12 = field === '_hour_to_12' ? value : next._hour_to_12;
+        const prd = field === '_period_to'   ? value : next._period_to;
+        next.hour_to = to24h(h12, prd);
+      }
+      return next;
+    }));
     setDirty(true);
   };
 
@@ -121,7 +185,7 @@ const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToa
     setSaving(true);
     try {
       const dto: ApiUpdateRedirectRulesDto = {
-        rules: rules.map(({ _key, ...r }) => ({
+        rules: rules.map(({ _key, _hour_from_12, _period_from, _hour_to_12, _period_to, ...r }) => ({
           ...r,
           redirect_url: r.redirect_url.trim(),
           label: r.label?.trim() || undefined,
@@ -243,30 +307,54 @@ const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToa
 
             {/* Hour from */}
             <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label" style={{ fontSize: 'var(--fs-xs)' }}>من الساعة (UTC) — اختياري</label>
-              <input
-                type="number"
-                className="form-input"
-                value={rule.hour_from ?? ''}
-                onChange={e => update(rule._key, 'hour_from', e.target.value === '' ? null : Number(e.target.value))}
-                placeholder="0–23"
-                min={0} max={23}
-                style={{ fontSize: 'var(--fs-sm)', padding: '6px 10px' }}
-              />
+              <label className="form-label" style={{ fontSize: 'var(--fs-xs)' }}>من الساعة — اختياري</label>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                <select
+                  className="form-input"
+                  value={rule._hour_from_12 ?? ''}
+                  onChange={e => update(rule._key, '_hour_from_12', e.target.value === '' ? null : Number(e.target.value))}
+                  style={{ fontSize: 'var(--fs-sm)', padding: '6px 6px', flex: 1 }}
+                >
+                  <option value="">—</option>
+                  {HOURS_12.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+                <select
+                  className="form-input"
+                  value={rule._period_from}
+                  onChange={e => update(rule._key, '_period_from', e.target.value as AmPm)}
+                  disabled={rule._hour_from_12 === null}
+                  style={{ fontSize: 'var(--fs-sm)', padding: '6px 6px', width: '68px', opacity: rule._hour_from_12 === null ? 0.4 : 1 }}
+                >
+                  <option value="am">ص</option>
+                  <option value="pm">م</option>
+                </select>
+              </div>
             </div>
 
             {/* Hour to */}
             <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label" style={{ fontSize: 'var(--fs-xs)' }}>إلى الساعة (UTC) — اختياري</label>
-              <input
-                type="number"
-                className="form-input"
-                value={rule.hour_to ?? ''}
-                onChange={e => update(rule._key, 'hour_to', e.target.value === '' ? null : Number(e.target.value))}
-                placeholder="0–23"
-                min={0} max={23}
-                style={{ fontSize: 'var(--fs-sm)', padding: '6px 10px' }}
-              />
+              <label className="form-label" style={{ fontSize: 'var(--fs-xs)' }}>إلى الساعة — اختياري</label>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                <select
+                  className="form-input"
+                  value={rule._hour_to_12 ?? ''}
+                  onChange={e => update(rule._key, '_hour_to_12', e.target.value === '' ? null : Number(e.target.value))}
+                  style={{ fontSize: 'var(--fs-sm)', padding: '6px 6px', flex: 1 }}
+                >
+                  <option value="">—</option>
+                  {HOURS_12.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+                <select
+                  className="form-input"
+                  value={rule._period_to}
+                  onChange={e => update(rule._key, '_period_to', e.target.value as AmPm)}
+                  disabled={rule._hour_to_12 === null}
+                  style={{ fontSize: 'var(--fs-sm)', padding: '6px 6px', width: '68px', opacity: rule._hour_to_12 === null ? 0.4 : 1 }}
+                >
+                  <option value="am">ص</option>
+                  <option value="pm">م</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -310,7 +398,8 @@ const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToa
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '10px 13px', border: '1px solid var(--bdr-light)' }}>
         <AlertCircle size={14} style={{ color: 'var(--txt-muted)', flexShrink: 0, marginTop: '1px' }} />
         <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', lineHeight: 1.6 }}>
-          الساعات بتوقيت UTC — توقيت مصر = UTC+3. مثال: ليلاً بتوقيت مصر (10م–8ص) = hour_from: 19، hour_to: 5
+          الساعات بالتوقيت المصري (ص = صباح، م = مساء). مثال: نهار ٩ص–٥م، ليل ١٠م–٨ص.
+          النظام بيحوّل تلقائياً للتوقيت العالمي (UTC) قبل الحفظ.
         </span>
       </div>
     </div>
