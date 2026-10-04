@@ -58,13 +58,29 @@ export const AdminScanPage: React.FC = () => {
     if (!term) return;
     setSearching(true); setNotFound(false); setCard(null);
     try {
-      const res = await cardsApi.getCards({ search: term, limit: 10 });
-      const found = (res.data ?? []).find(c =>
+      const res = await cardsApi.getCards({ search: term, limit: 50 });
+      const data = res.data ?? [];
+      console.log('[ScanPage] search:', term, '→ results:', data.length, data.map(c => c.card_code));
+
+      // أولاً: نحاول exact match
+      const exact = data.find(c =>
         c.card_code.toLowerCase() === term.toLowerCase() ||
         (c.nfc_uid && c.nfc_uid.toLowerCase() === term.toLowerCase())
-      ) ?? null;
-      if (found) { setCard(found); setForm({ ...EMPTY, ...(found.business_data ?? {}) }); }
-      else setNotFound(true);
+      );
+
+      // لو ما فيش exact match خذ أول نتيجة (الـ API search كان كافياً)
+      const found = exact ?? (data.length === 1 ? data[0] : null);
+
+      if (found) {
+        setCard(found);
+        setForm({ ...EMPTY, ...(found.business_data ?? {}) });
+      } else if (data.length > 1) {
+        // رجّع أكتر من نتيجة بدون exact match — خذ الأقرب
+        setCard(data[0]);
+        setForm({ ...EMPTY, ...(data[0].business_data ?? {}) });
+      } else {
+        setNotFound(true);
+      }
     } catch (e: any) {
       setToast({ msg: e?.message || 'فشل البحث', type: 'error' });
     } finally { setSearching(false); }
