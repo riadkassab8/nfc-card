@@ -10,7 +10,7 @@ import { ApiCard } from '../types';
 import { PublicCardView } from '../components/public/PublicCardView';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
-type State = 'loading' | 'ok' | 'not_found' | 'no_data' | 'error';
+type State = 'loading' | 'ok' | 'not_found' | 'error';
 
 export const SocialPage: React.FC = () => {
   const { publicCode } = useParams<{ publicCode: string }>();
@@ -21,7 +21,7 @@ export const SocialPage: React.FC = () => {
     if (!publicCode?.trim()) { setState('not_found'); return; }
     setState('loading');
     try {
-      const res = await cardsApi.getCards({ search: publicCode.trim(), limit: 10 });
+      const res = await cardsApi.getPublicCards({ search: publicCode.trim(), limit: 10 });
       // Exact match only — never fall back to first result
       const found = (res.data ?? []).find(
         (c) => c.card_code.toLowerCase() === publicCode.toLowerCase() ||
@@ -29,9 +29,7 @@ export const SocialPage: React.FC = () => {
       ) ?? null;
 
       if (!found)                   { setState('not_found'); return; }
-      if (!found.business_data || !Object.values(found.business_data).some(Boolean)) {
-        setState('no_data'); return;
-      }
+
 
       const biz = found.business_data;
       const links: string[] = [];
@@ -72,16 +70,16 @@ export const SocialPage: React.FC = () => {
           </>
         )}
 
-        {(state === 'not_found' || state === 'no_data') && (
+        {state === 'not_found' && (
           <>
             <div style={{ width: '60px', height: '60px', borderRadius: '16px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
               <AlertCircle size={30} style={{ color: '#ef4444' }} />
             </div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}>
-              {state === 'not_found' ? 'الكارت غير موجود' : 'لا توجد بيانات'}
+              الكارت غير موجود
             </h2>
             <p style={{ color: '#64748b', fontSize: '0.9375rem' }}>
-              {state === 'not_found' ? 'هذا الكارت غير متوفر أو تم حذفه.' : 'هذا الكارت لا يحتوي على صفحة تواصل اجتماعي.'}
+              هذا الكارت غير متوفر أو تم حذفه.
             </p>
           </>
         )}

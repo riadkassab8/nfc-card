@@ -11,6 +11,7 @@ import {
   Save, Edit2, ExternalLink,
 } from 'lucide-react';
 import QRCode from 'qrcode';
+import { useNavigate } from 'react-router-dom';
 
 type ToastType = 'success' | 'error' | 'info';
 type Tab = 'info' | 'redirect' | 'qr' | 'history';
@@ -56,6 +57,7 @@ const Tab: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNod
 export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   card, categories, onClose, onUpdated, onDeleted, onToast,
 }) => {
+  const navigate = useNavigate();
   const [tab, setTab]               = useState<Tab>('info');
   const [newUrl, setNewUrl]         = useState('');
   const [savingUrl, setSavingUrl]   = useState(false);
@@ -135,19 +137,9 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
     finally { setSavingUrl(false); }
   };
 
-  const handleSaveEdit = async () => {
-    setEditSaving(true);
-    try {
-      const dto: ApiUpdateCardDto = {
-        card_type:   editType || undefined,
-        nfc_uid:     editNfc.trim() || undefined,
-        category_id: editCat || undefined,
-      };
-      const u = await cardsApi.updateCard(card._id, dto);
-      onUpdated(u); setEditMode(false);
-      onToast('تم حفظ التعديلات');
-    } catch (e: any) { onToast(e?.message || 'فشل', 'error'); }
-    finally { setEditSaving(false); }
+  const handleSaveEdit = () => {
+    onClose();
+    navigate('/admin/add-card', { state: { cardToEdit: card } });
   };
 
   const handleToggle = async () => {
@@ -270,18 +262,9 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
 
               {/* Edit toggle */}
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                {editMode ? (
-                  <>
-                    <button className="btn-outline" style={{ fontSize: 'var(--fs-sm)', padding: '7px 14px' }} onClick={() => setEditMode(false)}>إلغاء</button>
-                    <button className="btn-primary" style={{ fontSize: 'var(--fs-sm)', padding: '7px 16px', justifyContent: 'center' }} onClick={handleSaveEdit} disabled={editSaving}>
-                      {editSaving ? <><RefreshCw size={13} className="spin" /> حفظ...</> : <><Save size={13} /> حفظ</>}
-                    </button>
-                  </>
-                ) : (
-                  <button className="btn-outline" style={{ fontSize: 'var(--fs-sm)', padding: '7px 14px' }} onClick={() => setEditMode(true)}>
-                    <Edit2 size={13} /> تعديل
-                  </button>
-                )}
+                <button className="btn-outline" style={{ fontSize: 'var(--fs-sm)', padding: '7px 14px' }} onClick={handleSaveEdit}>
+                  <Edit2 size={13} /> تعديل
+                </button>
               </div>
 
               {/* Fields grid */}
@@ -299,24 +282,13 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                   </span>
                 </Field>
                 <Field label="معرف NFC">
-                  {editMode
-                    ? <input value={editNfc} onChange={e => setEditNfc(e.target.value)} placeholder="NFC-XXXXXX" style={inlineInput} />
-                    : <span style={{ fontFamily: 'monospace' }}>{card.nfc_uid || '—'}</span>}
+                  <span style={{ fontFamily: 'monospace' }}>{card.nfc_uid || '—'}</span>
                 </Field>
                 <Field label="نوع البطاقة">
-                  {editMode
-                    ? <select value={editType} onChange={e => setEditType(e.target.value)} style={{ ...inlineInput }}>
-                        {CARD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    : card.card_type}
+                  {card.card_type}
                 </Field>
                 <Field label="التصنيف">
-                  {editMode
-                    ? <select value={editCat} onChange={e => setEditCat(e.target.value)} style={{ ...inlineInput }}>
-                        <option value="">— بدون تصنيف —</option>
-                        {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                      </select>
-                    : cat?.name || '—'}
+                  {cat?.name || '—'}
                 </Field>
                 <Field label="بداية الاشتراك">{fmtDate(card.subscription_start_date)}</Field>
                 <Field label="نهاية الاشتراك">

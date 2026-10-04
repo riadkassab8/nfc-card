@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cardsApi, categoriesApi } from '../../services';
 import { ApiCategory, ApiCreateCardDto, CARD_TYPES, CardType, BusinessData } from '../../types';
 import Swal from 'sweetalert2';
@@ -72,22 +72,35 @@ export const AdminAddCardPage: React.FC = () => {
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [loading, setLoading]       = useState(false);
 
+  const location = useLocation();
+  const editCard = location.state?.cardToEdit as ApiCard | undefined;
+
   /* Card state */
-  const [cardCode, setCardCode]     = useState('');
-  const [nfcUid, setNfcUid]         = useState('');
-  const [cardType, setCardType]     = useState<string>(CardType.CARD);
-  const [redirectUrl, setRedirectUrl] = useState('');
-  const [categoryId, setCategoryId] = useState('');
+  const [cardCode, setCardCode]     = useState(editCard?.card_code || '');
+  const [nfcUid, setNfcUid]         = useState(editCard?.nfc_uid || '');
+  const [cardType, setCardType]     = useState<string>(editCard?.card_type || CardType.CARD);
+  const [redirectUrl, setRedirectUrl] = useState(editCard?.current_redirect_url || '');
+  const [categoryId, setCategoryId] = useState(editCard?.category_id?._id || '');
 
   /* Business data state */
   const [bizData, setBizData] = useState<Record<string, string>>({
-    business_name: '', logo: '', description: '', phone: '',
-    email: '', whatsapp: '', instagram: '', facebook: '',
-    tiktok: '', google_maps: '', website: '',
+    business_name: editCard?.business_data?.business_name || '',
+    logo: editCard?.business_data?.logo || '',
+    description: editCard?.business_data?.description || '',
+    phone: editCard?.business_data?.phone || '',
+    email: editCard?.business_data?.email || '',
+    whatsapp: editCard?.business_data?.whatsapp || '',
+    instagram: editCard?.business_data?.instagram || '',
+    facebook: editCard?.business_data?.facebook || '',
+    tiktok: editCard?.business_data?.tiktok || '',
+    google_maps: editCard?.business_data?.google_maps || '',
+    website: editCard?.business_data?.website || '',
+    instapay: editCard?.business_data?.instapay || '',
+    vodafone_cash: editCard?.business_data?.vodafone_cash || '',
   });
 
   /* Auto-generate next card code */
-  const [autoCode, setAutoCode] = useState(true);
+  const [autoCode, setAutoCode] = useState(!editCard);
 
   const loadData = useCallback(async () => {
     try {
@@ -109,7 +122,7 @@ export const AdminAddCardPage: React.FC = () => {
       const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
       const nextCode = `CARD-${String(next).padStart(4, '0')}`;
       const nextNfc  = `NFC-${String(next).padStart(6, '0')}`;
-      if (autoCode) {
+      if (autoCode && !editCard) {
         setCardCode(nextCode);
         setNfcUid(nextNfc);
         setRedirectUrl(`${window.location.origin}/social/${nextCode}`);
@@ -194,41 +207,55 @@ export const AdminAddCardPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const created = await cardsApi.createCard(dto);
-      await Swal.fire({
-        icon: 'success',
-        title: 'تم الإنشاء بنجاح! 🎉',
-        html: `
-          <div style="text-align:right;direction:rtl;font-family:Tajawal,sans-serif">
-            <p style="margin:8px 0;font-size:15px">البطاقة <strong style="color:#3b82f6">${created.card_code}</strong> جاهزة تماماً</p>
-            <p style="margin:4px 0;font-size:13px;color:#64748b">النوع: ${created.card_type}</p>
-            <div style="margin-top:14px;text-align:center">
-              <a href="/social/${created.card_code}" target="_blank" style="display:inline-block;padding:9px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">
-                🚀 فتح صفحة الأزرار التفاعلية
-              </a>
+      if (editCard) {
+        // Update mode
+        const updated = await cardsApi.updateCard(editCard._id, dto);
+        await Swal.fire({
+          icon: 'success',
+          title: 'تم تعديل البطاقة بنجاح!',
+          text: `تم حفظ التعديلات للبطاقة ${updated.card_code}`,
+          confirmButtonText: 'حسناً',
+          confirmButtonColor: '#3b82f6',
+        });
+        navigate('/admin/cards');
+      } else {
+        // Create mode
+        const created = await cardsApi.createCard(dto);
+        await Swal.fire({
+          icon: 'success',
+          title: 'تم الإنشاء بنجاح! 🎉',
+          html: `
+            <div style="text-align:right;direction:rtl;font-family:Tajawal,sans-serif">
+              <p style="margin:8px 0;font-size:15px">البطاقة <strong style="color:#3b82f6">${created.card_code}</strong> جاهزة تماماً</p>
+              <p style="margin:4px 0;font-size:13px;color:#64748b">النوع: ${created.card_type}</p>
+              <div style="margin-top:14px;text-align:center">
+                <a href="/social/${created.card_code}" target="_blank" style="display:inline-block;padding:9px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">
+                  🚀 فتح صفحة الأزرار التفاعلية
+                </a>
+              </div>
             </div>
-          </div>
-        `,
-        confirmButtonText: 'عرض البطاقات',
-        confirmButtonColor: '#3b82f6',
-        showCancelButton: true,
-        cancelButtonText: 'إضافة بطاقة أخرى',
-        cancelButtonColor: '#64748b',
-      }).then((result: import('sweetalert2').SweetAlertResult) => {
-        if (result.isConfirmed) {
-          navigate('/admin/cards');
-        } else {
-          // Reset form for another card
-          setAutoCode(true);
-          setNfcUid('');
-          setBizData({
-            business_name: '', logo: '', description: '', phone: '',
-            email: '', whatsapp: '', instagram: '', facebook: '',
-            tiktok: '', google_maps: '', website: '',
-          });
-          loadData();
-        }
-      });
+          `,
+          confirmButtonText: 'عرض البطاقات',
+          confirmButtonColor: '#3b82f6',
+          showCancelButton: true,
+          cancelButtonText: 'إضافة بطاقة أخرى',
+          cancelButtonColor: '#64748b',
+        }).then((result: import('sweetalert2').SweetAlertResult) => {
+          if (result.isConfirmed) {
+            navigate('/admin/cards');
+          } else {
+            // Reset form for another card
+            setAutoCode(true);
+            setNfcUid('');
+            setBizData({
+              business_name: '', logo: '', description: '', phone: '',
+              email: '', whatsapp: '', instagram: '', facebook: '',
+              tiktok: '', google_maps: '', website: '',
+            });
+            loadData();
+          }
+        });
+      }
     } catch (e: any) {
       let errMsg = e?.message || 'حدث خطأ أثناء إنشاء البطاقة';
       if (errMsg.includes('500') || errMsg.includes('Internal server error')) {
@@ -473,8 +500,8 @@ export const AdminAddCardPage: React.FC = () => {
             style={{ minWidth: '160px', justifyContent: 'center' }}
           >
             {loading
-              ? <><RefreshCw size={16} className="spin" /> جاري الإنشاء...</>
-              : <><Plus size={16} /> إنشاء البطاقة</>
+              ? <><RefreshCw size={16} className="spin" /> {editCard ? 'جاري الحفظ...' : 'جاري الإنشاء...'}</>
+              : <><Plus size={16} /> {editCard ? 'إتمام التعديل' : 'إنشاء البطاقة'}</>
             }
           </button>
         </div>

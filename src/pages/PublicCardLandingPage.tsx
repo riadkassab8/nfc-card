@@ -30,7 +30,7 @@ export const PublicCardLandingPage: React.FC = () => {
 
     setState('loading');
     try {
-      const res = await cardsApi.getCards({ search: code.trim(), limit: 10 });
+      const res = await cardsApi.getPublicCards({ search: code.trim(), limit: 10 });
       // Exact match only — never fall back to first result
       const found = (res.data ?? []).find(
         (c) => c.card_code.toLowerCase() === code.toLowerCase() ||
