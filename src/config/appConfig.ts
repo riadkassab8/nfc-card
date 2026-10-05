@@ -16,7 +16,7 @@ export const getAppBaseUrl = (): string => {
   }
 
   // 3. Fallback default
-  return 'https://smartcard-app.com';
+  return 'https://nfc-card-five.vercel.app';
 };
 
 export const getSocialPageUrl = (cardCode: string): string => {

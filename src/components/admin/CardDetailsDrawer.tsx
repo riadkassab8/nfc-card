@@ -451,7 +451,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   useEffect(() => {
     if (!card) return;
     setTab('info'); setConfirmDel(false);
-    setNewUrl(card.current_redirect_url || '');
+    setNewUrl(card.current_redirect_url ? card.current_redirect_url.replace(/https?:\/\/[^\/]+\/social\//, 'https://nfc-card-five.vercel.app/r/').replace(/https?:\/\/smartcard-app\.com/g, 'https://nfc-card-five.vercel.app') : '');
     setQrDataUrl(null); setHistory([]); setHistLoaded(false);
   }, [card]);
 
@@ -466,7 +466,10 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   }, []);
 
   useEffect(() => {
-    if (tab === 'qr' && card && !qrDataUrl) genQr(card.current_redirect_url);
+    if (tab === 'qr' && card && !qrDataUrl) {
+      const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://nfc-card-five.vercel.app');
+      genQr(`${domainOrigin}/r/${card.card_code}`);
+    }
   }, [tab, card, qrDataUrl, genQr]);
 
   /* History */
@@ -485,7 +488,8 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   const isActive  = card.status === 'active';
   const expired   = isSubscriptionExpired(card);
   const cat       = getPopulatedCategory(card.category_id);
-  const staticUrl = `${window.location.origin}/r/${card.card_code}`;
+  const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://nfc-card-five.vercel.app');
+  const staticUrl = `${domainOrigin}/r/${card.card_code}`;
   const rulesCount = (card.redirect_rules ?? []).length;
 
   const copyText = (text: string, key: string) => {
@@ -694,8 +698,8 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
               <div style={{ backgroundColor: '#f0fdf4', borderRadius: 'var(--r-lg)', padding: '13px 16px', border: '1px solid #bbf7d0' }}>
                 <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: '#15803d', marginBottom: '6px' }}>صفحة الأزرار التفاعلية (Social Page)</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <code style={{ fontSize: 'var(--fs-xs)', color: '#166534', flex: 1, wordBreak: 'break-all' }}>{`${window.location.origin}/r/${card.card_code}`}</code>
-                  <button onClick={() => copyText(`${window.location.origin}/r/${card.card_code}`, 'socialPreview')} style={iconBtnStyle}>
+                  <code style={{ fontSize: 'var(--fs-xs)', color: '#166534', flex: 1, wordBreak: 'break-all' }}>{`${domainOrigin}/r/${card.card_code}`}</code>
+                  <button onClick={() => copyText(`${domainOrigin}/r/${card.card_code}`, 'socialPreview')} style={iconBtnStyle}>
                     {copied === 'socialPreview' ? <Check size={12} style={{ color: 'var(--clr-success)' }} /> : <Copy size={12} />}
                   </button>
                   <a href={`/r/${card.card_code}`} target="_blank" rel="noopener noreferrer" style={{ ...iconBtnStyle, textDecoration: 'none', color: '#fff', backgroundColor: '#16a34a', padding: '4px 10px', borderRadius: 'var(--r-md)', fontSize: 'var(--fs-xs)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
@@ -756,7 +760,9 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
               </p>
               <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '11px 14px', border: '1px solid var(--bdr-light)' }}>
                 <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '4px' }}>الرابط الحالي</div>
-                <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-700)', wordBreak: 'break-all' }}>{card.current_redirect_url}</code>
+                <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-700)', wordBreak: 'break-all' }}>
+                  {card.current_redirect_url ? card.current_redirect_url.replace(/https?:\/\/[^\/]+\/social\//, 'https://nfc-card-five.vercel.app/r/').replace(/https?:\/\/smartcard-app\.com/g, 'https://nfc-card-five.vercel.app') : ''}
+                </code>
               </div>
               <div className="form-group">
                 <label className="form-label">الرابط الجديد</label>
@@ -795,14 +801,14 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                     </div>}
 
               <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-700)', wordBreak: 'break-all', textAlign: 'center', maxWidth: '320px' }}>
-                {card.current_redirect_url}
+                {staticUrl}
               </code>
 
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button className="btn-primary" onClick={downloadQrPng} style={{ padding: '9px 18px', fontSize: 'var(--fs-sm)' }}>
                   <Download size={14} /> تحميل PNG
                 </button>
-                <button className="btn-outline" onClick={() => genQr(card.current_redirect_url)} style={{ padding: '9px 18px', fontSize: 'var(--fs-sm)' }}>
+                <button className="btn-outline" onClick={() => genQr(staticUrl)} style={{ padding: '9px 18px', fontSize: 'var(--fs-sm)' }}>
                   <RefreshCw size={14} /> إعادة توليد
                 </button>
               </div>

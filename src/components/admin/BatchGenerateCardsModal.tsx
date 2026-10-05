@@ -52,7 +52,7 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
         .map(c => { const m = c.card_code.match(/^CARD-(\d+)$/); return m ? parseInt(m[1]) : 0; })
         .filter(Boolean);
       let next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
-      const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smartcard-app.com');
+      const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://nfc-card-five.vercel.app');
 
       // Use bulk endpoint for chunks of up to 100 cards
       const CHUNK = 100;
@@ -90,7 +90,7 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
       if (!/^https?:\/\//i.test(formattedUrl)) {
         formattedUrl = `https://${formattedUrl}`;
       }
-      formattedUrl = formattedUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smartcard-app.com');
+      formattedUrl = formattedUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://nfc-card-five.vercel.app');
       const dto: ApiCreateCardDto = {
         card_code: sCode.trim().toUpperCase(),
         card_type: sType,
