@@ -355,10 +355,10 @@ export const AdminAddCardPage: React.FC = () => {
         </button>
         <div>
           <h1 style={{ margin: 0, fontSize: 'var(--fs-xl)', fontWeight: 800, color: 'var(--txt-heading)' }}>
-            إضافة بطاقة جديدة
+            {editCard ? `تعديل البطاقة ${editCard.card_code}` : 'إضافة بطاقة جديدة'}
           </h1>
           <p style={{ margin: '2px 0 0', fontSize: 'var(--fs-sm)', color: 'var(--txt-muted)' }}>
-            أدخل جميع بيانات البطاقة والنشاط التجاري
+            {editCard ? 'قم بتحديث بيانات البطاقة والنشاط التجاري' : 'أدخل جميع بيانات البطاقة والنشاط التجاري'}
           </p>
         </div>
       </div>

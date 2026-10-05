@@ -194,14 +194,67 @@ export const AdminScanPage: React.FC = () => {
   const [saving, setSaving]     = useState(false);
   const [toast, setToast]       = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [showScanner, setShowScanner] = useState(false);
+  
+  // Autocomplete states
+  const [suggestions, setSuggestions] = useState<ApiCard[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     categoriesApi.getCategories({ limit: 100 }).then(r => setCategories(r.data ?? [])).catch(() => {});
   }, []);
 
+  // Autocomplete: search while typing
+  useEffect(() => {
+    // Don't search if user is selecting from suggestions
+    if (isSelecting) {
+      return;
+    }
+
+    const term = query.trim();
+    
+    if (!term || term.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Debounce search
+    searchTimeoutRef.current = setTimeout(async () => {
+      setLoadingSuggestions(true);
+      try {
+        const res = await cardsApi.getCards({ search: term, limit: 10 });
+        const data = res.data ?? [];
+        setSuggestions(data);
+        setShowSuggestions(data.length > 0);
+      } catch (e) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [query, isSelecting]);
+
   const resolve = async (q = query) => {
     let term = q.trim();
     if (!term) return;
+
+    // Hide suggestions when searching
+    setShowSuggestions(false);
 
     // استخراج الكود في حال كان الرابط كاملاً
     const match = term.match(/(CARD-\d+|NFC-[A-Z0-9]+)/i);
@@ -242,6 +295,31 @@ export const AdminScanPage: React.FC = () => {
       setToast({ msg: e?.message || 'فشل البحث', type: 'error' });
     } finally { setSearching(false); }
   };
+
+  const selectSuggestion = (selectedCard: ApiCard) => {
+    setIsSelecting(true);
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setQuery(selectedCard.card_code);
+    
+    setTimeout(() => {
+      resolve(selectedCard.card_code);
+      setIsSelecting(false);
+    }, 100);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.search-container')) {
+        setShowSuggestions(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -298,15 +376,97 @@ export const AdminScanPage: React.FC = () => {
           البحث عن بطاقة
         </h3>
         <form onSubmit={e => { e.preventDefault(); resolve(); }} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: '1', minWidth: '220px' }}>
-            <Search size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--txt-muted)', pointerEvents: 'none' }} />
+          <div className="search-container" style={{ position: 'relative', flex: '1', minWidth: '220px' }}>
+            <Search size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--txt-muted)', pointerEvents: 'none', zIndex: 1 }} />
             <input
               className="form-input"
               value={query}
               onChange={e => setQuery(e.target.value)}
+              onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
               placeholder="CARD-0001 أو NFC-7FJ2K9"
               style={{ paddingRight: '36px' }}
             />
+            
+            {/* Autocomplete Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 4px)',
+                left: 0,
+                right: 0,
+                backgroundColor: 'var(--bg-white)',
+                border: '1px solid var(--bdr-light)',
+                borderRadius: 'var(--r-md)',
+                boxShadow: 'var(--shadow-lg)',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                zIndex: 100,
+              }}>
+                {suggestions.map((suggestion) => (
+                  <div
+                    key={suggestion._id}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      selectSuggestion(suggestion);
+                    }}
+                    style={{
+                      padding: '12px 16px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid var(--bdr-light)',
+                      transition: 'background-color 0.15s',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: 'var(--fs-sm)', color: 'var(--txt-heading)' }}>
+                        {suggestion.card_code}
+                      </span>
+                      <span className={`badge ${suggestion.status === 'active' ? 'badge-success' : 'badge-error'}`} style={{ fontSize: '10px', padding: '2px 8px' }}>
+                        {suggestion.status === 'active' ? 'نشطة' : 'معطلة'}
+                      </span>
+                      <span className="badge badge-blue" style={{ fontSize: '10px', padding: '2px 8px' }}>
+                        {suggestion.card_type}
+                      </span>
+                    </div>
+                    {suggestion.business_data?.business_name && (
+                      <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-secondary)' }}>
+                        {suggestion.business_data.business_name}
+                      </span>
+                    )}
+                    {suggestion.nfc_uid && (
+                      <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', fontFamily: 'monospace' }}>
+                        {suggestion.nfc_uid}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {loadingSuggestions && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 4px)',
+                left: 0,
+                right: 0,
+                backgroundColor: 'var(--bg-white)',
+                border: '1px solid var(--bdr-light)',
+                borderRadius: 'var(--r-md)',
+                boxShadow: 'var(--shadow-lg)',
+                padding: '12px',
+                textAlign: 'center',
+                color: 'var(--txt-muted)',
+                fontSize: 'var(--fs-sm)',
+                zIndex: 100,
+              }}>
+                <RefreshCw size={14} className="spin" style={{ display: 'inline-block', marginLeft: '6px' }} />
+                جاري البحث...
+              </div>
+            )}
           </div>
           <button
             type="button"
