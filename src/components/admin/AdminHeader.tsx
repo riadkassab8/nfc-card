@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Menu, LogOut, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -81,33 +82,72 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
         {/* Left side: user */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           {/* User pill */}
-          <div className="admin-user-pill" style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '7px',
-            padding: '6px 12px',
-            borderRadius: 'var(--r-md)',
-            border: '1px solid var(--bdr-light)',
-            backgroundColor: 'var(--bg-subtle)',
-          }}>
-            <div style={{
-              width: '26px', height: '26px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--clr-primary-100)',
-              color: 'var(--clr-primary-700)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <User size={14} />
+          <Link
+            to="/admin/profile"
+            className="admin-user-pill"
+            title="الملف الشخصي والإعدادات"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '5px 12px',
+              borderRadius: 'var(--r-md)',
+              border: '1px solid var(--bdr-light)',
+              backgroundColor: 'var(--bg-subtle)',
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'all 150ms var(--ease)',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bg-hover)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'var(--clr-primary-300)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bg-subtle)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'var(--bdr-light)';
+            }}
+          >
+            <div
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--clr-primary-100)',
+                color: 'var(--clr-primary-700)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                overflow: 'hidden',
+              }}
+            >
+              {admin?.avatar ? (
+                <img
+                  src={admin.avatar}
+                  alt="avatar"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLElement).style.display = 'none';
+                  }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <User size={15} />
+              )}
             </div>
-            <span style={{
-              fontSize: 'var(--fs-sm)',
-              fontWeight: 600,
-              color: 'var(--txt-body)',
-            }}>
-              {admin?.username || 'admin'}
+            <span
+              style={{
+                fontSize: 'var(--fs-sm)',
+                fontWeight: 600,
+                color: 'var(--txt-body)',
+                maxWidth: '120px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {admin?.name || admin?.username || 'admin'}
             </span>
-          </div>
+          </Link>
 
           {/* Logout */}
           <button

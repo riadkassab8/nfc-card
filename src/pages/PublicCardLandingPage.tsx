@@ -106,7 +106,7 @@ export const PublicCardLandingPage: React.FC = () => {
   if (state === 'ok' && card) return <PublicCardView card={card} />;
 
   return (
-    <div dir="rtl" style={{ minHeight: '100vh', backgroundColor: '#f5f4f1', backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(226, 232, 240, 0.4) 0%, #f5f4f1 60%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Cairo, sans-serif' }}>
+    <div dir="rtl" style={{ minHeight: '100vh', backgroundColor: '#f5f4f1', backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(226, 232, 240, 0.4) 0%, #f5f4f1 60%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Tajawal, sans-serif' }}>
       <div style={{ maxWidth: '400px', width: '100%', backgroundColor: '#fff', borderRadius: '20px', padding: '36px 28px', boxShadow: '0 10px 28px rgba(0,0,0,0.06)', textAlign: 'center' }}>
 
         {state === 'loading' && (
@@ -123,7 +123,7 @@ export const PublicCardLandingPage: React.FC = () => {
             </div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}>الكارت غير موجود</h2>
             <p style={{ color: '#64748b', fontSize: '0.9375rem', marginBottom: '20px' }}>يبدو أن هذا الكارت غير متاح أو تم حذفه.</p>
-            <button onClick={() => navigate('/')} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '10px 22px', borderRadius: '10px', border: 'none', backgroundColor: '#0f172a', color: '#fff', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontWeight: 800 }}>
+            <button onClick={() => navigate('/')} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '10px 22px', borderRadius: '10px', border: 'none', backgroundColor: '#0f172a', color: '#fff', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif', fontWeight: 800 }}>
               <ArrowRight size={16} /> الصفحة الرئيسية
             </button>
           </>
@@ -136,7 +136,7 @@ export const PublicCardLandingPage: React.FC = () => {
             </div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}>تعذر التحميل</h2>
             <p style={{ color: '#64748b', fontSize: '0.9375rem', marginBottom: '20px' }}>حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.</p>
-            <button onClick={load} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '10px 22px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontWeight: 800 }}>
+            <button onClick={load} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '10px 22px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif', fontWeight: 800 }}>
               <RefreshCw size={16} /> إعادة المحاولة
             </button>
           </>

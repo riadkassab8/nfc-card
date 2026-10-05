@@ -12,6 +12,7 @@ import { AdminAddCardPage }         from './pages/admin/AdminAddCardPage';
 import { AdminCategoriesPage }      from './pages/admin/AdminCategoriesPage';
 import { AdminScanPage }            from './pages/admin/AdminScanPage';
 import { AdminAnalyticsPage }       from './pages/admin/AdminAnalyticsPage';
+import { AdminSettingsPage }        from './pages/admin/AdminSettingsPage';
 import { PublicCardLandingPage }    from './pages/PublicCardLandingPage';
 import { SocialPage }               from './pages/SocialPage';
 
@@ -67,7 +68,6 @@ export const App: React.FC = () => (
             </ProtectedRoute>
           }
         />
-        
 
         <Route
           path="/admin/analytics"
@@ -75,6 +75,28 @@ export const App: React.FC = () => (
             <ProtectedRoute>
               <AdminShell title="الإحصائيات">
                 <AdminAnalyticsPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings"
+          element={
+            <ProtectedRoute>
+              <AdminShell title="إعدادات المنصة">
+                <AdminSettingsPage initialTab="platform" />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/profile"
+          element={
+            <ProtectedRoute>
+              <AdminShell title="الملف الشخصي">
+                <AdminSettingsPage initialTab="profile" />
               </AdminShell>
             </ProtectedRoute>
           }

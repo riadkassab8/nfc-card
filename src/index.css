@@ -4,6 +4,8 @@
    الثيم: أبيض وأزرق هادي — بسيط وأنيق
    ========================================================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&display=swap');
+
 /* ── متغيرات اللون (غيّرها في أي وقت) ─────────────────────────────────── */
 :root {
 
@@ -85,7 +87,7 @@
   --sp-10: 40px;
 
   /* ═══ الخط ═══ */
-  --font:       'Tajawal', 'Segoe UI', system-ui, sans-serif;
+  --font:       'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono:  'Courier New', monospace;
 
   /* ═══ حجم الخط ═══ */
@@ -105,12 +107,13 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────── */
-/*  RESET                                                               */
+/*  RESET & GLOBAL FONT                                                 */
 /* ─────────────────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  font-family: var(--font) !important;
 }
 
 html {
@@ -121,7 +124,7 @@ html {
 html, body {
   height: 100%;
   direction: rtl;
-  font-family: var(--font);
+  font-family: var(--font) !important;
   font-size: 16px;
   line-height: 1.65;
   background-color: var(--bg-page);
@@ -137,7 +140,13 @@ html, body {
 }
 
 a { color: inherit; text-decoration: none; }
-button, input, select, textarea { font-family: inherit; }
+button, input, select, textarea, optgroup { font-family: var(--font) !important; }
+img { max-width: 100%; display: block; }
+
+/* Keep monospace where explicitly requested */
+code, kbd, samp, pre, .font-mono {
+  font-family: var(--font-mono) !important;
+}
 img { max-width: 100%; display: block; }
 
 /* ─────────────────────────────────────────────────────────────────── */
@@ -464,66 +473,74 @@ tbody tr:hover {
 /*  PREMIUM DATA TABLE                                                  */
 /* ─────────────────────────────────────────────────────────────────── */
 .data-table-wrapper {
+  background: var(--bg-white);
+  border: 1px solid var(--bdr-light);
+  border-radius: var(--r-2xl);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
   overflow: hidden;
-  /* Removed border and background to let premium rows shine */
+  transition: box-shadow var(--dur) var(--ease);
+}
+.data-table-wrapper:hover {
+  box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.06), 0 4px 10px -2px rgba(15, 23, 42, 0.03);
 }
 .premium-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
   border-spacing: 0;
-  font-family: var(--font);
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  overflow: hidden;
+  font-family: var(--font) !important;
 }
 .premium-table thead tr {
-  background: #f8f9fa;
+  background: #f8fafc;
 }
 .premium-table thead th {
-  padding: 14px 16px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #495057;
-  text-align: center;
+  padding: 14px 18px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #475569;
+  text-align: right;
   white-space: nowrap;
-  border-bottom: 2px solid #dee2e6;
-  border-right: 1px solid #dee2e6;
+  border-bottom: 1.5px solid var(--bdr-light);
+  letter-spacing: 0.2px;
+  font-family: var(--font) !important;
 }
+.premium-table thead th:first-child,
 .premium-table thead th:last-child {
-  border-right: none;
+  text-align: center;
 }
 .premium-table tbody tr {
   background: var(--bg-white);
-  transition: background-color 0.15s var(--ease);
+  transition: all 160ms var(--ease);
 }
 .premium-table tbody tr:hover {
-  background-color: #f8f9fa;
+  background-color: #f8fbff !important;
 }
 .premium-table tbody tr:last-child td {
   border-bottom: none;
 }
 .premium-table tbody td {
-  padding: 14px 16px;
-  font-size: 13px;
+  padding: 15px 18px;
+  font-size: 14px;
   color: var(--txt-body);
   vertical-align: middle;
-  text-align: center;
-  border-bottom: 1px solid #dee2e6;
-  border-right: 1px solid #dee2e6;
+  text-align: right;
+  border-bottom: 1px solid #f1f5f9;
+  font-family: var(--font) !important;
 }
+.premium-table tbody td:first-child,
 .premium-table tbody td:last-child {
-  border-right: none;
+  text-align: center;
 }
 .premium-table tbody td:first-child {
   border-inline-start: 3px solid transparent;
   transition: border-color 0.2s;
 }
 .premium-table tbody tr.selected {
-  background-color: #e7f3ff !important;
+  background-color: #eff6ff !important;
 }
 .premium-table tbody tr.selected td:first-child {
   border-inline-start-color: var(--clr-primary-500);
 }
+
 
 /* ─────────────────────────────────────────────────────────────────── */
 /*  ACTION BUTTON (icon buttons in tables)                              */
@@ -544,6 +561,50 @@ tbody tr:hover {
 .action-btn:hover {
   background-color: var(--bg-hover);
   border-color: var(--bdr-light);
+}
+
+.menu-item-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font) !important;
+  transition: all 0.15s ease;
+  text-align: right;
+  direction: rtl;
+}
+.menu-item-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.hero-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font) !important;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+.hero-action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 /* ─────────────────────────────────────────────────────────────────── */
@@ -644,25 +705,42 @@ tbody tr:hover {
 /* ─────────────────────────────────────────────────────────────────── */
 /*  TOAST                                                               */
 /* ─────────────────────────────────────────────────────────────────── */
+@keyframes toastPopIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -24px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
 .toast {
   position: fixed;
-  top: 22px;
-  inset-inline-end: 22px;
-  z-index: 1200;
-  max-width: 360px;
-  border-radius: var(--r-lg);
-  padding: 13px 16px;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  max-width: 480px;
+  min-width: 320px;
+  border-radius: 14px;
+  padding: 12px 18px;
   font-weight: 700;
-  font-size: var(--fs-base);
+  font-size: 0.9rem;
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
-  box-shadow: var(--shadow-lg);
-  animation: fadeUp 200ms var(--ease-out) both;
+  gap: 12px;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(15, 23, 42, 0.06);
+  animation: toastPopIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  background: #ffffff;
+  color: #0f172a;
+  direction: rtl;
+  font-family: 'Tajawal', sans-serif !important;
 }
-.toast-success { background: var(--clr-success-bg); color: var(--clr-success); border: 1px solid var(--clr-success-bdr); }
-.toast-error   { background: var(--clr-error-bg);   color: var(--clr-error);   border: 1px solid var(--clr-error-bdr); }
-.toast-info    { background: var(--clr-info-bg);    color: var(--clr-info);    border: 1px solid var(--clr-info-bdr); }
+.toast-success { border-right: 4px solid #10b981; }
+.toast-error   { border-right: 4px solid #ef4444; }
+.toast-info    { border-right: 4px solid #3b82f6; }
 
 /* ─────────────────────────────────────────────────────────────────── */
 /*  LOADING SPINNER                                                     */

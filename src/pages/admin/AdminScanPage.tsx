@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cardsApi, categoriesApi } from '../../services';
 import { ApiCard, ApiCategory, BusinessData, fmtDate, isSubscriptionExpired, parseCategoryMeta } from '../../types';
-import { Search, Save, RefreshCw, XCircle, ExternalLink, QrCode, X, Camera } from 'lucide-react';
+import {
+  Search, Save, RefreshCw, XCircle, ExternalLink, QrCode, X, Camera,
+  CreditCard, Copy, Link as LinkIcon, Download, CheckCircle2, Sparkles,
+} from 'lucide-react';
 import jsQR from 'jsqr';
 
 const EMPTY: BusinessData = {
@@ -346,8 +349,27 @@ export const AdminScanPage: React.FC = () => {
 
   const expired = card ? isSubscriptionExpired(card) : false;
 
+  const downloadQR = async (c: ApiCard) => {
+    try {
+      const blob = await cardsApi.getCardQrBlob(c._id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `qr-${c.card_code}.png`;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+    } catch {
+      setToast({ msg: 'فشل تحميل QR كود', type: 'error' });
+    }
+  };
+
+  const copyPublicUrl = (c: ApiCard) => {
+    const url = `${window.location.origin}/social/${c.custom_slug || c.card_code}`;
+    navigator.clipboard.writeText(url);
+    setToast({ msg: 'تم نسخ الرابط العام بنجاح ✓', type: 'success' });
+  };
+
   return (
-    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '20px', fontFamily: 'var(--font)' }}>
+    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', fontFamily: 'var(--font)' }}>
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       {showScanner && (
@@ -362,45 +384,86 @@ export const AdminScanPage: React.FC = () => {
       )}
 
       {/* Hero */}
-      <div className="page-hero">
+      <div style={{
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+        borderRadius: '20px',
+        padding: '28px 32px',
+        color: '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '20px',
+        boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.15)'
+      }}>
+        <div style={{ position: 'absolute', top: '-40px', left: '-40px', width: '180px', height: '180px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.08)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-50px', right: '25%', width: '140px', height: '140px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.08)', pointerEvents: 'none' }} />
+
         <div style={{ zIndex: 1 }}>
-          <span className="page-hero-label">الأدوات</span>
-          <h2>فحص وتجهيز البطاقة</h2>
-          <p>ابحث بكود البطاقة أو معرف NFC لتحديث البيانات</p>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.12)', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, marginBottom: '8px', color: '#93c5fd' }}>
+            <span>أدوات البرمجة والفحص السريع</span>
+          </div>
+          <h2 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 6px', letterSpacing: '-0.3px', color: '#fff' }}>فحص وتجهيز بطاقات NFC</h2>
+          <p style={{ margin: 0, fontSize: '13.5px', color: '#94a3b8' }}>
+            ابحث بكود البطاقة أو معرف NFC لتحديث بيانات النشاط التجاري والروابط الاجتماعية فوراً
+          </p>
+        </div>
+
+        <div style={{ zIndex: 1, display: 'flex', gap: '10px' }}>
+          <button
+            className="hero-action-btn"
+            onClick={() => setShowScanner(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Camera size={16} /> فحص بالكاميرا (QR)
+          </button>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="card" style={{ padding: '20px' }}>
-        <h3 style={{ margin: '0 0 14px', fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--txt-heading)' }}>
-          البحث عن بطاقة
-        </h3>
+      {/* Search Card */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        border: '1px solid var(--bdr-light)',
+        borderRadius: '16px',
+        padding: '22px 24px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <Search size={18} style={{ color: 'var(--clr-primary-600)' }} />
+          <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+            البحث عن بطاقة وفحصها
+          </h3>
+        </div>
+
         <form onSubmit={e => { e.preventDefault(); resolve(); }} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <div className="search-container" style={{ position: 'relative', flex: '1', minWidth: '220px' }}>
-            <Search size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--txt-muted)', pointerEvents: 'none', zIndex: 1 }} />
+          <div className="search-container" style={{ position: 'relative', flex: '1', minWidth: '260px' }}>
+            <Search size={15} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--txt-muted)', pointerEvents: 'none', zIndex: 1 }} />
             <input
               className="form-input"
               value={query}
               onChange={e => setQuery(e.target.value)}
               onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-              placeholder="CARD-0001 أو NFC-7FJ2K9"
-              style={{ paddingRight: '36px' }}
+              placeholder="ابحث بكود البطاقة CARD-0001 أو NFC-7FJ2K9 أو الرابط..."
+              style={{ paddingRight: '38px', height: '44px', borderRadius: '10px', fontSize: '14px', width: '100%' }}
             />
             
             {/* Autocomplete Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
               <div style={{
                 position: 'absolute',
-                top: 'calc(100% + 4px)',
+                top: 'calc(100% + 6px)',
                 left: 0,
                 right: 0,
-                backgroundColor: 'var(--bg-white)',
+                backgroundColor: '#ffffff',
                 border: '1px solid var(--bdr-light)',
-                borderRadius: 'var(--r-md)',
-                boxShadow: 'var(--shadow-lg)',
-                maxHeight: '300px',
+                borderRadius: '12px',
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
+                maxHeight: '320px',
                 overflowY: 'auto',
                 zIndex: 100,
+                padding: '4px',
               }}>
                 {suggestions.map((suggestion) => (
                   <div
@@ -410,9 +473,9 @@ export const AdminScanPage: React.FC = () => {
                       selectSuggestion(suggestion);
                     }}
                     style={{
-                      padding: '12px 16px',
+                      padding: '10px 14px',
                       cursor: 'pointer',
-                      borderBottom: '1px solid var(--bdr-light)',
+                      borderRadius: '8px',
                       transition: 'background-color 0.15s',
                       display: 'flex',
                       flexDirection: 'column',
@@ -422,24 +485,29 @@ export const AdminScanPage: React.FC = () => {
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: 'var(--fs-sm)', color: 'var(--txt-heading)' }}>
+                      <span style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: '13.5px', color: 'var(--txt-heading)' }}>
                         {suggestion.card_code}
                       </span>
+                      {suggestion.custom_slug && (
+                        <span style={{ fontSize: '11px', color: '#2563eb', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                          /{suggestion.custom_slug}
+                        </span>
+                      )}
                       <span className={`badge ${suggestion.status === 'active' ? 'badge-success' : 'badge-error'}`} style={{ fontSize: '10px', padding: '2px 8px' }}>
                         {suggestion.status === 'active' ? 'نشطة' : 'معطلة'}
                       </span>
-                      <span className="badge badge-blue" style={{ fontSize: '10px', padding: '2px 8px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', backgroundColor: '#f1f5f9', color: '#475569' }}>
                         {suggestion.card_type}
                       </span>
                     </div>
                     {suggestion.business_data?.business_name && (
-                      <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-secondary)' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--txt-secondary)', fontWeight: 600 }}>
                         {suggestion.business_data.business_name}
                       </span>
                     )}
                     {suggestion.nfc_uid && (
-                      <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', fontFamily: 'monospace' }}>
-                        {suggestion.nfc_uid}
+                      <span style={{ fontSize: '11px', color: 'var(--txt-muted)', fontFamily: 'monospace' }}>
+                        NFC: {suggestion.nfc_uid}
                       </span>
                     )}
                   </div>
@@ -450,17 +518,17 @@ export const AdminScanPage: React.FC = () => {
             {loadingSuggestions && (
               <div style={{
                 position: 'absolute',
-                top: 'calc(100% + 4px)',
+                top: 'calc(100% + 6px)',
                 left: 0,
                 right: 0,
-                backgroundColor: 'var(--bg-white)',
+                backgroundColor: '#ffffff',
                 border: '1px solid var(--bdr-light)',
-                borderRadius: 'var(--r-md)',
+                borderRadius: '12px',
                 boxShadow: 'var(--shadow-lg)',
                 padding: '12px',
                 textAlign: 'center',
                 color: 'var(--txt-muted)',
-                fontSize: 'var(--fs-sm)',
+                fontSize: '13px',
                 zIndex: 100,
               }}>
                 <RefreshCw size={14} className="spin" style={{ display: 'inline-block', marginLeft: '6px' }} />
@@ -468,23 +536,25 @@ export const AdminScanPage: React.FC = () => {
               </div>
             )}
           </div>
+
           <button
             type="button"
             className="btn-outline"
             onClick={() => setShowScanner(true)}
-            style={{ padding: '0 14px' }}
+            style={{ padding: '0 16px', height: '44px', borderRadius: '10px' }}
             title="فحص بالكاميرا"
           >
             <QrCode size={18} />
           </button>
+
           <button
             type="submit"
             className="btn-primary"
             disabled={searching || !query.trim()}
-            style={{ minWidth: '130px', justifyContent: 'center' }}
+            style={{ minWidth: '140px', height: '44px', borderRadius: '10px', justifyContent: 'center', fontSize: '13.5px', fontWeight: 800 }}
           >
             {searching
-              ? <><RefreshCw size={15} className="spin" /> بحث...</>
+              ? <><RefreshCw size={15} className="spin" /> جاري الفحص...</>
               : <><Search size={15} /> فحص البطاقة</>}
           </button>
         </form>
@@ -492,74 +562,146 @@ export const AdminScanPage: React.FC = () => {
 
       {/* Not found */}
       {notFound && (
-        <div className="card" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--txt-muted)' }}>
-          <XCircle size={40} style={{ color: 'var(--clr-error)', marginBottom: '12px' }} />
-          <p style={{ fontWeight: 700, color: 'var(--txt-heading)', marginBottom: '6px' }}>لم يُعثر على البطاقة</p>
-          <p style={{ fontSize: 'var(--fs-sm)' }}>الكود "{query}" غير موجود</p>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid var(--clr-error-bdr)',
+          padding: '48px 24px',
+          textAlign: 'center',
+          color: 'var(--txt-muted)'
+        }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '16px', backgroundColor: 'var(--clr-error-bg)', color: 'var(--clr-error)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+            <XCircle size={28} />
+          </div>
+          <h4 style={{ margin: '0 0 6px', fontWeight: 800, fontSize: '16px', color: 'var(--txt-heading)' }}>لم يتم العثور على البطاقة</h4>
+          <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--txt-secondary)' }}>الكود أو المعرف "{query}" غير مسجل في قاعدة البيانات</p>
         </div>
       )}
 
       {/* Card found */}
       {card && (
         <>
-          {/* Meta */}
-          <div className="card" style={{ padding: '18px 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <h3 style={{ margin: 0, fontFamily: 'monospace', fontSize: 'var(--fs-lg)', fontWeight: 800, color: 'var(--txt-heading)' }}>{card.card_code}</h3>
-                  <span className="badge badge-blue">{card.card_type}</span>
-                  <span className={`badge ${card.status === 'active' ? 'badge-success' : 'badge-error'}`}>
-                    {card.status === 'active' ? 'نشطة' : 'معطلة'}
-                  </span>
-                  {expired && <span className="badge badge-warning">⚠ منتهية الاشتراك</span>}
+          {/* Card Meta & Quick Actions */}
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid var(--bdr-light)',
+            padding: '24px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '54px', height: '54px', borderRadius: '16px',
+                  backgroundColor: 'var(--clr-primary-50)', border: '1px solid var(--clr-primary-100)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--clr-primary-600)', flexShrink: 0
+                }}>
+                  <CreditCard size={26} />
                 </div>
-                {card.nfc_uid && (
-                  <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--txt-muted)', fontFamily: 'monospace', marginTop: '4px' }}>
-                    {card.nfc_uid}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontFamily: 'monospace', fontSize: '20px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                      {card.card_code}
+                    </h3>
+                    {card.custom_slug && (
+                      <span style={{ fontSize: '12px', color: '#2563eb', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: '6px', fontFamily: 'monospace', fontWeight: 700 }} title="الرابط المخصص">
+                        /{card.custom_slug}
+                      </span>
+                    )}
+                    <span className={`badge ${card.status === 'active' ? 'badge-success' : 'badge-error'}`} style={{ padding: '4px 12px' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'currentColor', display: 'inline-block' }} />
+                      {card.status === 'active' ? 'نشطة' : 'معطلة'}
+                    </span>
+                    {expired && <span className="badge badge-warning">⚠ منتهية الاشتراك</span>}
                   </div>
-                )}
+                  {card.nfc_uid && (
+                    <div style={{ fontSize: '12.5px', color: 'var(--txt-muted)', fontFamily: 'monospace', marginTop: '4px' }}>
+                      معرف NFC الفيزيائي: <strong style={{ color: 'var(--txt-body)' }}>{card.nfc_uid}</strong>
+                    </div>
+                  )}
+                </div>
               </div>
-              <a
-                href={card.current_redirect_url}
-                target="_blank" rel="noopener noreferrer"
-                className="btn-outline"
-                style={{ textDecoration: 'none', fontSize: 'var(--fs-sm)', padding: '7px 14px' }}
-              >
-                <ExternalLink size={13} /> معاينة
-              </a>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => copyPublicUrl(card)}
+                  className="btn-outline"
+                  style={{ fontSize: '13px', padding: '8px 14px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Copy size={14} /> نسخ الرابط
+                </button>
+                <button
+                  onClick={() => downloadQR(card)}
+                  className="btn-outline"
+                  style={{ fontSize: '13px', padding: '8px 14px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Download size={14} /> تحميل QR
+                </button>
+                <a
+                  href={`/social/${card.custom_slug || card.card_code}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="btn-primary"
+                  style={{ textDecoration: 'none', fontSize: '13px', padding: '8px 16px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <ExternalLink size={14} /> معاينة الصفحة العامة
+                </a>
+              </div>
             </div>
 
+            {/* Info Grid */}
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '12px', backgroundColor: 'var(--bg-subtle)',
-              borderRadius: 'var(--r-lg)', padding: '14px 16px',
+              gap: '14px', backgroundColor: '#f8fafc',
+              borderRadius: '14px', padding: '16px 20px',
               border: '1px solid var(--bdr-light)',
             }}>
-              {[
-                { label: 'التصنيف',      val: catName() || '—' },
-                { label: 'بداية الاشتراك', val: fmtDate(card.subscription_start_date) },
-                { label: 'نهاية الاشتراك', val: fmtDate(card.subscription_end_date) },
-              ].map(m => (
-                <div key={m.label}>
-                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{m.label}</div>
-                  <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--txt-body)' }}>{m.val}</div>
+              <div>
+                <div style={{ fontSize: '11.5px', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '3px' }}>التصنيف</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--txt-heading)' }}>{catName() || '—'}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11.5px', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '3px' }}>نوع البطاقة</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--txt-heading)' }}>{card.card_type}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11.5px', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '3px' }}>بداية الاشتراك</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--txt-body)' }}>{fmtDate(card.subscription_start_date)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11.5px', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '3px' }}>نهاية الاشتراك</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 700, color: expired ? 'var(--clr-error)' : 'var(--txt-heading)' }}>
+                  {fmtDate(card.subscription_end_date)}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
 
-          {/* Business data form */}
-          <div className="card" style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--txt-heading)' }}>
-              بيانات النشاط التجاري
-            </h3>
-            <p style={{ margin: '0 0 18px', fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)' }}>
-              هذه البيانات تظهر للعميل عند مسح الكارت
-            </p>
+          {/* Business Data Form */}
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid var(--bdr-light)',
+            padding: '24px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Sparkles size={18} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                  بيانات النشاط التجاري والروابط
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--txt-muted)' }}>
+                  هذه البيانات تظهر للعميل عند مسح الكارت عبر الهاتف أو فتح الرابط المخصص
+                </p>
+              </div>
+            </div>
 
-            <form onSubmit={save} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+            <form onSubmit={save} style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginTop: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
                 {(() => {
                   const currentCatObj = card?.category_id 
                     ? categories.find(c => c._id === (typeof card.category_id === 'string' ? card.category_id : (card.category_id as ApiCategory)._id)) 
@@ -569,14 +711,14 @@ export const AdminScanPage: React.FC = () => {
                     if (f.key === 'description') {
                       return (
                         <div key={f.key} className="form-group" style={{ gridColumn: '1 / -1' }}>
-                          <label className="form-label">{f.label}</label>
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '13px' }}>{f.label}</label>
                           <textarea
                             className="form-input"
                             value={form.description ?? ''}
                             onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                             placeholder={f.placeholder}
                             rows={3}
-                            style={{ resize: 'vertical' }}
+                            style={{ resize: 'vertical', borderRadius: '10px' }}
                           />
                         </div>
                       );
@@ -588,11 +730,12 @@ export const AdminScanPage: React.FC = () => {
                 })()}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '6px', borderTop: '1px solid var(--bdr-light)' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '16px', borderTop: '1px solid var(--bdr-light)' }}>
                 <button
                   type="button"
                   className="btn-outline"
                   onClick={() => setForm({ ...EMPTY, ...(card.business_data ?? {}) })}
+                  style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700 }}
                 >
                   <RefreshCw size={14} /> إعادة تعيين
                 </button>
@@ -600,10 +743,10 @@ export const AdminScanPage: React.FC = () => {
                   type="submit"
                   className="btn-primary"
                   disabled={saving}
-                  style={{ minWidth: '150px', justifyContent: 'center' }}
+                  style={{ minWidth: '160px', padding: '10px 22px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 800, justifyContent: 'center' }}
                 >
                   {saving
-                    ? <><RefreshCw size={15} className="spin" /> حفظ...</>
+                    ? <><RefreshCw size={15} className="spin" /> جاري الحفظ...</>
                     : <><Save size={15} /> حفظ البيانات</>}
                 </button>
               </div>

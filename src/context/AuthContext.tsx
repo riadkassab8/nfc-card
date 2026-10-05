@@ -19,6 +19,8 @@ interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
+  updateAdmin: (admin: ApiAdmin | Partial<ApiAdmin>) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,14 +36,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setPartial = (partial: Partial<AuthState>) =>
     setState((prev) => ({ ...prev, ...partial }));
 
-  // Verify token is still valid by calling GET /api/auth/me
+  // Verify token is still valid by calling GET /api/auth/profile
   const verifySession = useCallback(async () => {
     if (!authApi.isAuthenticated()) {
       setPartial({ isAuthenticated: false, admin: null, loading: false });
       return;
     }
     try {
-      const admin = await authApi.getMe();
+      const admin = await authApi.getProfile();
       setPartial({ isAuthenticated: true, admin, loading: false, error: null });
     } catch {
       authApi.logout();
@@ -87,8 +89,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearError = () => setPartial({ error: null });
 
+  const updateAdmin = (admin: ApiAdmin | Partial<ApiAdmin>) => {
+    setState((prev) => ({
+      ...prev,
+      admin: prev.admin ? { ...prev.admin, ...admin } : (admin as ApiAdmin),
+    }));
+  };
+
+  const refreshProfile = async () => {
+    try {
+      const admin = await authApi.getProfile();
+      setPartial({ admin });
+    } catch {
+      // Ignore or let caller handle
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, clearError }}>
+    <AuthContext.Provider value={{ ...state, login, logout, clearError, updateAdmin, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -5,7 +5,14 @@
    ========================================================================== */
 
 import { apiClient, setToken, clearToken, isAuthenticated as _isAuth } from './client';
-import { ApiAuthResponse, ApiAdmin } from '../../types';
+import {
+  ApiAuthResponse,
+  ApiAdmin,
+  AdminSettings,
+  UpdateProfileDto,
+  ChangePasswordDto,
+  UpdateSettingsDto,
+} from '../../types';
 
 export const authApi = {
   /**
@@ -28,6 +35,53 @@ export const authApi = {
    */
   getMe: async (): Promise<ApiAdmin> =>
     apiClient<ApiAdmin>('/auth/me', { requiresAuth: true }),
+
+  /**
+   * GET /api/auth/profile
+   * Returns current admin profile with settings and details.
+   */
+  getProfile: async (): Promise<ApiAdmin> =>
+    apiClient<ApiAdmin>('/auth/profile', { requiresAuth: true }),
+
+  /**
+   * PUT /api/auth/profile
+   * Updates admin name, email, username, or avatar.
+   */
+  updateProfile: async (dto: UpdateProfileDto): Promise<ApiAdmin> =>
+    apiClient<ApiAdmin>('/auth/profile', {
+      method: 'PUT',
+      body: dto,
+      requiresAuth: true,
+    }),
+
+  /**
+   * PUT /api/auth/change-password
+   * Changes current admin password.
+   */
+  changePassword: async (dto: ChangePasswordDto): Promise<{ message: string }> =>
+    apiClient<{ message: string }>('/auth/change-password', {
+      method: 'PUT',
+      body: dto,
+      requiresAuth: true,
+    }),
+
+  /**
+   * GET /api/auth/settings
+   * Returns platform settings.
+   */
+  getSettings: async (): Promise<AdminSettings> =>
+    apiClient<AdminSettings>('/auth/settings', { requiresAuth: true }),
+
+  /**
+   * PUT /api/auth/settings
+   * Updates platform settings.
+   */
+  updateSettings: async (dto: UpdateSettingsDto): Promise<AdminSettings> =>
+    apiClient<AdminSettings>('/auth/settings', {
+      method: 'PUT',
+      body: dto,
+      requiresAuth: true,
+    }),
 
   /** Clear stored token */
   logout: (): void => clearToken(),

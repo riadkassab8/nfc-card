@@ -4,10 +4,22 @@
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 
+export interface AdminSettings {
+  platform_name?: string;
+  support_email?: string;
+  support_phone?: string;
+  default_redirect_base_url?: string;
+  enable_email_alerts?: boolean;
+}
+
 export interface ApiAdmin {
   _id?: string;
   id?: string;
   username: string;
+  name?: string;
+  email?: string;
+  avatar?: string;
+  settings?: AdminSettings;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -15,6 +27,26 @@ export interface ApiAdmin {
 export interface ApiAuthResponse {
   access_token: string;
   admin: ApiAdmin;
+}
+
+export interface UpdateProfileDto {
+  name?: string;
+  email?: string;
+  username?: string;
+  avatar?: string;
+}
+
+export interface ChangePasswordDto {
+  current_password: string;
+  new_password: string;
+}
+
+export interface UpdateSettingsDto {
+  platform_name?: string;
+  support_email?: string;
+  support_phone?: string;
+  default_redirect_base_url?: string;
+  enable_email_alerts?: boolean;
 }
 
 // ── Category ─────────────────────────────────────────────────────────────
