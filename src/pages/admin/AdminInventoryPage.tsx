@@ -212,7 +212,7 @@ export const AdminInventoryPage: React.FC = () => {
 
   const [page, setPage]         = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [limit, setLimit]       = useState(20);
+  const [limit, setLimit]       = useState(10);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [drawerCard, setDrawerCard] = useState<ApiCard | null>(null);

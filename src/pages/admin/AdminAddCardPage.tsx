@@ -157,7 +157,7 @@ export const AdminAddCardPage: React.FC = () => {
       const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
       const nextCode = `CARD-${String(next).padStart(4, '0')}`;
       const nextNfc  = `NFC-${String(next).padStart(6, '0')}`;
-      const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://nfc-card-five.vercel.app');
+      const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smart-card-qr-api.koyeb.app');
       
       if (autoCode && !editCard) {
         setCardCode(nextCode);
@@ -176,7 +176,7 @@ export const AdminAddCardPage: React.FC = () => {
   /* Set initial auto-generated redirect URL */
   useEffect(() => {
     if (!cardCode) return;
-    const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://nfc-card-five.vercel.app');
+    const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smart-card-qr-api.koyeb.app');
     const defaultUrl = `${domainOrigin}/r/${cardCode}`;
     // Only set it if creating a new card, or if it's somehow empty during edit
     if (!editCard || redirectUrl === '') {

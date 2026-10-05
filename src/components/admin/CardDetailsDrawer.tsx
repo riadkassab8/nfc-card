@@ -451,7 +451,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   useEffect(() => {
     if (!card) return;
     setTab('info'); setConfirmDel(false);
-    setNewUrl(card.current_redirect_url ? card.current_redirect_url.replace(/https?:\/\/[^\/]+\/social\//, 'https://nfc-card-five.vercel.app/r/').replace(/https?:\/\/smartcard-app\.com/g, 'https://nfc-card-five.vercel.app') : '');
+    setNewUrl(card.current_redirect_url ? card.current_redirect_url.replace(/https?:\/\/[^\/]+\/social\//, 'https://smart-card-qr-api.koyeb.app/r/').replace(/https?:\/\/smartcard-app\.com/g, 'https://smart-card-qr-api.koyeb.app') : '');
     setQrDataUrl(null); setHistory([]); setHistLoaded(false);
   }, [card]);
 
@@ -467,7 +467,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
 
   useEffect(() => {
     if (tab === 'qr' && card && !qrDataUrl) {
-      const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://nfc-card-five.vercel.app');
+      const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smart-card-qr-api.koyeb.app');
       genQr(`${domainOrigin}/r/${card.card_code}`);
     }
   }, [tab, card, qrDataUrl, genQr]);
@@ -488,7 +488,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   const isActive  = card.status === 'active';
   const expired   = isSubscriptionExpired(card);
   const cat       = getPopulatedCategory(card.category_id);
-  const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://nfc-card-five.vercel.app');
+  const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smart-card-qr-api.koyeb.app');
   const staticUrl = `${domainOrigin}/r/${card.card_code}`;
   const rulesCount = (card.redirect_rules ?? []).length;
 
@@ -761,7 +761,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
               <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '11px 14px', border: '1px solid var(--bdr-light)' }}>
                 <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '4px' }}>الرابط الحالي</div>
                 <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-700)', wordBreak: 'break-all' }}>
-                  {card.current_redirect_url ? card.current_redirect_url.replace(/https?:\/\/[^\/]+\/social\//, 'https://nfc-card-five.vercel.app/r/').replace(/https?:\/\/smartcard-app\.com/g, 'https://nfc-card-five.vercel.app') : ''}
+                  {card.current_redirect_url ? card.current_redirect_url.replace(/https?:\/\/[^\/]+\/social\//, 'https://smart-card-qr-api.koyeb.app/r/').replace(/https?:\/\/smartcard-app\.com/g, 'https://smart-card-qr-api.koyeb.app') : ''}
                 </code>
               </div>
               <div className="form-group">
