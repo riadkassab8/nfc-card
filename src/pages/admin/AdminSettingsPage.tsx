@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../services';
-import { fmtDate, AdminSettings } from '../../types';
+import { fmtDate } from '../../types';
 import {
   User,
   Lock,
-  Settings,
-  Bell,
   Eye,
   EyeOff,
   Save,
@@ -17,14 +15,10 @@ import {
   ShieldAlert,
   ShieldCheck,
   Mail,
-  Phone,
-  Globe,
   Key,
-  Sparkles,
-  Check,
 } from 'lucide-react';
 
-/* ── Toast notification ────────────────────────────────────────── */
+/* ── Modern Executive Toast Notification ────────────────────────── */
 interface ToastInfo {
   msg: string;
   type: 'success' | 'error' | 'info';
@@ -35,49 +29,88 @@ const Toast: React.FC<{
   onClose: () => void;
 }> = ({ info, onClose }) => {
   useEffect(() => {
-    const t = setTimeout(onClose, 3500);
+    const t = setTimeout(onClose, 3200);
     return () => clearTimeout(t);
   }, [onClose]);
 
-  const cls =
-    info.type === 'success'
-      ? 'toast-success'
-      : info.type === 'error'
-      ? 'toast-error'
-      : 'toast-info';
+  const isSuccess = info.type === 'success';
+  const isError = info.type === 'error';
 
   return (
     <div
-      className={`toast ${cls}`}
       style={{
         position: 'fixed',
-        bottom: '24px',
-        left: '24px',
-        zIndex: 9999,
+        top: '28px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 99999,
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
-        boxShadow: '0 12px 30px rgba(0, 0, 0, 0.15)',
-        padding: '14px 20px',
-        borderRadius: '12px',
-        fontSize: '0.875rem',
-        fontWeight: 600,
+        gap: '14px',
+        background: '#ffffff',
+        color: '#0f172a',
+        padding: '12px 20px',
+        borderRadius: '16px',
+        boxShadow: '0 20px 45px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.08)',
+        borderRight: isSuccess ? '4px solid #10b981' : isError ? '4px solid #ef4444' : '4px solid #3b82f6',
+        maxWidth: '90vw',
+        minWidth: '320px',
         fontFamily: "'Tajawal', sans-serif",
+        direction: 'rtl',
+        animation: 'toastPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both',
       }}
     >
-      {info.type === 'success' && <CheckCircle2 size={18} />}
-      {info.type === 'error' && <AlertCircle size={18} />}
-      {info.type === 'info' && <RefreshCw size={18} />}
-      <span style={{ flex: 1 }}>{info.msg}</span>
+      <div
+        style={{
+          width: '36px',
+          height: '36px',
+          borderRadius: '50%',
+          backgroundColor: isSuccess ? '#dcfce7' : isError ? '#fee2e2' : '#dbeafe',
+          color: isSuccess ? '#15803d' : isError ? '#b91c1c' : '#1d4ed8',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {isSuccess && <CheckCircle2 size={20} />}
+        {isError && <AlertCircle size={20} />}
+        {!isSuccess && !isError && <RefreshCw size={18} className="spin" />}
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
+          {isSuccess ? 'عملية ناجحة' : isError ? 'تنبيه' : 'إشعار'}
+        </span>
+        <span style={{ fontSize: '0.82rem', fontWeight: 500, color: '#475569', marginTop: '2px' }}>
+          {info.msg}
+        </span>
+      </div>
+
       <button
+        type="button"
         onClick={onClose}
         style={{
-          background: 'none',
+          background: '#f1f5f9',
           border: 'none',
           cursor: 'pointer',
-          color: 'inherit',
-          fontSize: '1rem',
-          padding: '0 4px',
+          color: '#64748b',
+          width: '26px',
+          height: '26px',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '0.8rem',
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#e2e8f0';
+          e.currentTarget.style.color = '#0f172a';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#f1f5f9';
+          e.currentTarget.style.color = '#64748b';
         }}
       >
         ✕
@@ -87,7 +120,7 @@ const Toast: React.FC<{
 };
 
 export interface AdminSettingsPageProps {
-  initialTab?: 'profile' | 'security' | 'platform';
+  initialTab?: 'profile' | 'security';
 }
 
 export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
@@ -97,9 +130,9 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
   const { admin, updateAdmin, refreshProfile } = useAuth();
 
   // Active tab state: url query param has precedence, then initialTab
-  const queryTab = searchParams.get('tab') as 'profile' | 'security' | 'platform' | null;
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'platform'>(
-    queryTab || initialTab
+  const queryTab = searchParams.get('tab') as 'profile' | 'security' | null;
+  const [activeTab, setActiveTab] = useState<'profile' | 'security'>(
+    queryTab === 'security' ? 'security' : 'profile'
   );
 
   const [toast, setToast] = useState<ToastInfo | null>(null);
@@ -120,17 +153,6 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // Tab 3: Platform Settings State
-  const [platformSettings, setPlatformSettings] = useState<AdminSettings>({
-    platform_name: 'Smart Card QR',
-    support_email: '',
-    support_phone: '',
-    default_redirect_base_url: '',
-    enable_email_alerts: true,
-  });
-  const [settingsFetching, setSettingsFetching] = useState(false);
-  const [settingsLoading, setSettingsLoading] = useState(false);
-
   // Sync profile fields if admin object loads or updates
   useEffect(() => {
     if (admin) {
@@ -141,32 +163,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
     }
   }, [admin]);
 
-  // Load platform settings on mount or when switching to platform tab
-  const fetchSettings = async () => {
-    setSettingsFetching(true);
-    try {
-      const data = await authApi.getSettings();
-      if (data) {
-        setPlatformSettings({
-          platform_name: data.platform_name || 'Smart Card QR',
-          support_email: data.support_email || '',
-          support_phone: data.support_phone || '',
-          default_redirect_base_url: data.default_redirect_base_url || '',
-          enable_email_alerts: data.enable_email_alerts ?? true,
-        });
-      }
-    } catch {
-      setToast({ msg: 'تعذر جلب إعدادات المنصة', type: 'error' });
-    } finally {
-      setSettingsFetching(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const handleTabChange = (tab: 'profile' | 'security' | 'platform') => {
+  const handleTabChange = (tab: 'profile' | 'security') => {
     setActiveTab(tab);
     setSearchParams({ tab });
   };
@@ -192,7 +189,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
         avatar: profileAvatar.trim(),
       });
       updateAdmin(updated);
-      setToast({ msg: 'تم تحديث بيانات الملف الشخصي بنجاح', type: 'success' });
+      setToast({ msg: 'تم حفظ وتحديث بيانات الملف الشخصي بنجاح', type: 'success' });
     } catch (err: any) {
       setToast({
         msg: err?.message || 'حدث خطأ أثناء حفظ التعديلات',
@@ -232,7 +229,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
         new_password: newPassword,
       });
       setToast({
-        msg: res.message || 'تم تغيير كلمة المرور بنجاح',
+        msg: res.message || 'تم تحديث كلمة المرور بنجاح',
         type: 'success',
       });
       setCurrentPassword('');
@@ -245,30 +242,6 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
       });
     } finally {
       setPasswordLoading(false);
-    }
-  };
-
-  /* ── 3. Submit Platform Settings ─────────────────────────────── */
-  const handleSaveSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSettingsLoading(true);
-    try {
-      const updated = await authApi.updateSettings({
-        platform_name: platformSettings.platform_name?.trim(),
-        support_email: platformSettings.support_email?.trim(),
-        support_phone: platformSettings.support_phone?.trim(),
-        default_redirect_base_url: platformSettings.default_redirect_base_url?.trim(),
-        enable_email_alerts: platformSettings.enable_email_alerts,
-      });
-      setPlatformSettings(updated);
-      setToast({ msg: 'تم حفظ إعدادات المنصة بنجاح', type: 'success' });
-    } catch (err: any) {
-      setToast({
-        msg: err?.message || 'حدث خطأ أثناء حفظ الإعدادات',
-        type: 'error',
-      });
-    } finally {
-      setSettingsLoading(false);
     }
   };
 
@@ -440,8 +413,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
             type="button"
             onClick={() => {
               refreshProfile();
-              fetchSettings();
-              setToast({ msg: 'تم تحديث البيانات من الخادم فوراً', type: 'info' });
+              setToast({ msg: 'تم تحديث بيانات البروفايل من الخادم', type: 'info' });
             }}
             style={{
               display: 'inline-flex',
@@ -473,7 +445,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
         </div>
       </div>
 
-      {/* ── Segmented Tab Switcher ── */}
+      {/* ── Segmented Tab Switcher (Profile & Security only) ── */}
       <div
         style={{
           display: 'flex',
@@ -531,30 +503,6 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
         >
           <Lock size={17} color={activeTab === 'security' ? '#4f46e5' : '#64748b'} />
           <span>كلمة المرور والأمان</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('platform')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 20px',
-            borderRadius: '10px',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            fontWeight: activeTab === 'platform' ? 700 : 600,
-            color: activeTab === 'platform' ? '#4338ca' : '#64748b',
-            backgroundColor: activeTab === 'platform' ? '#ffffff' : 'transparent',
-            boxShadow: activeTab === 'platform' ? '0 2px 8px rgba(15, 23, 42, 0.08)' : 'none',
-            transition: 'all 0.2s ease',
-            fontFamily: "'Tajawal', sans-serif",
-          }}
-        >
-          <Settings size={17} color={activeTab === 'platform' ? '#4f46e5' : '#64748b'} />
-          <span>إعدادات المنصة</span>
         </button>
       </div>
 
@@ -1017,295 +965,6 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
               </button>
             </div>
           </form>
-        </div>
-      )}
-
-      {/* ── Tab 3: Platform Settings ── */}
-      {activeTab === 'platform' && (
-        <div
-          style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '18px',
-            border: '1px solid #e2e8f0',
-            padding: '32px',
-            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                backgroundColor: '#f0fdf4',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#16a34a',
-              }}
-            >
-              <Settings size={22} />
-            </div>
-            <div>
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: '1.2rem',
-                  fontWeight: 800,
-                  color: '#0f172a',
-                }}
-              >
-                إعدادات المنصة العامة
-              </h3>
-              <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: '#64748b' }}>
-                التحكم في اسم المنصة، معلومات الدعم، التوجيه الافتراضي وتنبيهات النظام.
-              </p>
-            </div>
-          </div>
-
-          {settingsFetching ? (
-            <div style={{ padding: '48px', textAlign: 'center', color: '#64748b' }}>
-              <RefreshCw size={28} className="spin" style={{ margin: '0 auto 14px', color: '#4f46e5' }} />
-              <div style={{ fontWeight: 600 }}>جاري تحميل إعدادات المنصة...</div>
-            </div>
-          ) : (
-            <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-                {/* Platform Name */}
-                <div>
-                  <label style={{ fontWeight: 700, display: 'block', marginBottom: '8px', fontSize: '0.875rem', color: '#334155' }}>
-                    اسم المنصة
-                  </label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={platformSettings.platform_name || ''}
-                    onChange={(e) =>
-                      setPlatformSettings((prev) => ({ ...prev, platform_name: e.target.value }))
-                    }
-                    placeholder="Smart Card QR"
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.9rem',
-                      fontFamily: "'Tajawal', sans-serif",
-                    }}
-                  />
-                </div>
-
-                {/* Support Email */}
-                <div>
-                  <label style={{ fontWeight: 700, display: 'block', marginBottom: '8px', fontSize: '0.875rem', color: '#334155' }}>
-                    بريد الدعم الفني
-                  </label>
-                  <input
-                    type="email"
-                    className="input"
-                    value={platformSettings.support_email || ''}
-                    onChange={(e) =>
-                      setPlatformSettings((prev) => ({ ...prev, support_email: e.target.value }))
-                    }
-                    placeholder="support@smartcard.com"
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.9rem',
-                      direction: 'ltr',
-                      textAlign: 'right',
-                      fontFamily: "'Tajawal', sans-serif",
-                    }}
-                  />
-                </div>
-
-                {/* Support Phone */}
-                <div>
-                  <label style={{ fontWeight: 700, display: 'block', marginBottom: '8px', fontSize: '0.875rem', color: '#334155' }}>
-                    رقم هاتف / واتساب الدعم
-                  </label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={platformSettings.support_phone || ''}
-                    onChange={(e) =>
-                      setPlatformSettings((prev) => ({ ...prev, support_phone: e.target.value }))
-                    }
-                    placeholder="+201000000000"
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.9rem',
-                      direction: 'ltr',
-                      textAlign: 'right',
-                      fontFamily: "'Tajawal', sans-serif",
-                    }}
-                  />
-                </div>
-
-                {/* Default Base URL */}
-                <div>
-                  <label style={{ fontWeight: 700, display: 'block', marginBottom: '8px', fontSize: '0.875rem', color: '#334155' }}>
-                    الرابط الافتراضي للتحويل (Default Base URL)
-                  </label>
-                  <input
-                    type="url"
-                    className="input"
-                    value={platformSettings.default_redirect_base_url || ''}
-                    onChange={(e) =>
-                      setPlatformSettings((prev) => ({
-                        ...prev,
-                        default_redirect_base_url: e.target.value,
-                      }))
-                    }
-                    placeholder="https://mysmartcard.com"
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.9rem',
-                      direction: 'ltr',
-                      textAlign: 'right',
-                      fontFamily: "'Tajawal', sans-serif",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Email Alerts Toggle Switch Card */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '18px 22px',
-                  backgroundColor: '#f8fafc',
-                  borderRadius: '14px',
-                  border: '1px solid #e2e8f0',
-                  marginTop: '8px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div
-                    style={{
-                      width: '42px',
-                      height: '42px',
-                      borderRadius: '12px',
-                      backgroundColor: platformSettings.enable_email_alerts ? '#eff6ff' : '#f1f5f9',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: platformSettings.enable_email_alerts ? '#3b82f6' : '#94a3b8',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <Bell size={20} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>
-                      تفعيل التنبيهات البريدية
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
-                      استلام إشعارات فورية عبر البريد عند حدوث عمليات هامة أو انتهاء فترات اشتراكات البطاقات.
-                    </div>
-                  </div>
-                </div>
-
-                <label
-                  style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '52px',
-                    height: '28px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={platformSettings.enable_email_alerts ?? true}
-                    onChange={(e) =>
-                      setPlatformSettings((prev) => ({
-                        ...prev,
-                        enable_email_alerts: e.target.checked,
-                      }))
-                    }
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: platformSettings.enable_email_alerts
-                        ? '#4f46e5'
-                        : '#cbd5e1',
-                      borderRadius: '34px',
-                      transition: '0.2s',
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: 'absolute',
-                        height: '22px',
-                        width: '22px',
-                        left: platformSettings.enable_email_alerts ? '27px' : '3px',
-                        bottom: '3px',
-                        backgroundColor: '#ffffff',
-                        borderRadius: '50%',
-                        transition: '0.2s',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      }}
-                    />
-                  </span>
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-                <button
-                  type="submit"
-                  disabled={settingsLoading}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    minWidth: '160px',
-                    padding: '12px 24px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
-                    color: '#ffffff',
-                    border: 'none',
-                    fontSize: '0.92rem',
-                    fontWeight: 700,
-                    cursor: settingsLoading ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)',
-                    transition: 'all 0.2s ease',
-                    fontFamily: "'Tajawal', sans-serif",
-                    opacity: settingsLoading ? 0.75 : 1,
-                  }}
-                >
-                  {settingsLoading ? (
-                    <>
-                      <RefreshCw size={16} className="spin" />
-                      <span>جاري الحفظ...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save size={16} />
-                      <span>حفظ إعدادات المنصة</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          )}
         </div>
       )}
     </div>

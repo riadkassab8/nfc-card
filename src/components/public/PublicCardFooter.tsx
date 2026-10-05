@@ -12,7 +12,7 @@ export const PublicCardFooter: React.FC = () => {
         opacity: 0.6,
         direction: 'ltr'
       }}>
-        &copy; {currentYear} NFC Smart. All rights reserved.
+        &copy; {currentYear} k2rty. All rights reserved.
       </div>
     </footer>
   );

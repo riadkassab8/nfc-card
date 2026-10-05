@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CreditCard, Tags, Scan, Zap, BarChart2, Settings } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Tags, Scan, Zap, BarChart2, User } from 'lucide-react';
 
 export interface AdminSidebarProps {
   onLinkClick?: () => void;
@@ -12,7 +12,7 @@ const NAV = [
   { path: '/admin/analytics',  label: 'الإحصائيات',        icon: BarChart2 },
   { path: '/admin/categories', label: 'التصنيفات',         icon: Tags },
   { path: '/admin/scan',       label: 'فحص وتجهيز',        icon: Scan },
-  { path: '/admin/settings',   label: 'الإعدادات والملف', icon: Settings },
+  { path: '/admin/profile',    label: 'الملف الشخصي',      icon: User },
 ];
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLinkClick }) => (
@@ -52,7 +52,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLinkClick }) => (
           color: 'var(--txt-heading)',
           lineHeight: 1.2,
         }}>
-          NFC Smart
+          k2rty
         </div>
         <div style={{
           fontSize: 'var(--fs-xs)',

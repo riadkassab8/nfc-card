@@ -82,13 +82,7 @@ export const App: React.FC = () => (
 
         <Route
           path="/admin/settings"
-          element={
-            <ProtectedRoute>
-              <AdminShell title="إعدادات المنصة">
-                <AdminSettingsPage initialTab="platform" />
-              </AdminShell>
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/admin/profile" replace />}
         />
 
         <Route
