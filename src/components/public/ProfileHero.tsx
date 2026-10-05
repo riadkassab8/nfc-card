@@ -20,18 +20,19 @@ export const ProfileHero: React.FC<{ card: ApiCard }> = ({ card }) => {
       alignItems: 'center',
       textAlign: 'center',
     }}>
-      <div style={{
-        width: '96px',
-        height: '96px',
-        borderRadius: '16px',
-        backgroundColor: 'var(--surface-color)',
-        border: '1px solid var(--border-color)',
+      <div className="hero-img-wrap" style={{
+        width: '110px',
+        height: '110px',
+        borderRadius: '28px',
+        backgroundColor: '#ffffff',
+        border: '1px solid rgba(0,0,0,0.04)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
         marginBottom: '24px',
-        boxShadow: 'var(--shadow-sm)'
+        boxShadow: '0 12px 32px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.03)',
+        position: 'relative'
       }}>
         {biz?.logo ? (
           <img
@@ -53,38 +54,47 @@ export const ProfileHero: React.FC<{ card: ApiCard }> = ({ card }) => {
           height: '100%',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '1.75rem',
+          fontSize: '2rem',
           fontWeight: 800,
           color: 'var(--text-primary)',
-          letterSpacing: '-0.02em'
+          letterSpacing: '-0.02em',
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
         }}>
           {initials}
         </div>
       </div>
 
       <h1 style={{
-        fontSize: '1.5rem',
+        fontSize: 'clamp(2rem, 4vw, 2.5rem)',
         fontWeight: 800,
-        margin: '0 0 8px',
+        margin: '0 0 12px',
         color: 'var(--text-primary)',
-        letterSpacing: '-0.02em',
-        lineHeight: 1.2
+        letterSpacing: '-0.03em',
+        lineHeight: 1.1,
       }}>
         {bizName}
       </h1>
 
       {biz?.description && (
         <p style={{
-          fontSize: '0.9375rem',
+          fontSize: '1.0625rem',
           color: 'var(--text-secondary)',
           margin: 0,
-          lineHeight: 1.5,
+          lineHeight: 1.6,
           fontWeight: 400,
-          maxWidth: '90%'
+          maxWidth: '500px'
         }}>
           {biz.description}
         </p>
       )}
+
+      <div style={{
+        width: '40px',
+        height: '3px',
+        backgroundColor: 'rgba(0,0,0,0.06)',
+        borderRadius: '2px',
+        marginTop: '32px'
+      }} />
     </header>
   );
 };

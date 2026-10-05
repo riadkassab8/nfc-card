@@ -110,8 +110,15 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
             className="nfc-tile gsap-tile"
             style={{ '--brand-color': link.brandColor } as React.CSSProperties}
           >
-            <div className="nfc-tile-icon">{link.icon}</div>
-            <span className="nfc-tile-label">{link.title}</span>
+            <div className="nfc-tile-icon">{React.cloneElement(link.icon as React.ReactElement, { size: 48 })}</div>
+            <div className="nfc-tile-content">
+              <span className="nfc-tile-label">{link.title}</span>
+            </div>
+            <div className="nfc-tile-arrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </div>
           </a>
         ))}
       </div>
@@ -121,37 +128,44 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   return (
     <>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800;900&display=swap');
+
         :root {
-          --bg-color: #fafafa;
-          --surface-color: #ffffff;
+          --bg-base: #f8f9fa;
+          --bg-solid: #f8f9fa;
+          --surface: #ffffff;
           --text-primary: #111827;
           --text-secondary: #6b7280;
-          --border-color: #e5e7eb;
-          --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-          --shadow-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-          --radius-md: 12px;
-          --radius-lg: 16px;
+          --border-light: rgba(0, 0, 0, 0.05);
+          --shadow-subtle: 0 2px 10px rgba(0, 0, 0, 0.03);
+          --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.06);
+          --radius-card: 20px;
         }
 
         body {
-          background-color: var(--bg-color);
+          background-color: var(--bg-solid);
+          margin: 0;
+          padding: 0;
+          -webkit-font-smoothing: antialiased;
         }
 
         .nfc-page {
           min-height: 100vh;
-          background-color: var(--bg-color);
+          position: relative;
           color: var(--text-primary);
-          font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+          font-family: 'Tajawal', 'Plus Jakarta Sans', system-ui, sans-serif;
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 48px 24px 64px;
-          transition: background-color 0.3s ease, color 0.3s ease;
+          padding: 48px 20px;
+          overflow: hidden;
+          z-index: 1;
+          background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
         }
 
         .nfc-container {
           width: 100%;
-          max-width: 480px;
+          max-width: 440px; /* Mobile first Linktree style */
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -159,65 +173,117 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         }
 
         .nfc-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
           gap: 16px;
           width: 100%;
           margin-top: 32px;
         }
 
-        @media (min-width: 600px) {
-          .nfc-grid {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-          }
-        }
-
         .nfc-tile {
-          background-color: var(--surface-color);
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-lg);
-          padding: 24px 12px;
+          width: 100%;
+          background-color: var(--surface);
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-card);
+          padding: 16px 20px;
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
           align-items: center;
-          justify-content: center;
+          justify-content: space-between;
           text-decoration: none;
           color: var(--text-primary);
-          box-shadow: var(--shadow-sm);
-          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
-          aspect-ratio: 1 / 1;
+          box-shadow: var(--shadow-subtle);
+          transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+          position: relative;
+          overflow: hidden;
+          box-sizing: border-box;
+          z-index: 1;
+        }
+
+        .nfc-tile::before {
+          content: "";
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: var(--brand-color);
+          opacity: 0;
+          transform: scaleX(0);
+          transform-origin: right;
+          transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s;
+          z-index: -1;
+          border-radius: inherit;
         }
 
         .nfc-tile:hover {
           transform: translateY(-4px) scale(1.02);
-          box-shadow: 0 14px 24px -8px color-mix(in srgb, var(--brand-color, #6b7280) 40%, transparent), 0 4px 12px -3px rgba(0,0,0,0.05);
-          border-color: var(--brand-color, var(--text-secondary));
+          box-shadow: 0 16px 32px color-mix(in srgb, var(--brand-color, #000) 15%, transparent);
+          border-color: color-mix(in srgb, var(--brand-color, #000) 30%, transparent);
+        }
+
+        .nfc-tile:hover::before {
+          transform: scaleX(1);
+          opacity: 0.08;
+          transform-origin: left;
+        }
+
+        @keyframes jellyFlip {
+          0% { transform: scale(1) rotate(0deg); }
+          30% { transform: scale(1.2) rotate(-15deg); }
+          60% { transform: scale(0.9) rotate(10deg); }
+          100% { transform: scale(1.05) rotate(0deg); }
         }
 
         .nfc-tile-icon {
-          margin-bottom: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--brand-color, var(--text-primary));
-          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .nfc-tile:hover .nfc-tile-icon {
-          transform: scale(1.15) translateY(-2px);
+          animation: jellyFlip 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        
+        .nfc-tile-arrow {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-secondary);
+          transition: transform 0.3s ease, color 0.3s ease;
+        }
+
+        .nfc-tile:hover .nfc-tile-arrow {
+          color: var(--brand-color);
+          transform: translateX(-4px);
+        }
+
+        .nfc-tile-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 0 16px;
         }
 
         .nfc-tile-label {
-          font-size: 0.875rem;
-          font-weight: 600;
-          text-align: center;
+          font-size: 1rem;
+          font-weight: 700;
           letter-spacing: -0.01em;
+          color: var(--text-primary);
+        }
+        
+        .nfc-tile-cta {
+          display: none; /* Hide subtitle for a cleaner look */
         }
 
         .nfc-review-cta {
           width: 100%;
-          margin-top: 32px;
+          max-width: 400px;
+          margin-top: 48px;
         }
 
         .nfc-btn-primary {
@@ -227,35 +293,59 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           gap: 12px;
           width: 100%;
           padding: 18px 24px;
-          background-color: var(--text-primary);
-          color: var(--bg-color);
-          border-radius: var(--radius-lg);
+          background: var(--text-primary);
+          color: #ffffff;
+          border-radius: 20px;
           font-size: 1.0625rem;
           font-weight: 700;
           text-decoration: none;
-          transition: transform 0.2s ease, opacity 0.2s ease;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+          transition: all 0.3s ease;
         }
 
         .nfc-btn-primary:hover {
-          transform: translateY(-2px);
-          opacity: 0.9;
+          transform: translateY(-2px) scale(1.01);
+          box-shadow: 0 12px 25px rgba(0,0,0,0.15);
+          background: #000000;
         }
 
         .nfc-empty {
-          margin-top: 48px;
+          margin-top: 64px;
           display: flex;
           flex-direction: column;
           align-items: center;
           color: var(--text-secondary);
           text-align: center;
-          padding: 32px;
-          border: 1px dashed var(--border-color);
-          border-radius: var(--radius-lg);
+          padding: 48px;
+          background: var(--surface);
+          backdrop-filter: blur(10px);
+          border: 1px dashed rgba(0,0,0,0.1);
+          border-radius: var(--radius-card);
         }
 
         .nfc-empty-icon {
           margin-bottom: 16px;
-          opacity: 0.5;
+          opacity: 0.3;
+        }
+        
+        .footer-wrap {
+          margin-top: 64px;
+          padding-top: 32px;
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          position: relative;
+        }
+        
+        .footer-wrap::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 60px;
+          height: 1px;
+          background-color: rgba(0,0,0,0.06);
         }
       `}</style>
       
@@ -266,28 +356,28 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
 
             {/* Visit Counter Badge */}
             {typeof card.visit_count === 'number' && (
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '14px' }}>
                 <div style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: '4px 12px',
-                  backgroundColor: 'var(--surface-color)',
-                  border: '1px solid var(--border-color)',
+                  padding: '6px 16px',
+                  backgroundColor: 'var(--surface)',
+                  border: '1px solid var(--border-light)',
                   borderRadius: '9999px',
                   fontSize: '0.8125rem',
                   fontWeight: 600,
                   color: 'var(--text-secondary)',
-                  boxShadow: 'var(--shadow-sm)',
+                  boxShadow: 'var(--shadow-subtle)',
                 }}>
-                  <Eye size={14} style={{ color: '#6366f1' }} />
+                  <Eye size={14} style={{ color: '#8b5cf6' }} />
                   <span>{card.visit_count.toLocaleString('ar-EG')} زيارة</span>
                 </div>
               </div>
             )}
 
             {/* Save Contact (vCard) Action Button */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
               <a
                 href={cardsApi.getVcardUrl(card.card_code)}
                 download={`${card.business_data?.business_name || card.card_code}.vcf`}
@@ -295,26 +385,28 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
+                  gap: '10px',
                   width: '100%',
                   maxWidth: '320px',
-                  padding: '12px 20px',
-                  backgroundColor: '#2563eb',
+                  padding: '14px 24px',
+                  backgroundColor: 'var(--text-primary)',
                   color: '#ffffff',
-                  borderRadius: 'var(--radius-md)',
+                  borderRadius: '16px',
                   fontWeight: 700,
                   fontSize: '0.9375rem',
                   textDecoration: 'none',
-                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
-                  transition: 'all 0.2s ease',
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
+                  transition: 'all 0.3s ease',
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = '#1d4ed8';
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                  (e.currentTarget as HTMLElement).style.backgroundColor = '#000000';
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 25px rgba(0,0,0,0.12)';
                 }}
                 onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = '#2563eb';
+                  (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--text-primary)';
                   (e.currentTarget as HTMLElement).style.transform = '';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)';
                 }}
               >
                 <UserPlus size={18} />
@@ -325,7 +417,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           
           {renderContent()}
 
-          <div className="gsap-footer" style={{ marginTop: 'auto', paddingTop: '64px', width: '100%' }}>
+          <div className="gsap-footer footer-wrap">
             <PublicCardFooter />
           </div>
         </div>

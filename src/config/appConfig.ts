@@ -20,5 +20,5 @@ export const getAppBaseUrl = (): string => {
 };
 
 export const getSocialPageUrl = (cardCode: string): string => {
-  return `${getAppBaseUrl()}/social/${cardCode}`;
+  return `${getAppBaseUrl()}/r/${cardCode}`;
 };

@@ -63,15 +63,15 @@ export const SocialPage: React.FC = () => {
     if (!social.business_data) {
       // Card exists but has no profile yet
       return (
-        <div dir="rtl" style={{ minHeight: '100vh', backgroundColor: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Cairo, sans-serif' }}>
-          <div style={{ maxWidth: '400px', width: '100%', backgroundColor: '#fff', borderRadius: '20px', padding: '36px 28px', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.08)', textAlign: 'center' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '16px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
-              <AlertCircle size={30} style={{ color: '#94a3b8' }} />
+        <div dir="rtl" style={{ minHeight: '100vh', backgroundColor: '#f5f4f1', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Tajawal, sans-serif' }}>
+          <div style={{ maxWidth: '400px', width: '100%', backgroundColor: '#ffffff', borderRadius: '24px', padding: '40px 28px', boxShadow: '0 20px 40px rgba(0,0,0,0.05)', textAlign: 'center', border: '1px solid rgba(0,0,0,0.04)' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '18px', backgroundColor: 'rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <AlertCircle size={32} style={{ color: '#737373' }} />
             </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#171717', margin: '0 0 10px' }}>
               لا توجد بيانات بعد
             </h2>
-            <p style={{ color: '#64748b', fontSize: '0.9375rem' }}>
+            <p style={{ color: '#737373', fontSize: '0.95rem', margin: 0, lineHeight: 1.6 }}>
               {social.message || 'لم يتم إضافة بيانات الملف الشخصي لهذه البطاقة.'}
             </p>
           </div>
@@ -100,25 +100,25 @@ export const SocialPage: React.FC = () => {
   }
 
   return (
-    <div dir="rtl" style={{ minHeight: '100vh', backgroundColor: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Cairo, sans-serif' }}>
-      <div style={{ maxWidth: '400px', width: '100%', backgroundColor: '#fff', borderRadius: '20px', padding: '36px 28px', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.08)', textAlign: 'center' }}>
+    <div dir="rtl" style={{ minHeight: '100vh', backgroundColor: '#f5f4f1', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Tajawal, sans-serif' }}>
+      <div style={{ maxWidth: '400px', width: '100%', backgroundColor: '#ffffff', borderRadius: '24px', padding: '40px 28px', boxShadow: '0 20px 40px rgba(0,0,0,0.05)', textAlign: 'center', border: '1px solid rgba(0,0,0,0.04)' }}>
 
         {state === 'loading' && (
           <>
-            <div style={{ width: '44px', height: '44px', borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#6366f1', animation: 'spin 0.65s linear infinite', margin: '0 auto 20px' }} />
-            <p style={{ color: '#64748b', fontWeight: 600 }}>جاري التحميل...</p>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '3px solid rgba(0, 0, 0, 0.05)', borderTopColor: '#171717', animation: 'spin 0.65s linear infinite', margin: '0 auto 24px' }} />
+            <p style={{ color: '#737373', fontWeight: 600, margin: 0 }}>جاري التحميل...</p>
           </>
         )}
 
         {state === 'not_found' && (
           <>
-            <div style={{ width: '60px', height: '60px', borderRadius: '16px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
-              <AlertCircle size={30} style={{ color: '#ef4444' }} />
+            <div style={{ width: '64px', height: '64px', borderRadius: '18px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid #fee2e2' }}>
+              <AlertCircle size={32} style={{ color: '#ef4444' }} />
             </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#171717', margin: '0 0 10px' }}>
               الكارت غير موجود
             </h2>
-            <p style={{ color: '#64748b', fontSize: '0.9375rem' }}>
+            <p style={{ color: '#737373', fontSize: '0.95rem', margin: 0 }}>
               هذا الكارت غير متوفر أو تم حذفه.
             </p>
           </>
@@ -126,13 +126,15 @@ export const SocialPage: React.FC = () => {
 
         {state === 'error' && (
           <>
-            <div style={{ width: '60px', height: '60px', borderRadius: '16px', backgroundColor: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
-              <AlertCircle size={30} style={{ color: '#f97316' }} />
+            <div style={{ width: '64px', height: '64px', borderRadius: '18px', backgroundColor: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid #ffedd5' }}>
+              <AlertCircle size={32} style={{ color: '#f97316' }} />
             </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}>خطأ في الاتصال</h2>
-            <p style={{ color: '#64748b', fontSize: '0.9375rem', marginBottom: '20px' }}>تعذر تحميل البيانات. تحقق من الإنترنت.</p>
-            <button onClick={load} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '10px 22px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontWeight: 800 }}>
-              <RefreshCw size={16} /> إعادة المحاولة
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#171717', margin: '0 0 10px' }}>خطأ في الاتصال</h2>
+            <p style={{ color: '#737373', fontSize: '0.95rem', marginBottom: '24px', lineHeight: 1.6 }}>تعذر تحميل البيانات. تحقق من الإنترنت.</p>
+            <button onClick={load} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '12px', border: 'none', background: '#171717', color: '#fff', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif', fontWeight: 700, transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.transform = ''}>
+              <RefreshCw size={18} /> إعادة المحاولة
             </button>
           </>
         )}

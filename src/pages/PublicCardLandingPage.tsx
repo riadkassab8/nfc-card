@@ -102,7 +102,7 @@ export const PublicCardLandingPage: React.FC = () => {
   if (state === 'ok' && card) return <PublicCardView card={card} />;
 
   return (
-    <div dir="rtl" style={{ minHeight: '100vh', backgroundColor: '#fafafa', backgroundImage: 'radial-gradient(circle at 50% 0%,#e2e8f0 0%,#fafafa 60%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Cairo, sans-serif' }}>
+    <div dir="rtl" style={{ minHeight: '100vh', backgroundColor: '#f5f4f1', backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(226, 232, 240, 0.4) 0%, #f5f4f1 60%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Cairo, sans-serif' }}>
       <div style={{ maxWidth: '400px', width: '100%', backgroundColor: '#fff', borderRadius: '20px', padding: '36px 28px', boxShadow: '0 10px 28px rgba(0,0,0,0.06)', textAlign: 'center' }}>
 
         {state === 'loading' && (

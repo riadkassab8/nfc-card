@@ -160,7 +160,7 @@ export const AdminAddCardPage: React.FC = () => {
       if (autoCode && !editCard) {
         setCardCode(nextCode);
         setNfcUid(nextNfc);
-        setRedirectUrl(`${window.location.origin}/social/${nextCode}`);
+        setRedirectUrl(`${window.location.origin}/r/${nextCode}`);
       }
     } catch (e: any) {
       Swal.fire({ icon: 'error', title: 'خطأ', text: e?.message || 'فشل تحميل البيانات', confirmButtonColor: '#3b82f6' });
@@ -174,7 +174,7 @@ export const AdminAddCardPage: React.FC = () => {
   /* Set initial auto-generated redirect URL */
   useEffect(() => {
     if (!cardCode) return;
-    const defaultUrl = `${window.location.origin}/social/${cardCode}`;
+    const defaultUrl = `${window.location.origin}/r/${cardCode}`;
     // Only set it if creating a new card, or if it's somehow empty during edit
     if (!editCard || redirectUrl === '') {
       setRedirectUrl(defaultUrl);
@@ -264,7 +264,7 @@ export const AdminAddCardPage: React.FC = () => {
               <p style="margin:8px 0;font-size:15px">البطاقة <strong style="color:#3b82f6">${created.card_code}</strong> جاهزة تماماً</p>
               <p style="margin:4px 0;font-size:13px;color:#64748b">النوع: ${created.card_type}</p>
               <div style="margin-top:14px;text-align:center">
-                <a href="/social/${created.card_code}" target="_blank" style="display:inline-block;padding:9px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">
+                <a href="/r/${created.card_code}" target="_blank" style="display:inline-block;padding:9px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">
                   🚀 فتح صفحة الأزرار التفاعلية
                 </a>
               </div>
