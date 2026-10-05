@@ -58,20 +58,33 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion || !containerRef.current) return;
 
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    // Small delay to ensure DOM is ready (especially important on slower mobile devices)
+    const timer = setTimeout(() => {
+      if (!containerRef.current) return;
 
-      tl.from('.gsap-hero', { y: 20, opacity: 0, duration: 0.6 })
-        .from('.gsap-tile', { 
-          y: 15, 
-          opacity: 0, 
-          duration: 0.4, 
-          stagger: 0.05 
-        }, '-=0.3')
-        .from('.gsap-footer', { opacity: 0, duration: 0.4 }, '-=0.2');
-    }, containerRef);
+      const ctx = gsap.context(() => {
+        const tl = gsap.timeline({ 
+          defaults: { ease: 'power3.out' },
+          onComplete: () => {
+            // Force visibility on all animated elements after animation completes
+            gsap.set(['.gsap-hero', '.gsap-tile', '.gsap-footer'], { clearProps: 'opacity,transform' });
+          }
+        });
 
-    return () => ctx.revert();
+        tl.from('.gsap-hero', { y: 20, opacity: 0, duration: 0.6 })
+          .from('.gsap-tile', { 
+            y: 15, 
+            opacity: 0, 
+            duration: 0.4, 
+            stagger: 0.05 
+          }, '-=0.3')
+          .from('.gsap-footer', { opacity: 0, duration: 0.4 }, '-=0.2');
+      }, containerRef);
+
+      return () => ctx.revert();
+    }, 50);
+
+    return () => clearTimeout(timer);
   }, [card]);
 
   // Determine rendering mode
@@ -278,6 +291,11 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         
         .nfc-tile-cta {
           display: none; /* Hide subtitle for a cleaner look */
+        }
+
+        /* Ensure tiles are visible even if GSAP animation fails to run */
+        .gsap-tile {
+          opacity: 1;
         }
 
         .nfc-review-cta {
