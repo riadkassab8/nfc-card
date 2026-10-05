@@ -12,7 +12,6 @@ const NAV = [
   { path: '/admin/analytics',  label: 'الإحصائيات',        icon: BarChart2 },
   { path: '/admin/categories', label: 'التصنيفات',         icon: Tags },
   { path: '/admin/scan',       label: 'فحص وتجهيز',        icon: Scan },
-  { path: '/admin/profile',    label: 'الملف الشخصي',      icon: User },
 ];
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLinkClick }) => (

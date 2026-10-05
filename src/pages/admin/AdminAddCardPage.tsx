@@ -349,12 +349,7 @@ export const AdminAddCardPage: React.FC = () => {
     cardCode.trim() &&
     /^CARD-\d{4,}$/.test(cardCode.trim()) &&
     redirectUrl.trim() &&
-    categoryId &&
-    hasBusinessData &&
-    (currentCat.includes('whatsapp') ? !!bizData.whatsapp?.trim() : true) &&
-    (currentCat.includes('tiktok') ? !!bizData.tiktok?.trim() : true) &&
-    (currentCat.includes('instagram') ? !!bizData.instagram?.trim() : true) &&
-    (currentCat.includes('google map') || currentCat.includes('google review') ? !!bizData.google_maps?.trim() : true)
+    categoryId 
   );
 
   return (
