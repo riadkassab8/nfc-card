@@ -19,27 +19,29 @@ export const AdminShell: React.FC<AdminShellProps> = ({ title, children }) => {
 
   return (
     <>
-      <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: '#f4f6fa', overflow: 'hidden' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: '#f4f6fa' }}>
         {/* Desktop sidebar */}
         <div className="admin-sidebar-desktop" style={{ height: '100vh', position: 'sticky', top: 0, zIndex: 90, flexShrink: 0 }}>
           <AdminSidebar />
         </div>
 
         {/* Mobile sidebar overlay */}
-        <div
-          className={`mobile-sidebar-overlay ${mobileOpen ? 'open' : ''}`}
-          onClick={() => setMobileOpen(false)}
-        >
+        {mobileOpen && (
           <div
-            className={`mobile-sidebar-content ${mobileOpen ? 'open' : ''}`}
-            onClick={(e) => e.stopPropagation()}
+            className="mobile-sidebar-overlay"
+            onClick={() => setMobileOpen(false)}
           >
-            <AdminSidebar onLinkClick={() => setMobileOpen(false)} />
+            <div
+              className="mobile-sidebar-content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <AdminSidebar onLinkClick={() => setMobileOpen(false)} />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Main area */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'auto' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <AdminHeader title={title} onOpenMobileMenu={() => setMobileOpen(true)} />
           <main style={{ flex: 1, padding: '24px', boxSizing: 'border-box', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
             <div key={location.pathname} className="page-transition">
@@ -64,27 +66,32 @@ export const AdminShell: React.FC<AdminShellProps> = ({ title, children }) => {
           position: fixed; inset: 0; zIndex: 200;
           background-color: rgba(15,23,42,0.55);
           display: flex;
-          opacity: 0;
-          visibility: hidden;
-          transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-        .mobile-sidebar-overlay.open {
-          opacity: 1;
-          visibility: visible;
+          animation: fadeInOverlay 0.3s ease;
         }
         
         .mobile-sidebar-content {
           height: 100%;
           flex-shrink: 0;
-          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-          transform: translateX(100%); 
+          animation: slideInSidebar 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        [dir="ltr"] .mobile-sidebar-content {
-          transform: translateX(-100%);
+
+        @keyframes fadeInOverlay {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         
-        .mobile-sidebar-content.open {
-          transform: translateX(0) !important;
+        @keyframes slideInSidebar {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        
+        [dir="ltr"] .mobile-sidebar-content {
+          animation: slideInSidebarLtr 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideInSidebarLtr {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
         }
 
         @media (max-width: 992px) {
