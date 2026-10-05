@@ -102,6 +102,8 @@ export const AdminAddCardPage: React.FC = () => {
     vodafone_cash: editCard?.business_data?.vodafone_cash || '',
   });
 
+  //
+
   /* Auto-generate next card code */
   const [autoCode, setAutoCode] = useState(!editCard);
 
@@ -209,7 +211,7 @@ export const AdminAddCardPage: React.FC = () => {
     const business: BusinessData = {};
     let hasBiz = false;
     for (const [k, v] of Object.entries(bizData)) {
-      if (v.trim() && k !== 'instapay' && k !== 'vodafone_cash') {
+      if (typeof v === 'string' && v.trim()) {
         (business as any)[k] = v.trim();
         hasBiz = true;
       }
@@ -219,9 +221,7 @@ export const AdminAddCardPage: React.FC = () => {
     if (!/^https?:\/\//i.test(formattedUrl)) {
       formattedUrl = `https://${formattedUrl}`;
     }
-    // Replace localhost or 127.0.0.1 with a valid domain format so backend validator passes seamlessly
-    formattedUrl = formattedUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smartcard-app.com');
-
+    // Localhost domains should not be overwritten; backend validation should be environment-aware instead.
     const baseDto = {
       card_type: cardType,
       current_redirect_url: formattedUrl,

@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { cardsApi, categoriesApi } from '../../services';
 import { ApiCard, ApiCategory, BusinessData, fmtDate, isSubscriptionExpired } from '../../types';
-import { Search, Save, RefreshCw, XCircle, ExternalLink } from 'lucide-react';
+import { Search, Save, RefreshCw, XCircle, ExternalLink, QrCode, X, Camera } from 'lucide-react';
+import jsQR from 'jsqr';
 
 const EMPTY: BusinessData = {
   business_name: '', description: '', logo: '',
   phone: '', whatsapp: '', instagram: '',
   facebook: '', tiktok: '', google_maps: '',
-  website: '', email: '',
+  website: '', email: '', instapay: '', vodafone_cash: '',
 };
 
 /* ── Toast ─────────────────────────────────────────────────────── */
@@ -38,6 +39,109 @@ const Field: React.FC<{
   </div>
 );
 
+/* ── QR Scanner ───────────────────────────────────────────────── */
+const QRScannerModal: React.FC<{ onScan: (data: string) => void; onClose: () => void }> = ({ onScan, onClose }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    let requestAnimFrameId: number;
+
+    const startCamera = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.setAttribute('playsinline', 'true');
+          videoRef.current.play();
+          requestAnimFrameId = requestAnimationFrame(tick);
+        }
+      } catch (err) {
+        console.error("Camera error:", err);
+        setError("لا يمكن الوصول للكاميرا. يرجى التأكد من الصلاحيات.");
+      }
+    };
+
+    const tick = () => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (video && canvas && video.readyState === video.HAVE_ENOUGH_DATA) {
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (ctx) {
+          canvas.height = video.videoHeight;
+          canvas.width = video.videoWidth;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+          if (code && code.data) {
+            onScan(code.data);
+            return;
+          }
+        }
+      }
+      requestAnimFrameId = requestAnimationFrame(tick);
+    };
+
+    startCamera();
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      if (requestAnimFrameId) {
+        cancelAnimationFrame(requestAnimFrameId);
+      }
+    };
+  }, [onScan]);
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <div style={{
+        background: 'var(--bg-white)', padding: '20px', borderRadius: '16px',
+        width: '90%', maxWidth: '400px', position: 'relative',
+        display: 'flex', flexDirection: 'column', gap: '16px', color: 'var(--txt-heading)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Camera size={20} /> فحص رمز QR
+          </h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--txt-muted)' }}>
+            <X size={20} />
+          </button>
+        </div>
+        
+        {error ? (
+          <div style={{ color: 'var(--clr-error)', textAlign: 'center', padding: '20px' }}>{error}</div>
+        ) : (
+          <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1', overflow: 'hidden', borderRadius: '8px', backgroundColor: '#000' }}>
+            <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+            <div style={{
+              position: 'absolute', top: '50%', left: '10%', right: '10%', height: '2px',
+              backgroundColor: 'var(--clr-primary-500)', boxShadow: '0 0 10px var(--clr-primary-500)',
+              transform: 'translateY(-50%)',
+              animation: 'scanline 2s linear infinite'
+            }} />
+          </div>
+        )}
+      </div>
+      <style>{`
+        @keyframes scanline {
+          0% { top: 10%; }
+          50% { top: 90%; }
+          100% { top: 10%; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
 /* ── Main ─────────────────────────────────────────────────────── */
 export const AdminScanPage: React.FC = () => {
   const [query, setQuery]       = useState('');
@@ -48,14 +152,23 @@ export const AdminScanPage: React.FC = () => {
   const [form, setForm]         = useState<BusinessData>({ ...EMPTY });
   const [saving, setSaving]     = useState(false);
   const [toast, setToast]       = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
     categoriesApi.getCategories({ limit: 100 }).then(r => setCategories(r.data ?? [])).catch(() => {});
   }, []);
 
   const resolve = async (q = query) => {
-    const term = q.trim();
+    let term = q.trim();
     if (!term) return;
+
+    // استخراج الكود في حال كان الرابط كاملاً
+    const match = term.match(/(CARD-\d+|NFC-[A-Z0-9]+)/i);
+    if (match) {
+      term = match[1].toUpperCase();
+      setQuery(term);
+    }
+
     setSearching(true); setNotFound(false); setCard(null);
     try {
       const res = await cardsApi.getCards({ search: term, limit: 50 });
@@ -115,6 +228,17 @@ export const AdminScanPage: React.FC = () => {
     <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '20px', fontFamily: 'var(--font)' }}>
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
+      {showScanner && (
+        <QRScannerModal 
+          onClose={() => setShowScanner(false)} 
+          onScan={(data) => {
+            setShowScanner(false);
+            setQuery(data);
+            resolve(data);
+          }} 
+        />
+      )}
+
       {/* Hero */}
       <div className="page-hero">
         <div style={{ zIndex: 1 }}>
@@ -140,6 +264,15 @@ export const AdminScanPage: React.FC = () => {
               style={{ paddingRight: '36px' }}
             />
           </div>
+          <button
+            type="button"
+            className="btn-outline"
+            onClick={() => setShowScanner(true)}
+            style={{ padding: '0 14px' }}
+            title="فحص بالكاميرا"
+          >
+            <QrCode size={18} />
+          </button>
           <button
             type="submit"
             className="btn-primary"
@@ -232,6 +365,8 @@ export const AdminScanPage: React.FC = () => {
                 <Field label="خرائط جوجل (رابط)"    field="google_maps"    form={form} onChange={setForm} placeholder="https://maps.google.com/..." />
                 <Field label="الموقع الإلكتروني"     field="website"        form={form} onChange={setForm} placeholder="https://yoursite.com" />
                 <Field label="البريد الإلكتروني"     field="email"          form={form} onChange={setForm} placeholder="hello@example.com" />
+                <Field label="انستاباي"              field="instapay"       form={form} onChange={setForm} placeholder="username@instapay" />
+                <Field label="فودافون كاش"          field="vodafone_cash"  form={form} onChange={setForm} placeholder="01000000000" />
                 <Field label="رابط الشعار (URL)"     field="logo"           form={form} onChange={setForm} placeholder="https://cdn.example.com/logo.png" />
               </div>
 

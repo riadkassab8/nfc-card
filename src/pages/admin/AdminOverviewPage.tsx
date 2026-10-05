@@ -140,6 +140,10 @@ export const AdminOverviewPage: React.FC = () => {
   const [inactive, setInactive] = useState(0);
   const [expired, setExpired]   = useState(0);
 
+  useEffect(() => {
+    //
+  }, []);
+
   /* analytics */
   const [analytics, setAnalytics]     = useState<ApiGlobalAnalytics | null>(null);
   const [analyticsLoading, setAL]     = useState(true);
