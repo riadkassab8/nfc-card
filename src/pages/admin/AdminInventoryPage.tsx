@@ -561,12 +561,12 @@ export const AdminInventoryPage: React.FC = () => {
 
       {/* Table */}
       <div className="data-table-wrapper">
-        <div style={{ overflowX: 'auto' }}>
-          <table className="data-table" style={{ minWidth: '1050px' }}>
+        <div style={{ overflowX: 'auto', padding: '10px 4px' }}>
+          <table className="premium-table" style={{ minWidth: '1150px' }}>
             <thead>
               <tr>
                 <th style={{ width: '40px', textAlign: 'center' }}>
-                  <input type="checkbox" checked={allSel} onChange={toggleAll} style={{ cursor: 'pointer', accentColor: 'var(--clr-primary-500)' }} />
+                  <input type="checkbox" checked={allSel} onChange={toggleAll} style={{ cursor: 'pointer', accentColor: 'var(--clr-primary-500)', width: '16px', height: '16px' }} />
                 </th>
                 <th onClick={() => requestSort('code')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>الكارت {sortConfig?.key === 'code' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
                 <th onClick={() => requestSort('type')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>النوع {sortConfig?.key === 'type' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
@@ -604,39 +604,46 @@ export const AdminInventoryPage: React.FC = () => {
                       const exp = isSubscriptionExpired(card);
                       const isSel = selected.has(card._id);
                       return (
-                        <tr key={card._id} style={{ backgroundColor: isSel ? 'var(--clr-primary-50)' : undefined }}>
+                        <tr key={card._id} className={isSel ? 'selected' : ''}>
                           <td style={{ textAlign: 'center' }}>
-                            <input type="checkbox" checked={isSel} onChange={() => toggleOne(card._id)} style={{ cursor: 'pointer', accentColor: 'var(--clr-primary-500)' }} />
+                            <input type="checkbox" checked={isSel} onChange={() => toggleOne(card._id)} style={{ cursor: 'pointer', accentColor: 'var(--clr-primary-500)', width: '16px', height: '16px' }} />
                           </td>
                           <td>
-                            <div style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: 'var(--fs-sm)', color: 'var(--txt-heading)' }}>{card.card_code}</div>
-                            {card.nfc_uid && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', fontFamily: 'monospace' }}>{card.nfc_uid}</div>}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: 'var(--clr-primary-50)', border: '1px solid var(--clr-primary-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--clr-primary-600)', flexShrink: 0 }}>
+                                <CreditCard size={20} />
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: 'var(--fs-base)', color: 'var(--txt-heading)', letterSpacing: '0.5px' }}>{card.card_code}</div>
+                                {card.nfc_uid && <div style={{ fontSize: '12px', color: 'var(--txt-muted)', fontFamily: 'monospace', marginTop: '1px' }}>{card.nfc_uid}</div>}
+                              </div>
+                            </div>
                           </td>
                           <td>
-                            <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, padding: '3px 9px', borderRadius: 'var(--r-full)', backgroundColor: 'var(--bg-subtle)', color: 'var(--txt-secondary)', border: '1px solid var(--bdr-light)' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--r-full)', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', display: 'inline-block' }}>
                               {card.card_type}
                             </span>
                           </td>
-                          <td style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 'var(--fs-sm)', color: 'var(--txt-body)' }}>
-                            {card.business_data?.business_name || <span style={{ color: 'var(--txt-muted)' }}>—</span>}
+                          <td style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 'var(--fs-sm)', color: 'var(--txt-body)', fontWeight: 600 }}>
+                            {card.business_data?.business_name || <span style={{ color: 'var(--txt-muted)', fontWeight: 400 }}>—</span>}
                           </td>
-                          <td style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-secondary)' }}>
+                          <td style={{ fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', fontWeight: 600 }}>
                             {cat?.name || <span style={{ color: 'var(--txt-muted)' }}>—</span>}
                           </td>
                           <td>
-                            <span className={`badge ${card.status === 'active' ? 'badge-success' : 'badge-error'}`}>
-                              <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: 'currentColor', display: 'inline-block' }} />
+                            <span className={`badge ${card.status === 'active' ? 'badge-success' : 'badge-error'}`} style={{ padding: '5px 12px' }}>
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'currentColor', display: 'inline-block' }} />
                               {card.status === 'active' ? 'نشطة' : 'معطلة'}
                             </span>
                           </td>
                           <td style={{ fontSize: 'var(--fs-xs)', whiteSpace: 'nowrap' }}>
                             {!card.requires_subscription
-                              ? <span style={{ color: 'var(--clr-success)', fontWeight: 700, fontSize: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '3px 8px', borderRadius: '4px' }}>دائم ♾</span>
-                              : <span style={{ color: 'var(--clr-primary-700)', fontWeight: 700, fontSize: '10px', backgroundColor: 'var(--clr-primary-50)', border: '1px solid var(--clr-primary-200)', padding: '3px 8px', borderRadius: '4px' }}>باشتراك</span>}
+                              ? <span style={{ color: 'var(--clr-success)', fontWeight: 800, fontSize: '11px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '4px 10px', borderRadius: '6px' }}>دائم ♾</span>
+                              : <span style={{ color: 'var(--clr-primary-700)', fontWeight: 800, fontSize: '11px', backgroundColor: 'var(--clr-primary-50)', border: '1px solid var(--clr-primary-200)', padding: '4px 10px', borderRadius: '6px' }}>باشتراك</span>}
                           </td>
                           <td style={{ fontSize: 'var(--fs-xs)', whiteSpace: 'nowrap' }}>
                             {card.requires_subscription && card.subscription_start_date && card.subscription_end_date
-                              ? <span style={{ fontWeight: 700, fontSize: '12px', color: 'var(--clr-primary-700)' }}>
+                              ? <span style={{ fontWeight: 800, fontSize: '13px', color: 'var(--clr-primary-700)' }}>
                                   {getDurationText(card.subscription_start_date, card.subscription_end_date)}
                                 </span>
                               : <span style={{ color: 'var(--txt-muted)' }}>—</span>}
@@ -644,17 +651,17 @@ export const AdminInventoryPage: React.FC = () => {
                           <td style={{ fontSize: 'var(--fs-xs)', whiteSpace: 'nowrap' }}>
                             {card.requires_subscription
                                ? (exp 
-                                   ? <span style={{ color: 'var(--clr-error)', fontWeight: 700, fontSize: '11px', backgroundColor: 'var(--clr-error-bg)', border: '1px solid var(--clr-error-bdr)', padding: '2px 8px', borderRadius: '4px' }}>منتهي</span>
-                                   : <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--txt-body)' }}>{getTimeLeftText(card.subscription_end_date)}</span>)
+                                   ? <span style={{ color: 'var(--clr-error)', fontWeight: 800, fontSize: '12px', backgroundColor: 'var(--clr-error-bg)', border: '1px solid var(--clr-error-bdr)', padding: '4px 10px', borderRadius: '6px' }}>منتهي</span>
+                                   : <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--txt-heading)' }}>{getTimeLeftText(card.subscription_end_date)}</span>)
                                : <span style={{ color: 'var(--txt-muted)' }}>—</span>}
                           </td>
                           <td>
-                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                              <IBtn title="تفاصيل" color="var(--clr-primary-600)" bg="var(--clr-primary-50)"   onClick={() => setDrawerCard(card)}><Eye size={14} /></IBtn>
-                              <IBtn title="نسخ الكارت" color="#7c3aed" bg="#f5f3ff" onClick={() => setCloneTarget(card)}><Copy size={14} /></IBtn>
-                              <IBtn title="QR"     color="var(--clr-primary-500)" bg="var(--clr-primary-50)"  onClick={() => downloadQR(card)}><Download size={14} /></IBtn>
-                              <IBtn title={card.status === 'active' ? 'تعطيل' : 'تفعيل'} color={card.status === 'active' ? 'var(--clr-warning)' : 'var(--clr-success)'} bg={card.status === 'active' ? 'var(--clr-warning-bg)' : 'var(--clr-success-bg)'} onClick={() => handleToggle(card)}><Power size={14} /></IBtn>
-                              <IBtn title="حذف"    color="var(--clr-error)"        bg="var(--clr-error-bg)"   onClick={() => setDeleteTarget(card)}><Trash2 size={14} /></IBtn>
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                              <IBtn title="تفاصيل" color="var(--clr-primary-600)" bg="var(--clr-primary-50)"   onClick={() => setDrawerCard(card)}><Eye size={15} /></IBtn>
+                              <IBtn title="نسخ الكارت" color="#7c3aed" bg="#f5f3ff" onClick={() => setCloneTarget(card)}><Copy size={15} /></IBtn>
+                              <IBtn title="QR"     color="var(--clr-primary-500)" bg="var(--clr-primary-50)"  onClick={() => downloadQR(card)}><Download size={15} /></IBtn>
+                              <IBtn title={card.status === 'active' ? 'تعطيل' : 'تفعيل'} color={card.status === 'active' ? 'var(--clr-warning)' : 'var(--clr-success)'} bg={card.status === 'active' ? 'var(--clr-warning-bg)' : 'var(--clr-success-bg)'} onClick={() => handleToggle(card)}><Power size={15} /></IBtn>
+                              <IBtn title="حذف"    color="var(--clr-error)"        bg="var(--clr-error-bg)"   onClick={() => setDeleteTarget(card)}><Trash2 size={15} /></IBtn>
                             </div>
                           </td>
                         </tr>
@@ -717,11 +724,11 @@ export const AdminInventoryPage: React.FC = () => {
 const IBtn: React.FC<{ title: string; color: string; bg: string; onClick: () => void; children: React.ReactNode }> = ({ title, color, bg, onClick, children }) => (
   <button title={title} onClick={onClick} style={{
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    width: '28px', height: '28px', borderRadius: 'var(--r-sm)',
+    width: '32px', height: '32px', borderRadius: 'var(--r-sm)',
     border: 'none', backgroundColor: bg, color,
-    cursor: 'pointer', transition: 'opacity 120ms', flexShrink: 0,
-  }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.8'}
-     onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
+    cursor: 'pointer', transition: 'all 120ms var(--ease)', flexShrink: 0,
+  }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.85'; (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
+     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}>
     {children}
   </button>
 );
