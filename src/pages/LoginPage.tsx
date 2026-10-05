@@ -109,7 +109,7 @@ export const LoginPage: React.FC = () => {
                   className="form-input"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
-                  placeholder="username"
+                  placeholder="ادخل اسم المستخدم"
                   autoFocus
                   required
                   disabled={busy}
