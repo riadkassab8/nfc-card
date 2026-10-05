@@ -398,8 +398,8 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
             {biz?.phone?.trim() && (
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
                 <a
-                  href={cardsApi.getVcardUrl(card.card_code)}
-                  download={`${card.business_data?.business_name || card.card_code}.vcf`}
+                  href={cardsApi.getVcardUrl(card.custom_slug || card.card_code)}
+                  download={`${card.business_data?.business_name || card.custom_slug || card.card_code}.vcf`}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',

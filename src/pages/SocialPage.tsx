@@ -85,6 +85,7 @@ export const SocialPage: React.FC = () => {
     const cardProxy = {
       _id:                    social.card_code,
       card_code:              social.card_code,
+      custom_slug:            social.custom_slug || null,
       card_type:              social.card_type,
       requires_subscription:  social.requires_subscription ?? true,
       business_data:          social.business_data,

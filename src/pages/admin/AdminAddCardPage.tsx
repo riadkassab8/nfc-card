@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cardsApi, categoriesApi } from '../../services';
-import { ApiCard, ApiCategory, ApiCreateCardDto, CARD_TYPES, CardType, BusinessData, getCategoryId } from '../../types';
+import { ApiCard, ApiCategory, ApiCreateCardDto, CARD_TYPES, CardType, BusinessData, getCategoryId, CUSTOM_SLUG_REGEX } from '../../types';
 import Swal from 'sweetalert2';
 import {
   ArrowRight, CreditCard, Plus, Building2, Globe, Phone, Mail,
@@ -77,6 +77,7 @@ export const AdminAddCardPage: React.FC = () => {
 
   /* Card state */
   const [cardCode, setCardCode]     = useState(editCard?.card_code || '');
+  const [customSlug, setCustomSlug] = useState(editCard?.custom_slug || '');
   const [nfcUid, setNfcUid]         = useState(editCard?.nfc_uid || '');
   const [cardType, setCardType]     = useState<string>(editCard?.card_type || CardType.CARD);
   const [redirectUrl, setRedirectUrl] = useState(editCard?.current_redirect_url || '');
@@ -112,6 +113,7 @@ export const AdminAddCardPage: React.FC = () => {
     if (editCard) {
       cardsApi.getCardById(editCard._id).then(fullCard => {
         setCardCode(fullCard.card_code || '');
+        setCustomSlug(fullCard.custom_slug || '');
         setNfcUid(fullCard.nfc_uid || '');
         setCardType(fullCard.card_type || CardType.CARD);
         setRedirectUrl(fullCard.current_redirect_url || '');
@@ -201,6 +203,16 @@ export const AdminAddCardPage: React.FC = () => {
       Swal.fire({ icon: 'warning', title: 'صيغة خاطئة', text: 'كود البطاقة يجب أن يكون بالصيغة CARD-XXXX مثل CARD-0001', confirmButtonColor: '#3b82f6' });
       return;
     }
+    const trimmedSlug = customSlug.trim().toLowerCase();
+    if (trimmedSlug && !CUSTOM_SLUG_REGEX.test(trimmedSlug)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'صيغة خاطئة للرابط المخصص',
+        text: 'الرابط المخصص يقبل فقط حروف إنجليزية صغيرة، أرقام، والشرطة (-) بدون مسافات أو رموز خاصة (مثال: dr-ahmed)',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
     if (!redirectUrl.trim()) {
       Swal.fire({ icon: 'warning', title: 'حقل مطلوب', text: 'رابط التوجيه مطلوب', confirmButtonColor: '#3b82f6' });
       return;
@@ -236,7 +248,10 @@ export const AdminAddCardPage: React.FC = () => {
     try {
       if (editCard) {
         // Update mode
-        const updateDto: import('../../types').ApiUpdateCardDto = { ...baseDto };
+        const updateDto: import('../../types').ApiUpdateCardDto = {
+          ...baseDto,
+          custom_slug: trimmedSlug || null,
+        };
         updateDto.nfc_uid = nfcUid.trim() ? nfcUid.trim().toUpperCase() : '';
         updateDto.business_data = hasBiz ? business : null;
 
@@ -255,6 +270,7 @@ export const AdminAddCardPage: React.FC = () => {
           ...baseDto,
           card_code: cardCode.trim().toUpperCase(),
         };
+        if (trimmedSlug) createDto.custom_slug = trimmedSlug;
         if (nfcUid.trim()) createDto.nfc_uid = nfcUid.trim().toUpperCase();
         if (hasBiz) createDto.business_data = business;
 
@@ -265,9 +281,10 @@ export const AdminAddCardPage: React.FC = () => {
           html: `
             <div style="text-align:right;direction:rtl;font-family:Tajawal,sans-serif">
               <p style="margin:8px 0;font-size:15px">البطاقة <strong style="color:#3b82f6">${created.card_code}</strong> جاهزة تماماً</p>
+              ${created.custom_slug ? `<p style="margin:4px 0;font-size:13px;color:#16a34a">الرابط المخصص: <strong>/social/${created.custom_slug}</strong></p>` : ''}
               <p style="margin:4px 0;font-size:13px;color:#64748b">النوع: ${created.card_type}</p>
               <div style="margin-top:14px;text-align:center">
-                <a href="/r/${created.card_code}" target="_blank" style="display:inline-block;padding:9px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">
+                <a href="/social/${created.custom_slug || created.card_code}" target="_blank" style="display:inline-block;padding:9px 18px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">
                   🚀 فتح صفحة الأزرار التفاعلية
                 </a>
               </div>
@@ -284,6 +301,7 @@ export const AdminAddCardPage: React.FC = () => {
           } else {
             // Reset form for another card
             setAutoCode(true);
+            setCustomSlug('');
             setNfcUid('');
             setBizData({
               business_name: '', logo: '', description: '', phone: '',
@@ -295,13 +313,15 @@ export const AdminAddCardPage: React.FC = () => {
         });
       }
     } catch (e: any) {
-      let errMsg = e?.message || 'حدث خطأ أثناء إنشاء البطاقة';
-      if (errMsg.includes('500') || errMsg.includes('Internal server error')) {
+      let errMsg = e?.message || 'حدث خطأ أثناء حفظ البطاقة';
+      if (e?.statusCode === 409 || /already taken/i.test(errMsg) || /custom slug.*already taken/i.test(errMsg)) {
+        errMsg = 'هذا الرابط المخصص محجوز بالفعل، يرجى اختيار اسم آخر';
+      } else if (errMsg.includes('500') || errMsg.includes('Internal server error')) {
         errMsg = 'معرف NFC أو كود البطاقة مستخدم ومكرر بالفعل في بطاقة أخرى. يرجى تغيير معرف NFC (أو ترك الحقل فارغاً).';
       }
       Swal.fire({
         icon: 'error',
-        title: 'فشل الإنشاء',
+        title: 'فشل العملية',
         text: errMsg,
         confirmButtonColor: '#3b82f6',
       });
@@ -421,6 +441,24 @@ export const AdminAddCardPage: React.FC = () => {
                 placeholder="NFC-7FJ2K9"
               />
               <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)' }}>صيغة: NFC-XXXXXX (اختياري)</span>
+            </div>
+
+            {/* Custom Slug */}
+            <div className="form-group">
+              <label className="form-label">
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Globe size={14} style={{ color: 'var(--clr-primary-500)' }} />
+                  الرابط المخصص (Custom Slug) <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', fontWeight: 400 }}>(اختياري)</span>
+                </span>
+              </label>
+              <input
+                className="form-input"
+                dir="ltr"
+                value={customSlug}
+                onChange={e => setCustomSlug(e.target.value.toLowerCase())}
+                placeholder="dr-ahmed"
+              />
+              <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)' }}>مثال: dr-ahmed أو my-company (حروف صغيرة، أرقام، وشرطة فقط)</span>
             </div>
 
             {/* Card Type */}

@@ -112,6 +112,7 @@ export interface ApiUpdateRedirectRulesDto {
 export interface ApiCard {
   _id: string;
   card_code: string;
+  custom_slug?: string | null;
   nfc_uid?: string | null;
   qr_code?: string | null;
   card_type: string;
@@ -143,6 +144,7 @@ export interface ApiCardsPaginatedResponse {
 
 export interface ApiCreateCardDto {
   card_code: string;
+  custom_slug?: string;
   nfc_uid?: string;
   card_type: string;
   current_redirect_url: string;
@@ -153,6 +155,7 @@ export interface ApiCreateCardDto {
 }
 
 export interface ApiUpdateCardDto {
+  custom_slug?: string | null;
   nfc_uid?: string;
   card_type?: string;
   current_redirect_url?: string;
@@ -184,6 +187,7 @@ export interface ApiBulkCreateResult {
 
 export interface ApiSocialPageResponse {
   card_code: string;
+  custom_slug?: string | null;
   card_type: string;
   visit_count?: number;
   requires_subscription?: boolean;
@@ -348,4 +352,12 @@ export const parseCategoryMeta = (raw?: string | null): CategoryMeta => {
 
 export const stringifyCategoryMeta = (desc: string, fields: string[]): string => {
   return JSON.stringify({ desc, fields });
+};
+
+/** Regex to validate custom slug: only lowercase letters, numbers, and hyphens without spaces */
+export const CUSTOM_SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** Helper to get card identifier: custom_slug if present, else card_code */
+export const getCardSlugOrCode = (card: { custom_slug?: string | null; card_code: string }): string => {
+  return card.custom_slug?.trim() ? card.custom_slug.trim() : card.card_code;
 };

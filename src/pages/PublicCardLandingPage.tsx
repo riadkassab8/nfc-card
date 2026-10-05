@@ -39,6 +39,7 @@ export const PublicCardLandingPage: React.FC = () => {
         const cardProxy: ApiCard = {
           _id:                    res.card_code,
           card_code:              res.card_code,
+          custom_slug:            res.custom_slug || null,
           card_type:              res.card_type,
           requires_subscription:  res.requires_subscription ?? true,
           business_data:          null,
@@ -75,6 +76,7 @@ export const PublicCardLandingPage: React.FC = () => {
       const cardProxy: ApiCard = {
         _id:                    res.card_code,
         card_code:              res.card_code,
+        custom_slug:            res.custom_slug || null,
         card_type:              res.card_type,
         requires_subscription:  res.requires_subscription ?? true,
         business_data:          biz,

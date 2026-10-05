@@ -136,12 +136,12 @@ export const cardsApi = {
   cloneCard: (id: string, dto: ApiCloneCardDto): Promise<ApiCard> =>
     apiClient<ApiCard>(`/cards/${id}/clone`, { method: 'POST', body: dto }),
 
-  // ── GET /social/:card_code  (🔓 Public — no JWT) ─────────────────────────
-  getSocialPage: (cardCode: string): Promise<ApiSocialPageResponse> =>
-    apiClient<ApiSocialPageResponse>(`/social/${cardCode}`, { requiresAuth: false }),
+  // ── GET /social/:identifier (custom_slug or card_code) (🔓 Public — no JWT) ───
+  getSocialPage: (identifier: string): Promise<ApiSocialPageResponse> =>
+    apiClient<ApiSocialPageResponse>(`/social/${identifier}`, { requiresAuth: false }),
 
-  /** Direct vCard download URL — Public */
-  getVcardUrl: (cardCode: string): string => `${getApiBaseUrl()}/social/${cardCode}/vcard`,
+  /** Direct vCard download URL — Public (supports custom_slug or card_code) */
+  getVcardUrl: (identifier: string): string => `${getApiBaseUrl()}/social/${identifier}/vcard`,
 
   // ── GET /api/export/cards ────────────────────────────────────────────────
   /** Export all cards as an Excel file (.xlsx). Returns a Blob. */

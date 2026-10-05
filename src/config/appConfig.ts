@@ -22,3 +22,11 @@ export const getAppBaseUrl = (): string => {
 export const getSocialPageUrl = (cardCode: string): string => {
   return `${getAppBaseUrl()}/r/${cardCode}`;
 };
+
+export const getCardPublicUrl = (identifierOrCard: string | { custom_slug?: string | null; card_code: string }): string => {
+  if (typeof identifierOrCard === 'string') {
+    return `${getAppBaseUrl()}/social/${identifierOrCard}`;
+  }
+  const identifier = identifierOrCard.custom_slug?.trim() || identifierOrCard.card_code;
+  return `${getAppBaseUrl()}/social/${identifier}`;
+};

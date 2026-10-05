@@ -10,7 +10,7 @@ import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCar
 import {
   Plus, Search, RefreshCw, CreditCard, CheckCircle2, XCircle,
   Power, Trash2, Eye, Download, FileDown, Layers, Copy,
-  AlertTriangle, ChevronLeft, ChevronRight, TrendingUp
+  AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Link as LinkIcon,
 } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'info';
@@ -614,8 +614,67 @@ export const AdminInventoryPage: React.FC = () => {
                                 <CreditCard size={20} />
                               </div>
                               <div>
-                                <div style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: 'var(--fs-base)', color: 'var(--txt-heading)', letterSpacing: '0.5px' }}>{card.card_code}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: 'var(--fs-base)', color: 'var(--txt-heading)', letterSpacing: '0.5px' }}>{card.card_code}</span>
+                                  {card.custom_slug && (
+                                    <span style={{ fontSize: '11px', color: '#2563eb', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700 }} title="الرابط المخصص">
+                                      /{card.custom_slug}
+                                    </span>
+                                  )}
+                                </div>
                                 {card.nfc_uid && <div style={{ fontSize: '12px', color: 'var(--txt-muted)', fontFamily: 'monospace', marginTop: '1px' }}>{card.nfc_uid}</div>}
+                                
+                                {/* Public Link & Quick Copy Button */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                                  <a
+                                    href={`/social/${card.custom_slug || card.card_code}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      fontSize: '11px',
+                                      color: 'var(--clr-primary-600)',
+                                      textDecoration: 'none',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                      fontWeight: 600,
+                                      maxWidth: '160px',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title={`/social/${card.custom_slug || card.card_code}`}
+                                  >
+                                    <LinkIcon size={11} />
+                                    <span>/social/{card.custom_slug || card.card_code}</span>
+                                  </a>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const url = `${window.location.origin}/social/${card.custom_slug || card.card_code}`;
+                                      navigator.clipboard.writeText(url);
+                                      showToast('تم نسخ الرابط ✓');
+                                    }}
+                                    title="نسخ الرابط"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      border: '1px solid var(--bdr-light)',
+                                      backgroundColor: 'var(--bg-white)',
+                                      color: 'var(--txt-secondary)',
+                                      cursor: 'pointer',
+                                      fontSize: '11px',
+                                      gap: '2px',
+                                      lineHeight: 1,
+                                    }}
+                                  >
+                                    <Copy size={10} />
+                                    <span>نسخ</span>
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -658,6 +717,11 @@ export const AdminInventoryPage: React.FC = () => {
                           <td>
                             <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                               <IBtn title="تفاصيل" color="var(--clr-primary-600)" bg="var(--clr-primary-50)"   onClick={() => setDrawerCard(card)}><Eye size={15} /></IBtn>
+                              <IBtn title="نسخ رابط الصفحة العامة" color="#0284c7" bg="#f0f9ff" onClick={() => {
+                                const url = `${window.location.origin}/social/${card.custom_slug || card.card_code}`;
+                                navigator.clipboard.writeText(url);
+                                showToast('تم نسخ الرابط ✓');
+                              }}><LinkIcon size={15} /></IBtn>
                               <IBtn title="نسخ الكارت" color="#7c3aed" bg="#f5f3ff" onClick={() => setCloneTarget(card)}><Copy size={15} /></IBtn>
                               <IBtn title="QR"     color="var(--clr-primary-500)" bg="var(--clr-primary-50)"  onClick={() => downloadQR(card)}><Download size={15} /></IBtn>
                               <IBtn title={card.status === 'active' ? 'تعطيل' : 'تفعيل'} color={card.status === 'active' ? 'var(--clr-warning)' : 'var(--clr-success)'} bg={card.status === 'active' ? 'var(--clr-warning-bg)' : 'var(--clr-success-bg)'} onClick={() => handleToggle(card)}><Power size={15} /></IBtn>
