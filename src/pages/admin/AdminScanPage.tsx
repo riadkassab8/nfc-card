@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cardsApi, categoriesApi } from '../../services';
-import { ApiCard, ApiCategory, BusinessData, fmtDate, isSubscriptionExpired } from '../../types';
+import { ApiCard, ApiCategory, BusinessData, fmtDate, isSubscriptionExpired, parseCategoryMeta } from '../../types';
 import { Search, Save, RefreshCw, XCircle, ExternalLink, QrCode, X, Camera } from 'lucide-react';
 import jsQR from 'jsqr';
 
@@ -9,6 +9,47 @@ const EMPTY: BusinessData = {
   phone: '', whatsapp: '', instagram: '',
   facebook: '', tiktok: '', google_maps: '',
   website: '', email: '', instapay: '', vodafone_cash: '',
+};
+
+interface FieldDef {
+  key: keyof BusinessData;
+  label: string;
+  placeholder: string;
+}
+
+const BIZ_FIELDS: FieldDef[] = [
+  { key: 'business_name', label: 'اسم النشاط التجاري', placeholder: 'مثال: Coffee House' },
+  { key: 'phone', label: 'رقم الهاتف', placeholder: '+20100000000' },
+  { key: 'whatsapp', label: 'واتساب (رابط)', placeholder: 'https://wa.me/201...' },
+  { key: 'instagram', label: 'إنستجرام (رابط)', placeholder: 'https://instagram.com/...' },
+  { key: 'facebook', label: 'فيسبوك (رابط)', placeholder: 'https://facebook.com/...' },
+  { key: 'tiktok', label: 'تيك توك (رابط)', placeholder: 'https://tiktok.com/@...' },
+  { key: 'google_maps', label: 'خرائط جوجل (رابط)', placeholder: 'https://maps.google.com/...' },
+  { key: 'website', label: 'الموقع الإلكتروني', placeholder: 'https://yoursite.com' },
+  { key: 'email', label: 'البريد الإلكتروني', placeholder: 'hello@example.com' },
+  { key: 'instapay', label: 'انستاباي', placeholder: 'username@instapay' },
+  { key: 'vodafone_cash', label: 'فودافون كاش', placeholder: '01000000000' },
+  { key: 'logo', label: 'رابط الشعار (URL)', placeholder: 'https://cdn.example.com/logo.png' },
+  { key: 'description', label: 'الوصف', placeholder: 'وصف مختصر للنشاط' }
+];
+
+const getVisibleFields = (category: ApiCategory | null): FieldDef[] => {
+  if (!category) return BIZ_FIELDS;
+  const meta = parseCategoryMeta(category.description);
+  if (meta.isLegacy) {
+    const type = (category.name || '').toLowerCase();
+    if (type.includes('tiktok')) return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'tiktok'].includes(f.key));
+    if (type.includes('instagram')) return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'instagram'].includes(f.key));
+    if (type.includes('whatsapp')) return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'phone', 'whatsapp'].includes(f.key));
+    if (type.includes('google map') || type.includes('google review')) {
+      return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'google_maps'].includes(f.key));
+    }
+    if (type.includes('instapay')) return BIZ_FIELDS.filter(f => ['business_name', 'logo', 'instapay'].includes(f.key));
+    return BIZ_FIELDS;
+  }
+  return BIZ_FIELDS.filter(f => 
+    ['business_name', 'logo', 'description'].includes(f.key) || meta.fields.includes(f.key)
+  );
 };
 
 /* ── Toast ─────────────────────────────────────────────────────── */
@@ -356,30 +397,32 @@ export const AdminScanPage: React.FC = () => {
 
             <form onSubmit={save} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-                <Field label="اسم النشاط التجاري"   field="business_name" form={form} onChange={setForm} placeholder="مثال: Coffee House" />
-                <Field label="رقم الهاتف"            field="phone"          form={form} onChange={setForm} placeholder="+20100000000" />
-                <Field label="واتساب (رابط)"         field="whatsapp"       form={form} onChange={setForm} placeholder="https://wa.me/201..." />
-                <Field label="إنستجرام (رابط)"       field="instagram"      form={form} onChange={setForm} placeholder="https://instagram.com/..." />
-                <Field label="فيسبوك (رابط)"         field="facebook"       form={form} onChange={setForm} placeholder="https://facebook.com/..." />
-                <Field label="تيك توك (رابط)"        field="tiktok"         form={form} onChange={setForm} placeholder="https://tiktok.com/@..." />
-                <Field label="خرائط جوجل (رابط)"    field="google_maps"    form={form} onChange={setForm} placeholder="https://maps.google.com/..." />
-                <Field label="الموقع الإلكتروني"     field="website"        form={form} onChange={setForm} placeholder="https://yoursite.com" />
-                <Field label="البريد الإلكتروني"     field="email"          form={form} onChange={setForm} placeholder="hello@example.com" />
-                <Field label="انستاباي"              field="instapay"       form={form} onChange={setForm} placeholder="username@instapay" />
-                <Field label="فودافون كاش"          field="vodafone_cash"  form={form} onChange={setForm} placeholder="01000000000" />
-                <Field label="رابط الشعار (URL)"     field="logo"           form={form} onChange={setForm} placeholder="https://cdn.example.com/logo.png" />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">الوصف</label>
-                <textarea
-                  className="form-input"
-                  value={form.description ?? ''}
-                  onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                  placeholder="وصف مختصر للنشاط"
-                  rows={3}
-                  style={{ resize: 'vertical' }}
-                />
+                {(() => {
+                  const currentCatObj = card?.category_id 
+                    ? categories.find(c => c._id === (typeof card.category_id === 'string' ? card.category_id : (card.category_id as ApiCategory)._id)) 
+                    : null;
+                  const visibleFields = getVisibleFields(currentCatObj || null);
+                  return visibleFields.map(f => {
+                    if (f.key === 'description') {
+                      return (
+                        <div key={f.key} className="form-group" style={{ gridColumn: '1 / -1' }}>
+                          <label className="form-label">{f.label}</label>
+                          <textarea
+                            className="form-input"
+                            value={form.description ?? ''}
+                            onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                            placeholder={f.placeholder}
+                            rows={3}
+                            style={{ resize: 'vertical' }}
+                          />
+                        </div>
+                      );
+                    }
+                    return (
+                      <Field key={f.key} label={f.label} field={f.key} form={form} onChange={setForm} placeholder={f.placeholder} />
+                    );
+                  });
+                })()}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '6px', borderTop: '1px solid var(--bdr-light)' }}>
