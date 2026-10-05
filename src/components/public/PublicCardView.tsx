@@ -158,7 +158,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           flex-direction: column;
           align-items: center;
           padding: 48px 20px;
-          overflow: hidden;
+          overflow-x: hidden;
           z-index: 1;
           background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
         }
