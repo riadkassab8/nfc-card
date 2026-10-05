@@ -255,74 +255,76 @@ export const AdminCategoriesPage: React.FC = () => {
               </div>
             )
             : (
-              <>
-                {/* رأس الجدول */}
-                <div style={{
-                  display: 'grid', gridTemplateColumns: '2fr 3fr 100px 130px 90px',
-                  padding: '10px 20px', backgroundColor: 'var(--bg-subtle)',
-                  borderBottom: '1px solid var(--bdr-light)',
-                }}>
-                  {['الاسم', 'الوصف', 'الحالة', 'التاريخ', 'إجراءات'].map(h => (
-                    <div key={h} style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--txt-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0 6px' }}>{h}</div>
-                  ))}
-                </div>
+              <div style={{ overflowX: 'auto' }}>
+                <div style={{ minWidth: '800px' }}>
+                  {/* رأس الجدول */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: '2fr 3fr 100px 130px 90px',
+                    padding: '10px 20px', backgroundColor: 'var(--bg-subtle)',
+                    borderBottom: '1px solid var(--bdr-light)',
+                  }}>
+                    {['الاسم', 'الوصف', 'الحالة', 'التاريخ', 'إجراءات'].map(h => (
+                      <div key={h} style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--txt-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0 6px' }}>{h}</div>
+                    ))}
+                  </div>
 
-                {cats.map((cat, idx) => (
-                  <div
-                    key={cat._id}
-                    style={{
-                      display: 'grid', gridTemplateColumns: '2fr 3fr 100px 130px 90px',
-                      padding: '14px 20px', alignItems: 'center',
-                      borderBottom: idx < cats.length - 1 ? '1px solid var(--bg-subtle)' : 'none',
-                      transition: 'background 120ms',
-                    }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--clr-primary-50)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = ''}
-                  >
-                    {/* الاسم */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 6px' }}>
-                      {cat.icon
-                        ? <img src={cat.icon} alt="" style={{ width: '32px', height: '32px', borderRadius: 'var(--r-sm)', objectFit: 'cover', border: '1px solid var(--bdr-light)', flexShrink: 0 }} onError={e => { (e.target as HTMLElement).style.display = 'none'; }} />
-                        : <div style={{ width: '32px', height: '32px', borderRadius: 'var(--r-sm)', backgroundColor: 'var(--clr-primary-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <Tags size={15} style={{ color: 'var(--clr-primary-400)' }} />
-                          </div>}
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 'var(--fs-base)', color: 'var(--txt-heading)' }}>{cat.name}</div>
-                        <div style={{ fontSize: '0.68rem', color: 'var(--txt-muted)', fontFamily: 'monospace' }}>{cat._id.slice(-8)}</div>
+                  {cats.map((cat, idx) => (
+                    <div
+                      key={cat._id}
+                      style={{
+                        display: 'grid', gridTemplateColumns: '2fr 3fr 100px 130px 90px',
+                        padding: '14px 20px', alignItems: 'center',
+                        borderBottom: idx < cats.length - 1 ? '1px solid var(--bg-subtle)' : 'none',
+                        transition: 'background 120ms',
+                      }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--clr-primary-50)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = ''}
+                    >
+                      {/* الاسم */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 6px' }}>
+                        {cat.icon
+                          ? <img src={cat.icon} alt="" style={{ width: '32px', height: '32px', borderRadius: 'var(--r-sm)', objectFit: 'cover', border: '1px solid var(--bdr-light)', flexShrink: 0 }} onError={e => { (e.target as HTMLElement).style.display = 'none'; }} />
+                          : <div style={{ width: '32px', height: '32px', borderRadius: 'var(--r-sm)', backgroundColor: 'var(--clr-primary-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <Tags size={15} style={{ color: 'var(--clr-primary-400)' }} />
+                            </div>}
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 'var(--fs-base)', color: 'var(--txt-heading)' }}>{cat.name}</div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--txt-muted)', fontFamily: 'monospace' }}>{cat._id.slice(-8)}</div>
+                        </div>
+                      </div>
+                      {/* الوصف */}
+                      <div style={{ padding: '0 6px', fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {parseCategoryMeta(cat.description).desc || <span style={{ color: 'var(--txt-muted)', fontStyle: 'italic' }}>—</span>}
+                      </div>
+                      {/* الحالة */}
+                      <div style={{ padding: '0 6px' }}>
+                        <span className={`badge ${cat.is_active ? 'badge-success' : 'badge-error'}`}>
+                          {cat.is_active ? <><CheckCircle2 size={11} /> مفعّل</> : <><XCircle size={11} /> معطّل</>}
+                        </span>
+                      </div>
+                      {/* التاريخ */}
+                      <div style={{ padding: '0 6px', fontSize: 'var(--fs-xs)', color: 'var(--txt-secondary)' }}>
+                        {fmtDate(cat.createdAt)}
+                      </div>
+                      {/* إجراءات */}
+                      <div style={{ padding: '0 6px', display: 'flex', gap: '6px' }}>
+                        <button title="تعديل" onClick={() => { setEditing(cat); setModalOpen(true); }} style={{ ...actBtn, color: 'var(--clr-primary-600)', backgroundColor: 'var(--clr-primary-50)' }}>
+                          <Edit2 size={14} />
+                        </button>
+                        <button title="حذف" onClick={() => setDeleting(cat)} style={{ ...actBtn, color: 'var(--clr-error)', backgroundColor: 'var(--clr-error-bg)' }}>
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
-                    {/* الوصف */}
-                    <div style={{ padding: '0 6px', fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {parseCategoryMeta(cat.description).desc || <span style={{ color: 'var(--txt-muted)', fontStyle: 'italic' }}>—</span>}
-                    </div>
-                    {/* الحالة */}
-                    <div style={{ padding: '0 6px' }}>
-                      <span className={`badge ${cat.is_active ? 'badge-success' : 'badge-error'}`}>
-                        {cat.is_active ? <><CheckCircle2 size={11} /> مفعّل</> : <><XCircle size={11} /> معطّل</>}
-                      </span>
-                    </div>
-                    {/* التاريخ */}
-                    <div style={{ padding: '0 6px', fontSize: 'var(--fs-xs)', color: 'var(--txt-secondary)' }}>
-                      {fmtDate(cat.createdAt)}
-                    </div>
-                    {/* إجراءات */}
-                    <div style={{ padding: '0 6px', display: 'flex', gap: '6px' }}>
-                      <button title="تعديل" onClick={() => { setEditing(cat); setModalOpen(true); }} style={{ ...actBtn, color: 'var(--clr-primary-600)', backgroundColor: 'var(--clr-primary-50)' }}>
-                        <Edit2 size={14} />
-                      </button>
-                      <button title="حذف" onClick={() => setDeleting(cat)} style={{ ...actBtn, color: 'var(--clr-error)', backgroundColor: 'var(--clr-error-bg)' }}>
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
 
-                <div style={{ padding: '11px 20px', backgroundColor: 'var(--bg-subtle)', borderTop: '1px solid var(--bdr-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', fontWeight: 600 }}>
-                    الإجمالي: <strong style={{ color: 'var(--txt-heading)' }}>{cats.length}</strong> تصنيف
-                  </span>
+                  <div style={{ padding: '11px 20px', backgroundColor: 'var(--bg-subtle)', borderTop: '1px solid var(--bdr-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', fontWeight: 600 }}>
+                      الإجمالي: <strong style={{ color: 'var(--txt-heading)' }}>{cats.length}</strong> تصنيف
+                    </span>
+                  </div>
                 </div>
-              </>
+              </div>
             )}
       </div>
     </div>

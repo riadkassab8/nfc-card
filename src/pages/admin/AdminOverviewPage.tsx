@@ -147,14 +147,13 @@ export const AdminOverviewPage: React.FC = () => {
   const load = async () => {
     setLoading(true); setError(null);
     try {
-      const [cr, catR] = await Promise.all([
-        cardsApi.getCards({ limit: 100 }),
+      const [all, catR] = await Promise.all([
+        cardsApi.getAllCardsForStats(),
         categoriesApi.getCategories({ limit: 100 }),
       ]);
-      const all = cr.data ?? [];
       setCards(all);
       setCategories(catR.data ?? []);
-      setTotal(cr.total ?? all.length);
+      setTotal(all.length);
       setActive(all.filter(c => c.status === 'active').length);
       setInactive(all.filter(c => c.status === 'inactive').length);
       setExpired(all.filter(c => c.requires_subscription && isSubscriptionExpired(c)).length);
@@ -238,7 +237,7 @@ export const AdminOverviewPage: React.FC = () => {
         <StatCard label="بطاقات نشطة"       value={active}   icon={<CheckCircle2 size={20} />}   accent="#16a34a"                 loading={loading} onClick={() => navigate('/admin/cards?status=active')} />
         <StatCard label="بطاقات معطلة"      value={inactive} icon={<XCircle size={20} />}        accent="var(--clr-error)"        loading={loading} onClick={() => navigate('/admin/cards?status=inactive')} />
         <StatCard label="التصنيفات"          value={categories.length} icon={<Tags size={20} />}  accent="#d97706"                 loading={loading} onClick={() => navigate('/admin/categories')} />
-        <StatCard label="منتهية الاشتراك"   value={expired}  icon={<TrendingUp size={20} />}    accent="#dc2626"                 loading={loading} />
+        <StatCard label="منتهية الاشتراك"   value={expired}  icon={<TrendingUp size={20} />}    accent="#dc2626"                 loading={loading} onClick={() => navigate('/admin/cards?status=expired')} />
         <StatCard label="مسح آخر 30 يوم"    value={analytics?.scans_last_N_days ?? 0} icon={<Activity size={20} />} accent="#7c3aed" loading={analyticsLoading} onClick={() => navigate('/admin/analytics')} />
       </div>
 

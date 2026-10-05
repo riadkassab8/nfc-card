@@ -105,6 +105,36 @@ export const AdminAddCardPage: React.FC = () => {
   /* Auto-generate next card code */
   const [autoCode, setAutoCode] = useState(!editCard);
 
+  /* Fetch full card details to ensure we have business_data (in case list endpoint omitted it) */
+  useEffect(() => {
+    if (editCard) {
+      cardsApi.getCardById(editCard._id).then(fullCard => {
+        setCardCode(fullCard.card_code || '');
+        setNfcUid(fullCard.nfc_uid || '');
+        setCardType(fullCard.card_type || CardType.CARD);
+        setRedirectUrl(fullCard.current_redirect_url || '');
+        setCategoryId(getCategoryId(fullCard.category_id) || '');
+        setRequiresSubscription(fullCard.requires_subscription ?? true);
+        
+        setBizData({
+          business_name: fullCard.business_data?.business_name || '',
+          logo: fullCard.business_data?.logo || '',
+          description: fullCard.business_data?.description || '',
+          phone: fullCard.business_data?.phone || '',
+          email: fullCard.business_data?.email || '',
+          whatsapp: fullCard.business_data?.whatsapp || '',
+          instagram: fullCard.business_data?.instagram || '',
+          facebook: fullCard.business_data?.facebook || '',
+          tiktok: fullCard.business_data?.tiktok || '',
+          google_maps: fullCard.business_data?.google_maps || '',
+          website: fullCard.business_data?.website || '',
+          instapay: fullCard.business_data?.instapay || '',
+          vodafone_cash: fullCard.business_data?.vodafone_cash || '',
+        });
+      }).catch(console.error);
+    }
+  }, [editCard]);
+
   const loadData = useCallback(async () => {
     try {
       const [catRes, countRes] = await Promise.all([
@@ -133,28 +163,21 @@ export const AdminAddCardPage: React.FC = () => {
     } catch (e: any) {
       Swal.fire({ icon: 'error', title: 'خطأ', text: e?.message || 'فشل تحميل البيانات', confirmButtonColor: '#3b82f6' });
     }
-  }, [autoCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
   /* Update redirect URL dynamically based on selected category and input fields */
+  /* Set initial auto-generated redirect URL */
   useEffect(() => {
     if (!cardCode) return;
-    const catName = categories.find(c => c._id === categoryId)?.name || '';
-    if (catName === 'Social Page' || !catName) {
-      setRedirectUrl(`${window.location.origin}/social/${cardCode}`);
-    } else if (catName === 'TikTok' && bizData.tiktok?.trim()) {
-      setRedirectUrl(bizData.tiktok.trim());
-    } else if (catName === 'Instagram' && bizData.instagram?.trim()) {
-      setRedirectUrl(bizData.instagram.trim());
-    } else if (catName === 'WhatsApp' && bizData.whatsapp?.trim()) {
-      setRedirectUrl(bizData.whatsapp.trim());
-    } else if ((catName === 'Google Maps' || catName === 'Google Review') && bizData.google_maps?.trim()) {
-      setRedirectUrl(bizData.google_maps.trim());
-    } else if (catName === 'InstaPay' && bizData.website?.trim()) {
-      setRedirectUrl(bizData.website.trim());
+    const defaultUrl = `${window.location.origin}/social/${cardCode}`;
+    // Only set it if creating a new card, or if it's somehow empty during edit
+    if (!editCard || redirectUrl === '') {
+      setRedirectUrl(defaultUrl);
     }
-  }, [categoryId, categories, cardCode, bizData.tiktok, bizData.instagram, bizData.whatsapp, bizData.google_maps, bizData.website]);
+  }, [cardCode, editCard]);
 
   const updateBiz = (key: string, val: string) => {
     setBizData(prev => ({ ...prev, [key]: val }));
@@ -199,21 +222,22 @@ export const AdminAddCardPage: React.FC = () => {
     // Replace localhost or 127.0.0.1 with a valid domain format so backend validator passes seamlessly
     formattedUrl = formattedUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smartcard-app.com');
 
-    const dto: ApiCreateCardDto = {
-      card_code: cardCode.trim().toUpperCase(),
+    const baseDto = {
       card_type: cardType,
       current_redirect_url: formattedUrl,
       category_id: categoryId,
       requires_subscription: requiresSubscription,
     };
-    if (nfcUid.trim()) dto.nfc_uid = nfcUid.trim().toUpperCase();
-    if (hasBiz) dto.business_data = business;
 
     setLoading(true);
     try {
       if (editCard) {
         // Update mode
-        const updated = await cardsApi.updateCard(editCard._id, dto);
+        const updateDto: import('../../types').ApiUpdateCardDto = { ...baseDto };
+        updateDto.nfc_uid = nfcUid.trim() ? nfcUid.trim().toUpperCase() : '';
+        updateDto.business_data = hasBiz ? business : null;
+
+        const updated = await cardsApi.updateCard(editCard._id, updateDto);
         await Swal.fire({
           icon: 'success',
           title: 'تم تعديل البطاقة بنجاح!',
@@ -224,7 +248,14 @@ export const AdminAddCardPage: React.FC = () => {
         navigate('/admin/cards');
       } else {
         // Create mode
-        const created = await cardsApi.createCard(dto);
+        const createDto: ApiCreateCardDto = {
+          ...baseDto,
+          card_code: cardCode.trim().toUpperCase(),
+        };
+        if (nfcUid.trim()) createDto.nfc_uid = nfcUid.trim().toUpperCase();
+        if (hasBiz) createDto.business_data = business;
+
+        const created = await cardsApi.createCard(createDto);
         await Swal.fire({
           icon: 'success',
           title: 'تم الإنشاء بنجاح! 🎉',
@@ -275,6 +306,20 @@ export const AdminAddCardPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const currentCat = (categories.find(c => c._id === categoryId)?.name || '').toLowerCase();
+  
+  const isFormValid = !!(
+    cardCode.trim() &&
+    /^CARD-\d{4,}$/.test(cardCode.trim()) &&
+    redirectUrl.trim() &&
+    categoryId &&
+    (currentCat.includes('whatsapp') ? !!bizData.whatsapp?.trim() : true) &&
+    (currentCat.includes('tiktok') ? !!bizData.tiktok?.trim() : true) &&
+    (currentCat.includes('instagram') ? !!bizData.instagram?.trim() : true) &&
+    (currentCat.includes('google map') || currentCat.includes('google review') ? !!bizData.google_maps?.trim() : true) &&
+    (currentCat.includes('instapay') ? !!bizData.instapay?.trim() : true)
+  );
 
   return (
     <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '20px', fontFamily: 'var(--font)', maxWidth: '900px' }}>
@@ -522,7 +567,7 @@ export const AdminAddCardPage: React.FC = () => {
           <button
             type="submit"
             className="btn-primary"
-            disabled={loading}
+            disabled={loading || !isFormValid}
             style={{ minWidth: '160px', justifyContent: 'center' }}
           >
             {loading

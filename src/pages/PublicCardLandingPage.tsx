@@ -9,7 +9,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cardsApi } from '../services';
-import { ApiCard } from '../types';
+import { ApiCard, BusinessData } from '../types';
 import { PublicCardView } from '../components/public/PublicCardView';
 import { AlertCircle, RefreshCw, ArrowRight } from 'lucide-react';
 
@@ -30,37 +30,69 @@ export const PublicCardLandingPage: React.FC = () => {
 
     setState('loading');
     try {
-      const res = await cardsApi.getPublicCards({ search: code.trim(), limit: 10 });
-      // Exact match only — never fall back to first result
-      const found = (res.data ?? []).find(
-        (c) => c.card_code.toLowerCase() === code.toLowerCase() ||
-               (c.nfc_uid && c.nfc_uid.toLowerCase() === code.toLowerCase()) ||
-               c._id === code,
-      ) ?? null;
+      const res = await cardsApi.getSocialPage(code.trim());
 
-      if (!found) { setState('not_found'); return; }
+      const biz: BusinessData | null = res.business_data;
+      if (!biz) {
+        const cardProxy: ApiCard = {
+          _id:                    res.card_code,
+          card_code:              res.card_code,
+          card_type:              res.card_type,
+          requires_subscription:  res.requires_subscription ?? true,
+          business_data:          null,
+          current_redirect_url:   '',
+          status:                 'active',
+          subscription_start_date: null,
+          subscription_end_date:   null,
+          redirect_rules:          [],
+          createdAt:               '',
+          updatedAt:               '',
+        };
+        setCard(cardProxy);
+        setState('ok');
+        return;
+      }
 
-      const biz = found.business_data;
       const links: string[] = [];
-      if (biz?.whatsapp?.trim()) links.push(biz.whatsapp.trim());
-      if (biz?.instagram?.trim()) links.push(biz.instagram.trim());
-      if (biz?.facebook?.trim()) links.push(biz.facebook.trim());
-      if (biz?.tiktok?.trim()) links.push(biz.tiktok.trim());
-      if (biz?.google_maps?.trim()) links.push(biz.google_maps.trim());
-      if (biz?.phone?.trim()) links.push(`tel:${biz.phone.trim()}`);
-      if (biz?.email?.trim()) links.push(`mailto:${biz.email.trim()}`);
-      if (biz?.website?.trim()) links.push(biz.website.trim());
-      if (biz?.instapay?.trim()) links.push(biz.instapay.trim());
-      if (biz?.vodafone_cash?.trim()) links.push(`tel:${biz.vodafone_cash.trim()}`);
+      if (biz.whatsapp?.trim())       links.push(biz.whatsapp.trim());
+      if (biz.instagram?.trim())      links.push(biz.instagram.trim());
+      if (biz.facebook?.trim())       links.push(biz.facebook.trim());
+      if (biz.tiktok?.trim())         links.push(biz.tiktok.trim());
+      if (biz.google_maps?.trim())    links.push(biz.google_maps.trim());
+      if (biz.phone?.trim())          links.push(`tel:${biz.phone.trim()}`);
+      if (biz.email?.trim())          links.push(`mailto:${biz.email.trim()}`);
+      if (biz.website?.trim())        links.push(biz.website.trim());
+      if (biz.instapay?.trim())       links.push(biz.instapay.trim());
+      if (biz.vodafone_cash?.trim())  links.push(`tel:${biz.vodafone_cash.trim()}`);
 
       if (links.length === 1) {
         window.location.replace(links[0]);
         return;
       }
 
-      setCard(found); setState('ok');
-    } catch {
-      setState('error');
+      const cardProxy: ApiCard = {
+        _id:                    res.card_code,
+        card_code:              res.card_code,
+        card_type:              res.card_type,
+        requires_subscription:  res.requires_subscription ?? true,
+        business_data:          biz,
+        current_redirect_url:   '',
+        status:                 'active',
+        subscription_start_date: null,
+        subscription_end_date:   null,
+        redirect_rules:          [],
+        createdAt:               '',
+        updatedAt:               '',
+      };
+
+      setCard(cardProxy);
+      setState('ok');
+    } catch (err: any) {
+      if (err?.statusCode === 404) {
+        setState('not_found');
+      } else {
+        setState('error');
+      }
     }
   };
 

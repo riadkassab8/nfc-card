@@ -38,6 +38,24 @@ export const cardsApi = {
       },
     }),
 
+  // Helper to bypass limit caps by paginating until all cards are fetched
+  getAllCardsForStats: async (params?: CardQueryParams): Promise<ApiCard[]> => {
+    const firstPage = await cardsApi.getCards({ ...params, limit: 100 });
+    let all = [...(firstPage.data ?? [])];
+    const totalPages = firstPage.totalPages ?? 1;
+    if (totalPages > 1) {
+      const promises = [];
+      for (let i = 2; i <= totalPages; i++) {
+        promises.push(cardsApi.getCards({ ...params, page: i, limit: 100 }));
+      }
+      const results = await Promise.all(promises);
+      results.forEach(res => {
+        all = all.concat(res.data ?? []);
+      });
+    }
+    return all;
+  },
+
   // ── GET /api/cards (Public) ──────────────────────────────────────────────
   getPublicCards: (params?: CardQueryParams): Promise<ApiCardsPaginatedResponse> =>
     apiClient<ApiCardsPaginatedResponse>('/cards', {

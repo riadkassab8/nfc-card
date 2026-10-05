@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { cardsApi, categoriesApi } from '../../services';
 import {
-  ApiCard, ApiCategory, fmtDate, isSubscriptionExpired,
+  ApiCard, ApiCategory, isSubscriptionExpired,
   getPopulatedCategory, CARD_TYPES,
 } from '../../types';
 import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
@@ -10,7 +10,7 @@ import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCar
 import {
   Plus, Search, RefreshCw, CreditCard, CheckCircle2, XCircle,
   Power, Trash2, Eye, Download, FileDown, Layers,
-  AlertTriangle, ChevronLeft, ChevronRight,
+  AlertTriangle, ChevronLeft, ChevronRight, TrendingUp
 } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'info';
@@ -66,9 +66,11 @@ export const AdminInventoryPage: React.FC = () => {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState<string | null>(null);
 
-  const [total, setTotal]   = useState(0);
-  const [active, setActive] = useState(0);
-  const [inactive, setInact] = useState(0);
+  const [currentTotal, setCurrentTotal] = useState(0);
+  const [globalTotal, setGlobalTotal]   = useState(0);
+  const [globalActive, setGlobalActive] = useState(0);
+  const [globalInactive, setGlobalInactive] = useState(0);
+  const [globalExpired, setGlobalExpired] = useState(0);
 
   const getDurationText = (startStr: string, endStr: string) => {
     const s = new Date(startStr);
@@ -80,6 +82,22 @@ export const AdminInventoryPage: React.FC = () => {
     if (m === 24) return 'سنتين';
     if (m % 12 === 0 && m <= 120) return `${m / 12} سنوات`;
     return `${m} شهر`;
+  };
+
+  const getTimeLeftText = (endStr: string | null) => {
+    if (!endStr) return '—';
+    const e = new Date(endStr).getTime();
+    const now = Date.now();
+    const diff = e - now;
+    if (diff <= 0) return 'منتهي';
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    if (days < 30) return `${days} يوم`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months} شهر`;
+    const years = Math.floor(months / 12);
+    const remMonths = months % 12;
+    if (remMonths > 0) return `${years} سنة و ${remMonths} شهر`;
+    return `${years} سنة`;
   };
 
   const [searchParams] = useSearchParams();
@@ -139,19 +157,33 @@ export const AdminInventoryPage: React.FC = () => {
   const fetchCards = async (pg: number, currentLimit: number) => {
     setLoading(true); setError(null);
     try {
-      const cr = await cardsApi.getCards({
-        page: pg, limit: currentLimit,
-        search: appliedSearch || undefined,
-        status: statusF !== 'all' ? (statusF as any) : undefined,
-        card_type: typeF || undefined,
-        category_id: catF || undefined,
-      });
-      const all = cr.data ?? [];
-      setCards(all);
-      setTotalPages(cr.totalPages ?? 1);
-      setTotal(cr.total ?? all.length);
-      setActive(all.filter(c => c.status === 'active').length);
-      setInact(all.filter(c => c.status === 'inactive').length);
+      const isExpiredFilter = statusF === 'expired';
+      if (isExpiredFilter) {
+        const allCards = await cardsApi.getAllCardsForStats({
+          search: appliedSearch || undefined,
+          card_type: typeF || undefined,
+          category_id: catF || undefined,
+        });
+        const expiredCards = allCards.filter(c => (c.requires_subscription ?? true) && isSubscriptionExpired(c));
+        const startIndex = (pg - 1) * currentLimit;
+        const pagedCards = expiredCards.slice(startIndex, startIndex + currentLimit);
+        setCards(pagedCards);
+        setTotalPages(Math.ceil(expiredCards.length / currentLimit) || 1);
+        setCurrentTotal(expiredCards.length);
+      } else {
+        const cr = await cardsApi.getCards({
+          page: pg,
+          limit: currentLimit,
+          search: appliedSearch || undefined,
+          status: statusF !== 'all' ? (statusF as any) : undefined,
+          card_type: typeF || undefined,
+          category_id: catF || undefined,
+        });
+        const rawCards = cr.data ?? [];
+        setCards(rawCards);
+        setTotalPages(cr.totalPages ?? 1);
+        setCurrentTotal(cr.total ?? rawCards.length);
+      }
     } catch (e: any) {
       setError(e?.message || 'فشل التحميل');
     } finally {
@@ -159,8 +191,19 @@ export const AdminInventoryPage: React.FC = () => {
     }
   };
 
+  const loadGlobalStats = async () => {
+    try {
+      const all = await cardsApi.getAllCardsForStats();
+      setGlobalTotal(all.length);
+      setGlobalActive(all.filter(c => c.status === 'active').length);
+      setGlobalInactive(all.filter(c => c.status === 'inactive').length);
+      setGlobalExpired(all.filter(c => (c.requires_subscription ?? true) && isSubscriptionExpired(c)).length);
+    } catch {}
+  };
+
   useEffect(() => {
     categoriesApi.getCategories({ limit: 100 }).then(res => setCategories(res.data ?? [])).catch(() => {});
+    loadGlobalStats();
   }, []);
 
   useEffect(() => {
@@ -173,6 +216,7 @@ export const AdminInventoryPage: React.FC = () => {
       await cardsApi.toggleCard(card._id);
       showToast(card.status === 'active' ? `تم تعطيل ${card.card_code}` : `تم تفعيل ${card.card_code}`);
       fetchCards(page, limit);
+      loadGlobalStats();
     } catch (e: any) { showToast(e?.message || 'فشل', 'error'); }
   };
 
@@ -185,6 +229,7 @@ export const AdminInventoryPage: React.FC = () => {
       setDeleteTarget(null);
       setDrawerCard(null);
       fetchCards(page, limit);
+      loadGlobalStats();
     } catch (e: any) { showToast(e?.message || 'فشل الحذف', 'error'); }
     finally { setDeleteLoading(false); }
   };
@@ -204,7 +249,7 @@ export const AdminInventoryPage: React.FC = () => {
     try {
       showToast('جاري تصدير Excel...', 'info');
       const blob = await cardsApi.exportCardsExcel({
-        status:    statusF !== 'all' ? (statusF as any) : undefined,
+        status: (statusF !== 'all' && statusF !== 'expired') ? (statusF as any) : undefined,
         card_type: typeF || undefined,
       });
       const url = URL.createObjectURL(blob);
@@ -227,12 +272,14 @@ export const AdminInventoryPage: React.FC = () => {
     await Promise.allSettled(toChange.map(c => cardsApi.toggleCard(c._id)));
     showToast(`تم تحديث ${toChange.length} بطاقة`);
     setSelected(new Set()); fetchCards(page, limit);
+    loadGlobalStats();
   };
 
   const bulkDelete = async () => {
     await Promise.allSettled([...selected].map(id => cardsApi.deleteCard(id)));
     showToast(`تم حذف ${selected.size} بطاقة`);
     setSelected(new Set()); fetchCards(page, limit);
+    loadGlobalStats();
   };
 
   /* ── select styles ── */
@@ -275,7 +322,7 @@ export const AdminInventoryPage: React.FC = () => {
         <div style={{ zIndex: 1 }}>
           <span className="page-hero-label">المخزون</span>
           <h2>إدارة البطاقات</h2>
-          <p>إجمالي: <strong style={{ color: '#fff' }}>{total}</strong> بطاقة</p>
+          <p>إجمالي: <strong style={{ color: '#fff' }}>{globalTotal}</strong> بطاقة</p>
         </div>
         <div style={{ zIndex: 1, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button className="page-hero-btn" onClick={downloadExcel} title="تصدير Excel بحسب الفلاتر الحالية">
@@ -291,20 +338,35 @@ export const AdminInventoryPage: React.FC = () => {
       </div>
 
       {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
         {[
-          { label: 'الإجمالي', val: total,    icon: <CreditCard size={18} />,   accent: 'var(--clr-primary-500)' },
-          { label: 'نشطة',     val: active,   icon: <CheckCircle2 size={18} />, accent: '#16a34a' },
-          { label: 'معطلة',    val: inactive, icon: <XCircle size={18} />,      accent: 'var(--clr-error)' },
-        ].map(s => (
-          <div key={s.label} className="stat-card">
-            <div className="stat-card-icon" style={{ backgroundColor: s.accent + '14', color: s.accent }}>{s.icon}</div>
-            <div>
-              <div className="stat-card-label">{s.label}</div>
-              <div className="stat-card-value" style={{ fontSize: '1.4rem' }}>{loading ? '—' : s.val}</div>
+          { key: 'all',      label: 'الإجمالي', val: globalTotal,    icon: <CreditCard size={18} />,   accent: 'var(--clr-primary-500)' },
+          { key: 'active',   label: 'نشطة',     val: globalActive,   icon: <CheckCircle2 size={18} />, accent: '#16a34a' },
+          { key: 'inactive', label: 'معطلة',    val: globalInactive, icon: <XCircle size={18} />,      accent: 'var(--clr-error)' },
+          { key: 'expired',  label: 'منتهية',    val: globalExpired,  icon: <TrendingUp size={18} />,   accent: '#dc2626' },
+        ].map(s => {
+          const isSelected = statusF === s.key;
+          return (
+            <div
+              key={s.label}
+              className="stat-card"
+              onClick={() => { setStatusF(s.key as any); setPage(1); }}
+              style={{
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                border: isSelected ? `2px solid ${s.accent}` : '1px solid var(--bdr-light)',
+                backgroundColor: isSelected ? `${s.accent}0d` : 'var(--bg-white)',
+                boxShadow: isSelected ? `0 4px 12px ${s.accent}20` : undefined,
+              }}
+            >
+              <div className="stat-card-icon" style={{ backgroundColor: s.accent + '14', color: s.accent }}>{s.icon}</div>
+              <div>
+                <div className="stat-card-label">{s.label}</div>
+                <div className="stat-card-value" style={{ fontSize: '1.4rem' }}>{loading ? '—' : s.val}</div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Filters */}
@@ -389,7 +451,7 @@ export const AdminInventoryPage: React.FC = () => {
       {/* Table */}
       <div className="data-table-wrapper">
         <div style={{ overflowX: 'auto' }}>
-          <table className="data-table">
+          <table className="data-table" style={{ minWidth: '1050px' }}>
             <thead>
               <tr>
                 <th style={{ width: '40px', textAlign: 'center' }}>
@@ -400,7 +462,9 @@ export const AdminInventoryPage: React.FC = () => {
                 <th onClick={() => requestSort('business')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>النشاط {sortConfig?.key === 'business' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
                 <th onClick={() => requestSort('category')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>التصنيف {sortConfig?.key === 'category' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
                 <th onClick={() => requestSort('status')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>الحالة {sortConfig?.key === 'status' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
-                <th onClick={() => requestSort('sub')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>الاشتراك {sortConfig?.key === 'sub' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
+                <th style={{ userSelect: 'none', whiteSpace: 'nowrap' }}>نوع الاشتراك</th>
+                <th onClick={() => requestSort('sub')} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>مدة الاشتراك {sortConfig?.key === 'sub' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
+                <th style={{ userSelect: 'none', whiteSpace: 'nowrap' }}>الوقت المتبقي</th>
                 <th style={{ textAlign: 'center' }}>إجراءات</th>
               </tr>
             </thead>
@@ -408,7 +472,7 @@ export const AdminInventoryPage: React.FC = () => {
               {loading
                 ? Array.from({ length: 8 }).map((_, i) => (
                     <tr key={i}>
-                      {Array.from({ length: 8 }).map((__, j) => (
+                      {Array.from({ length: 10 }).map((__, j) => (
                         <td key={j}>
                           <div className="shimmer" style={{ height: '13px', width: j === 0 ? '20px' : '70%', borderRadius: '4px' }} />
                         </td>
@@ -418,7 +482,7 @@ export const AdminInventoryPage: React.FC = () => {
                 : sortedCards.length === 0
                   ? (
                     <tr>
-                      <td colSpan={8} style={{ textAlign: 'center', padding: '56px 20px', color: 'var(--txt-muted)' }}>
+                      <td colSpan={10} style={{ textAlign: 'center', padding: '56px 20px', color: 'var(--txt-muted)' }}>
                         <CreditCard size={38} style={{ marginBottom: '10px', color: 'var(--bdr-medium)' }} />
                         <p style={{ margin: 0, fontWeight: 600 }}>لا توجد بطاقات</p>
                       </td>
@@ -455,30 +519,23 @@ export const AdminInventoryPage: React.FC = () => {
                             </span>
                           </td>
                           <td style={{ fontSize: 'var(--fs-xs)', whiteSpace: 'nowrap' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                              {!card.requires_subscription
-                                ? (
-                                  <span style={{ color: 'var(--clr-success)', fontWeight: 700, fontSize: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 6px', borderRadius: '4px' }}>
-                                    دائم ♾
-                                  </span>
-                                )
-                                : (
-                                  <>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <span style={{ color: 'var(--clr-primary-700)', fontWeight: 700, fontSize: '10px', backgroundColor: 'var(--clr-primary-50)', border: '1px solid var(--clr-primary-200)', padding: '2px 6px', borderRadius: '4px' }}>
-                                        {card.subscription_start_date && card.subscription_end_date
-                                          ? getDurationText(card.subscription_start_date, card.subscription_end_date)
-                                          : '—'}
-                                      </span>
-                                      {exp && <span title="منتهية" style={{ color: 'var(--clr-error)', fontWeight: 700, fontSize: '10px', backgroundColor: 'var(--clr-error-bg)', padding: '2px 6px', borderRadius: '4px' }}>منتهية</span>}
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', color: exp ? 'var(--clr-error)' : 'var(--txt-body)', fontWeight: 600 }}>
-                                      <span><span style={{ color: 'var(--txt-muted)', fontWeight: 400, marginInlineEnd: '4px' }}>إلى:</span>{fmtDate(card.subscription_end_date)}</span>
-                                      <span style={{ fontSize: '11px', color: 'var(--txt-secondary)', fontWeight: 400 }}><span style={{ color: 'var(--txt-muted)', marginInlineEnd: '4px' }}>من:</span>{fmtDate(card.subscription_start_date)}</span>
-                                    </div>
-                                  </>
-                                )}
-                            </div>
+                            {!card.requires_subscription
+                              ? <span style={{ color: 'var(--clr-success)', fontWeight: 700, fontSize: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '3px 8px', borderRadius: '4px' }}>دائم ♾</span>
+                              : <span style={{ color: 'var(--clr-primary-700)', fontWeight: 700, fontSize: '10px', backgroundColor: 'var(--clr-primary-50)', border: '1px solid var(--clr-primary-200)', padding: '3px 8px', borderRadius: '4px' }}>باشتراك</span>}
+                          </td>
+                          <td style={{ fontSize: 'var(--fs-xs)', whiteSpace: 'nowrap' }}>
+                            {card.requires_subscription && card.subscription_start_date && card.subscription_end_date
+                              ? <span style={{ fontWeight: 700, fontSize: '12px', color: 'var(--clr-primary-700)' }}>
+                                  {getDurationText(card.subscription_start_date, card.subscription_end_date)}
+                                </span>
+                              : <span style={{ color: 'var(--txt-muted)' }}>—</span>}
+                          </td>
+                          <td style={{ fontSize: 'var(--fs-xs)', whiteSpace: 'nowrap' }}>
+                            {card.requires_subscription
+                               ? (exp 
+                                   ? <span style={{ color: 'var(--clr-error)', fontWeight: 700, fontSize: '11px', backgroundColor: 'var(--clr-error-bg)', border: '1px solid var(--clr-error-bdr)', padding: '2px 8px', borderRadius: '4px' }}>منتهي</span>
+                                   : <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--txt-body)' }}>{getTimeLeftText(card.subscription_end_date)}</span>)
+                               : <span style={{ color: 'var(--txt-muted)' }}>—</span>}
                           </td>
                           <td>
                             <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
@@ -505,7 +562,7 @@ export const AdminInventoryPage: React.FC = () => {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', fontWeight: 600 }}>
-                إجمالي <strong style={{ color: 'var(--txt-body)' }}>{total}</strong> بطاقات
+                إجمالي <strong style={{ color: 'var(--txt-body)' }}>{currentTotal}</strong> بطاقات
               </span>
               <div style={{ height: '20px', width: '1px', backgroundColor: 'var(--bdr-light)' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
