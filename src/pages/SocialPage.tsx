@@ -84,8 +84,9 @@ export const SocialPage: React.FC = () => {
       _id:                    social.card_code,
       card_code:              social.card_code,
       card_type:              social.card_type,
-      requires_subscription:  social.requires_subscription,
+      requires_subscription:  social.requires_subscription ?? true,
       business_data:          social.business_data,
+      visit_count:            social.visit_count,
       // fill required ApiCard fields with safe defaults
       current_redirect_url:   '',
       status:                 'active' as const,

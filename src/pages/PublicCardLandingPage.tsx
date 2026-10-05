@@ -76,6 +76,7 @@ export const PublicCardLandingPage: React.FC = () => {
         card_type:              res.card_type,
         requires_subscription:  res.requires_subscription ?? true,
         business_data:          biz,
+        visit_count:            res.visit_count,
         current_redirect_url:   '',
         status:                 'active',
         subscription_start_date: null,

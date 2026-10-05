@@ -16,6 +16,7 @@ import {
   ApiCardAnalytics,
   ApiGlobalAnalytics,
   ApiSocialPageResponse,
+  ApiCloneCardDto,
   ExportCardsParams,
   CardQueryParams,
 } from '../../types';
@@ -130,9 +131,17 @@ export const cardsApi = {
       params: days !== undefined ? { days } : undefined,
     }),
 
+  // ── POST /api/cards/:id/clone ───────────────────────────────────────────
+  /** Clone an existing card with a new card code */
+  cloneCard: (id: string, dto: ApiCloneCardDto): Promise<ApiCard> =>
+    apiClient<ApiCard>(`/cards/${id}/clone`, { method: 'POST', body: dto }),
+
   // ── GET /social/:card_code  (🔓 Public — no JWT) ─────────────────────────
   getSocialPage: (cardCode: string): Promise<ApiSocialPageResponse> =>
     apiClient<ApiSocialPageResponse>(`/social/${cardCode}`, { requiresAuth: false }),
+
+  /** Direct vCard download URL — Public */
+  getVcardUrl: (cardCode: string): string => `${getApiBaseUrl()}/social/${cardCode}/vcard`,
 
   // ── GET /api/export/cards ────────────────────────────────────────────────
   /** Export all cards as an Excel file (.xlsx). Returns a Blob. */

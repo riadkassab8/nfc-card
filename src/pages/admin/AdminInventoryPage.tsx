@@ -9,7 +9,7 @@ import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCardsModal';
 import {
   Plus, Search, RefreshCw, CreditCard, CheckCircle2, XCircle,
-  Power, Trash2, Eye, Download, FileDown, Layers,
+  Power, Trash2, Eye, Download, FileDown, Layers, Copy,
   AlertTriangle, ChevronLeft, ChevronRight, TrendingUp
 } from 'lucide-react';
 
@@ -57,6 +57,107 @@ const Confirm: React.FC<{ msg: string; onConfirm: () => void; onCancel: () => vo
     </div>
   </div>
 );
+
+/* ── Clone Card Modal ───────────────────────────────────────────── */
+const CloneCardModal: React.FC<{
+  card: ApiCard;
+  onClose: () => void;
+  onSuccess: () => void;
+  onToast: (m: string, t?: ToastType) => void;
+}> = ({ card, onClose, onSuccess, onToast }) => {
+  const [newCode, setNewCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleClone = async () => {
+    const trimmed = newCode.trim().toUpperCase();
+    if (!trimmed) {
+      setError('يرجى إدخال كود الكارت الجديد');
+      return;
+    }
+    if (!/^CARD-\d{4,}$/.test(trimmed)) {
+      setError('كود الكارت يجب أن يبدأ بـ CARD- متبوعاً بـ 4 أرقام على الأقل (مثال: CARD-0099)');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      await cardsApi.cloneCard(card._id, { new_card_code: trimmed });
+      onToast('تم نسخ الكارت بنجاح ✓', 'success');
+      onSuccess();
+      onClose();
+    } catch (e: any) {
+      setError(e?.message || 'فشل نسخ الكارت');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" style={{ zIndex: 1100 }}>
+      <div style={{
+        background: 'var(--bg-white)', borderRadius: 'var(--r-2xl)',
+        padding: '28px', maxWidth: '440px', width: '100%',
+        boxShadow: 'var(--shadow-xl)', fontFamily: 'var(--font)',
+        animation: 'modalIn 220ms var(--ease-out) both',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: 'var(--r-md)', backgroundColor: 'var(--clr-primary-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--clr-primary-600)' }}>
+            <Copy size={20} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 'var(--fs-lg)', fontWeight: 800, color: 'var(--txt-heading)' }}>
+              نسخ الكارت ({card.card_code})
+            </h3>
+            <p style={{ margin: '2px 0 0', fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)' }}>
+              سيتم إنشاء كارت متطابق ببيانات جديدة واشتراك مستقل
+            </p>
+          </div>
+        </div>
+
+        {error && (
+          <div style={{
+            background: 'var(--clr-error-bg)', border: '1px solid var(--clr-error-bdr)',
+            borderRadius: 'var(--r-md)', padding: '10px 14px', marginBottom: '16px',
+            color: 'var(--clr-error)', fontSize: 'var(--fs-xs)', fontWeight: 600,
+          }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--txt-secondary)', marginBottom: '6px' }}>
+            كود الكارت الجديد *
+          </label>
+          <input
+            className="form-input"
+            value={newCode}
+            onChange={e => setNewCode(e.target.value)}
+            placeholder="مثال: CARD-0099"
+            style={{ width: '100%', fontFamily: 'monospace', fontSize: 'var(--fs-sm)' }}
+            disabled={loading}
+            autoFocus
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} className="btn-outline" disabled={loading}>
+            إلغاء
+          </button>
+          <button
+            onClick={handleClone}
+            disabled={loading}
+            className="btn-primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}
+          >
+            {loading ? <><RefreshCw size={14} className="spin" /> جاري النسخ...</> : <><Copy size={14} /> نسخ الكارت</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 /* ── Main ─────────────────────────────────────────────────────── */
 export const AdminInventoryPage: React.FC = () => {
@@ -118,6 +219,7 @@ export const AdminInventoryPage: React.FC = () => {
   const [batchOpen, setBatchOpen]   = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ApiCard | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [cloneTarget, setCloneTarget]   = useState<ApiCard | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
 
 
@@ -298,6 +400,15 @@ export const AdminInventoryPage: React.FC = () => {
         <Confirm
           msg={`هل تريد حذف البطاقة "${deleteTarget.card_code}"؟`}
           onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} busy={deleteLoading}
+        />
+      )}
+
+      {cloneTarget && (
+        <CloneCardModal
+          card={cloneTarget}
+          onClose={() => setCloneTarget(null)}
+          onSuccess={() => { fetchCards(page, limit); loadGlobalStats(); }}
+          onToast={showToast}
         />
       )}
 
@@ -540,7 +651,7 @@ export const AdminInventoryPage: React.FC = () => {
                           <td>
                             <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                               <IBtn title="تفاصيل" color="var(--clr-primary-600)" bg="var(--clr-primary-50)"   onClick={() => setDrawerCard(card)}><Eye size={14} /></IBtn>
-
+                              <IBtn title="نسخ الكارت" color="#7c3aed" bg="#f5f3ff" onClick={() => setCloneTarget(card)}><Copy size={14} /></IBtn>
                               <IBtn title="QR"     color="var(--clr-primary-500)" bg="var(--clr-primary-50)"  onClick={() => downloadQR(card)}><Download size={14} /></IBtn>
                               <IBtn title={card.status === 'active' ? 'تعطيل' : 'تفعيل'} color={card.status === 'active' ? 'var(--clr-warning)' : 'var(--clr-success)'} bg={card.status === 'active' ? 'var(--clr-warning-bg)' : 'var(--clr-success-bg)'} onClick={() => handleToggle(card)}><Power size={14} /></IBtn>
                               <IBtn title="حذف"    color="var(--clr-error)"        bg="var(--clr-error-bg)"   onClick={() => setDeleteTarget(card)}><Trash2 size={14} /></IBtn>

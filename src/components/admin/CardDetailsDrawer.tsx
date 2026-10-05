@@ -84,15 +84,6 @@ const to12h = (hour24: number | null): { hour: number | null; period: AmPm } => 
   return { hour: hour24 - 12, period: 'pm' };
 };
 
-/** تحويل 12h → 24h (للإرسال للـ API) */
-const to24h = (hour12: number | null, period: AmPm): number | null => {
-  if (hour12 === null) return null;
-  if (period === 'am') {
-    return hour12 === 12 ? 0 : hour12;
-  } else {
-    return hour12 === 12 ? 12 : hour12 + 12;
-  }
-};
 
 type DraftRule = RedirectRule & {
   _key: string;
@@ -105,8 +96,29 @@ type DraftRule = RedirectRule & {
 
 /** تحويل RedirectRule → DraftRule */
 const toDraft = (r: RedirectRule): DraftRule => {
-  const { hour: hf, period: pf } = to12h(r.hour_from ?? null);
-  const { hour: ht, period: pt } = to12h(r.hour_to ?? null);
+  // If period_from exists on rule, use it directly (12h format); otherwise fallback to to12h conversion
+  let hf: number | null = null;
+  let pf: AmPm = 'am';
+  if (r.period_from != null && r.hour_from != null) {
+    hf = r.hour_from;
+    pf = r.period_from;
+  } else if (r.hour_from != null) {
+    const res = to12h(r.hour_from);
+    hf = res.hour;
+    pf = res.period;
+  }
+
+  let ht: number | null = null;
+  let pt: AmPm = 'am';
+  if (r.period_to != null && r.hour_to != null) {
+    ht = r.hour_to;
+    pt = r.period_to;
+  } else if (r.hour_to != null) {
+    const res = to12h(r.hour_to);
+    ht = res.hour;
+    pt = res.period;
+  }
+
   return {
     ...r,
     _key: Math.random().toString(36).slice(2),
@@ -125,7 +137,9 @@ const emptyRule = (): DraftRule => ({
   is_active: true,
   label: '',
   hour_from: null,
+  period_from: null,
   hour_to: null,
+  period_to: null,
   _hour_from_12: null,
   _period_from: 'am',
   _hour_to_12: null,
@@ -149,16 +163,18 @@ const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToa
     setRules(prev => prev.map(r => {
       if (r._key !== key) return r;
       const next = { ...r, [field]: value };
-      /* لما يتغير الـ 12h hour أو period — نحدّث الـ 24h اللي بيروح للـ API */
+      /* تزامن الساعات 12h مع الـ fields الأساسية */
       if (field === '_hour_from_12' || field === '_period_from') {
         const h12 = field === '_hour_from_12' ? value : next._hour_from_12;
         const prd = field === '_period_from'  ? value : next._period_from;
-        next.hour_from = to24h(h12, prd);
+        next.hour_from = h12;
+        next.period_from = h12 != null ? prd : null;
       }
       if (field === '_hour_to_12' || field === '_period_to') {
         const h12 = field === '_hour_to_12' ? value : next._hour_to_12;
         const prd = field === '_period_to'   ? value : next._period_to;
-        next.hour_to = to24h(h12, prd);
+        next.hour_to = h12;
+        next.period_to = h12 != null ? prd : null;
       }
       return next;
     }));
@@ -187,6 +203,10 @@ const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToa
       const dto: ApiUpdateRedirectRulesDto = {
         rules: rules.map(({ _key, _hour_from_12, _period_from, _hour_to_12, _period_to, ...r }) => ({
           ...r,
+          hour_from: _hour_from_12 ?? undefined,
+          period_from: _hour_from_12 != null ? _period_from : undefined,
+          hour_to: _hour_to_12 ?? undefined,
+          period_to: _hour_to_12 != null ? _period_to : undefined,
           redirect_url: r.redirect_url.trim(),
           label: r.label?.trim() || undefined,
         })),

@@ -95,7 +95,9 @@ export interface RedirectRule {
   label?: string;
   device_target: 'mobile' | 'tablet' | 'desktop' | 'any';
   hour_from?: number | null;
+  period_from?: 'am' | 'pm' | null;
   hour_to?: number | null;
+  period_to?: 'am' | 'pm' | null;
   redirect_url: string;
   priority: number;
   is_active: boolean;
@@ -126,6 +128,7 @@ export interface ApiCard {
   /** category_id is returned as a populated object from the backend */
   category_id?: ApiCategory | string | null;
   business_data?: BusinessData | null;
+  visit_count?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -182,9 +185,16 @@ export interface ApiBulkCreateResult {
 export interface ApiSocialPageResponse {
   card_code: string;
   card_type: string;
-  requires_subscription: boolean;
+  visit_count?: number;
+  requires_subscription?: boolean;
   business_data: BusinessData | null;
   message?: string;
+}
+
+// ── Clone Card ─────────────────────────────────────────────────────────────
+
+export interface ApiCloneCardDto {
+  new_card_code: string;
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────

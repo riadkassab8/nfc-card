@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { ApiCard } from '../../types';
 import { ProfileHero } from './ProfileHero';
 import { PublicCardFooter } from './PublicCardFooter';
-import { Globe } from 'lucide-react';
+import { cardsApi } from '../../services';
+import { Globe, UserPlus, Eye } from 'lucide-react';
 import { gsap } from 'gsap';
 import {
   WhatsAppIcon,
@@ -262,6 +263,64 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         <div className="nfc-container">
           <div className="gsap-hero" style={{ width: '100%' }}>
             <ProfileHero card={card} />
+
+            {/* Visit Counter Badge */}
+            {typeof card.visit_count === 'number' && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px' }}>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 12px',
+                  backgroundColor: 'var(--surface-color)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '9999px',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  boxShadow: 'var(--shadow-sm)',
+                }}>
+                  <Eye size={14} style={{ color: '#6366f1' }} />
+                  <span>{card.visit_count.toLocaleString('ar-EG')} زيارة</span>
+                </div>
+              </div>
+            )}
+
+            {/* Save Contact (vCard) Action Button */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+              <a
+                href={cardsApi.getVcardUrl(card.card_code)}
+                download={`${card.business_data?.business_name || card.card_code}.vcf`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  maxWidth: '320px',
+                  padding: '12px 20px',
+                  backgroundColor: '#2563eb',
+                  color: '#ffffff',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: 700,
+                  fontSize: '0.9375rem',
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = '#1d4ed8';
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = '#2563eb';
+                  (e.currentTarget as HTMLElement).style.transform = '';
+                }}
+              >
+                <UserPlus size={18} />
+                <span>حفظ في جهات الاتصال</span>
+              </a>
+            </div>
           </div>
           
           {renderContent()}
