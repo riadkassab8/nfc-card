@@ -312,16 +312,29 @@ export const AdminAddCardPage: React.FC = () => {
 
   const currentCat = (categories.find(c => c._id === categoryId)?.name || '').toLowerCase();
   
+  // Check if at least one business field is filled (excluding business_name, logo, description)
+  const hasBusinessData = !!(
+    bizData.phone?.trim() ||
+    bizData.email?.trim() ||
+    bizData.whatsapp?.trim() ||
+    bizData.instagram?.trim() ||
+    bizData.facebook?.trim() ||
+    bizData.tiktok?.trim() ||
+    bizData.google_maps?.trim() ||
+    bizData.website?.trim() ||
+    bizData.vodafone_cash?.trim()
+  );
+  
   const isFormValid = !!(
     cardCode.trim() &&
     /^CARD-\d{4,}$/.test(cardCode.trim()) &&
     redirectUrl.trim() &&
     categoryId &&
+    hasBusinessData &&
     (currentCat.includes('whatsapp') ? !!bizData.whatsapp?.trim() : true) &&
     (currentCat.includes('tiktok') ? !!bizData.tiktok?.trim() : true) &&
     (currentCat.includes('instagram') ? !!bizData.instagram?.trim() : true) &&
-    (currentCat.includes('google map') || currentCat.includes('google review') ? !!bizData.google_maps?.trim() : true) &&
-    (currentCat.includes('instapay') ? !!bizData.instapay?.trim() : true)
+    (currentCat.includes('google map') || currentCat.includes('google review') ? !!bizData.google_maps?.trim() : true)
   );
 
   return (

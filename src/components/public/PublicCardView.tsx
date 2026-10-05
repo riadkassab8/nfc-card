@@ -389,48 +389,50 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
                   boxShadow: 'var(--shadow-subtle)',
                 }}>
                   <Eye size={14} style={{ color: '#8b5cf6' }} />
-                  <span>{card.visit_count.toLocaleString('ar-EG')} زيارة</span>
+                  <span>{Math.round(card.visit_count / 2).toLocaleString('ar-EG')} زيارة</span>
                 </div>
               </div>
             )}
 
-            {/* Save Contact (vCard) Action Button */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
-              <a
-                href={cardsApi.getVcardUrl(card.card_code)}
-                download={`${card.business_data?.business_name || card.card_code}.vcf`}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  width: '100%',
-                  maxWidth: '320px',
-                  padding: '14px 24px',
-                  backgroundColor: 'var(--text-primary)',
-                  color: '#ffffff',
-                  borderRadius: '16px',
-                  fontWeight: 700,
-                  fontSize: '0.9375rem',
-                  textDecoration: 'none',
-                  boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
-                  transition: 'all 0.3s ease',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = '#000000';
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 25px rgba(0,0,0,0.12)';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--text-primary)';
-                  (e.currentTarget as HTMLElement).style.transform = '';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)';
-                }}
-              >
-                <UserPlus size={18} />
-                <span>حفظ في جهات الاتصال</span>
-              </a>
-            </div>
+            {/* Save Contact (vCard) Action Button - only show if phone exists */}
+            {biz?.phone?.trim() && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
+                <a
+                  href={cardsApi.getVcardUrl(card.card_code)}
+                  download={`${card.business_data?.business_name || card.card_code}.vcf`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px',
+                    width: '100%',
+                    maxWidth: '320px',
+                    padding: '14px 24px',
+                    backgroundColor: 'var(--text-primary)',
+                    color: '#ffffff',
+                    borderRadius: '16px',
+                    fontWeight: 700,
+                    fontSize: '0.9375rem',
+                    textDecoration: 'none',
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
+                    transition: 'all 0.3s ease',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '#000000';
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 25px rgba(0,0,0,0.12)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--text-primary)';
+                    (e.currentTarget as HTMLElement).style.transform = '';
+                    (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)';
+                  }}
+                >
+                  <UserPlus size={18} />
+                  <span>حفظ في جهات الاتصال</span>
+                </a>
+              </div>
+            )}
           </div>
           
           {renderContent()}

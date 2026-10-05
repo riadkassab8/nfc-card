@@ -186,8 +186,9 @@ const CardTab: React.FC<{ days: number }> = ({ days }) => {
   /* load cards list for the picker */
   useEffect(() => {
     setCL(true);
-    cardsApi.getCards({ limit: 200 })
-      .then(res => setCards(res.data ?? []))
+    // Fetch all cards using the helper function
+    cardsApi.getAllCardsForStats()
+      .then(allCards => setCards(allCards))
       .catch(() => {})
       .finally(() => setCL(false));
   }, []);
@@ -249,7 +250,7 @@ const CardTab: React.FC<{ days: number }> = ({ days }) => {
         <div style={{ maxHeight: '360px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {cardsLoading
             ? Array.from({ length: 5 }).map((_, i) => <div key={i} className="shimmer" style={{ height: '36px', borderRadius: 'var(--r-md)' }} />)
-            : filtered.slice(0, 50).map(c => (
+            : filtered.map(c => (
               <button
                 key={c._id}
                 onClick={() => { setSelected(c._id); setSelectedCode(c.card_code); }}

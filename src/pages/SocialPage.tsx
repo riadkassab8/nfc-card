@@ -20,6 +20,8 @@ export const SocialPage: React.FC = () => {
 
   const load = async () => {
     if (!publicCode?.trim()) { setState('not_found'); return; }
+    
+    // Always fetch fresh data from API to ensure visit tracking
     setState('loading');
     try {
       const res = await cardsApi.getSocialPage(publicCode.trim());

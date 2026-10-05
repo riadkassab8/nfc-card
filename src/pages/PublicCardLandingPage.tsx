@@ -25,9 +25,11 @@ export const PublicCardLandingPage: React.FC = () => {
 
   const load = async () => {
     if (!code.trim()) { setState('not_found'); return; }
+    
     // Strip query params from URL bar
     if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
 
+    // Always fetch fresh data from API to ensure visit tracking
     setState('loading');
     try {
       const res = await cardsApi.getSocialPage(code.trim());
