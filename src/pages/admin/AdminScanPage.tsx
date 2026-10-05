@@ -225,13 +225,16 @@ export const AdminScanPage: React.FC = () => {
       // لو ما فيش exact match خذ أول نتيجة (الـ API search كان كافياً)
       const found = exact ?? (data.length === 1 ? data[0] : null);
 
-      if (found) {
-        setCard(found);
-        setForm({ ...EMPTY, ...(found.business_data ?? {}) });
-      } else if (data.length > 1) {
-        // رجّع أكتر من نتيجة بدون exact match — خذ الأقرب
-        setCard(data[0]);
-        setForm({ ...EMPTY, ...(data[0].business_data ?? {}) });
+      let targetCard = found;
+      if (!targetCard && data.length > 1) {
+        targetCard = data[0];
+      }
+
+      if (targetCard) {
+        // نجلب الكارت الكامل من الـ API لضمان وجود business_data التي قد لا تكون في الـ list
+        const fullCard = await cardsApi.getCardById(targetCard._id);
+        setCard(fullCard);
+        setForm({ ...EMPTY, ...(fullCard.business_data ?? {}) });
       } else {
         setNotFound(true);
       }
