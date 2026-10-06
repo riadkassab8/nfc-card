@@ -6,6 +6,7 @@
 import { apiClient, getApiBaseUrl } from './client';
 import {
   ApiCard,
+  ApiTrashCard,
   ApiCardsPaginatedResponse,
   ApiCardHistory,
   ApiCreateCardDto,
@@ -20,6 +21,7 @@ import {
   ExportCardsParams,
   CardQueryParams,
 } from '../../types';
+
 
 export const cardsApi = {
   // ── POST /api/cards ──────────────────────────────────────────────────────
@@ -106,10 +108,28 @@ export const cardsApi = {
     apiClient<ApiCard>(`/cards/${id}/renew`, { method: 'POST' }),
 
   // ── DELETE /api/cards/:id ────────────────────────────────────────────────
-  deleteCard: (id: string): Promise<{ message: string }> =>
-    apiClient<{ message: string }>(`/cards/${id}`, { method: 'DELETE' }),
+  deleteCard: (id: string, password?: string): Promise<{ message: string; card_id?: string }> =>
+    apiClient<{ message: string; card_id?: string }>(`/cards/${id}`, {
+      method: 'DELETE',
+      body: password ? { password } : undefined,
+    }),
+
+  // ── GET /api/cards/trash ─────────────────────────────────────────────────
+  getTrash: (): Promise<{ data?: ApiTrashCard[] } | ApiTrashCard[]> =>
+    apiClient<{ data?: ApiTrashCard[] } | ApiTrashCard[]>('/cards/trash'),
+
+  // ── POST /api/cards/:id/restore ──────────────────────────────────────────
+  restoreCard: (id: string): Promise<{ message: string }> =>
+    apiClient<{ message: string }>(`/cards/${id}/restore`, { method: 'POST' }),
+
+  // ── GET /api/cards/backup (JSON Backup) ──────────────────────────────────
+  getBackupUrl: (): string => `${getApiBaseUrl()}/cards/backup`,
+
+  downloadBackup: (): Promise<Blob> =>
+    apiClient<Blob>('/cards/backup', { responseType: 'blob' }),
 
   // ── PUT /api/cards/:id/rules ─────────────────────────────────────────────
+
   /** Update smart redirect rules. Pass empty array to clear all rules. */
   updateRedirectRules: (id: string, dto: ApiUpdateRedirectRulesDto): Promise<ApiCard> =>
     apiClient<ApiCard>(`/cards/${id}/rules`, { method: 'PUT', body: dto }),

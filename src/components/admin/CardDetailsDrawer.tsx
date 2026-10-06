@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 
 
+import { DeleteCardModal } from './DeleteCardModal';
 import QRCode from 'qrcode';
 import { useNavigate } from 'react-router-dom';
+
 
 type ToastType = 'success' | 'error' | 'info';
 type Tab = 'info' | 'redirect' | 'rules' | 'qr' | 'history';
@@ -573,14 +575,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
     finally { setRenewing(false); }
   };
 
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await cardsApi.deleteCard(card._id);
-      onDeleted(card._id); onToast(`تم حذف ${card.card_code}`); onClose();
-    } catch (e: any) { onToast(e?.message || 'فشل الحذف', 'error'); }
-    finally { setDeleting(false); setConfirmDel(false); }
-  };
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const downloadQrPng = async () => {
     try {
@@ -595,11 +590,25 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
 
   return (
     <>
+      {showDeleteModal && (
+        <DeleteCardModal
+          card={card}
+          onClose={() => setShowDeleteModal(false)}
+          onSuccess={() => {
+            setShowDeleteModal(false);
+            onDeleted(card._id);
+            onClose();
+          }}
+          onToast={onToast}
+        />
+      )}
+
       {/* Overlay */}
       <div
         onClick={onClose}
         style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--bg-overlay)', zIndex: 300 }}
       />
+
 
       {/* Panel */}
       <div

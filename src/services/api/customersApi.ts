@@ -3,9 +3,10 @@
    All endpoints require Authorization: Bearer <token>.
    ========================================================================== */
 
-import { apiClient } from './client';
+import { apiClient, getApiBaseUrl } from './client';
 import {
   ApiCustomer,
+  ApiTrashCustomer,
   ApiCustomersPaginatedResponse,
   ApiCustomerDetailResponse,
   ApiCreateCustomerDto,
@@ -13,6 +14,7 @@ import {
   ApiAssignCardsDto,
   CustomerQueryParams,
 } from '../../types';
+
 
 export const customersApi = {
   // ── GET /api/customers ───────────────────────────────────────────────────
@@ -44,10 +46,27 @@ export const customersApi = {
     }),
 
   // ── DELETE /api/customers/:id ────────────────────────────────────────────
-  deleteCustomer: (id: string): Promise<{ message?: string }> =>
-    apiClient<{ message?: string }>(`/customers/${id}`, {
+  deleteCustomer: (id: string, password?: string): Promise<{ message?: string; customer_id?: string }> =>
+    apiClient<{ message?: string; customer_id?: string }>(`/customers/${id}`, {
       method: 'DELETE',
+      body: password ? { password } : undefined,
     }),
+
+  // ── GET /api/customers/trash ─────────────────────────────────────────────
+  getTrash: (): Promise<{ data?: ApiTrashCustomer[] } | ApiTrashCustomer[]> =>
+    apiClient<{ data?: ApiTrashCustomer[] } | ApiTrashCustomer[]>('/customers/trash'),
+
+  // ── POST /api/customers/:id/restore ──────────────────────────────────────
+  restoreCustomer: (id: string): Promise<{ message?: string }> =>
+    apiClient<{ message?: string }>(`/customers/${id}/restore`, {
+      method: 'POST',
+    }),
+
+  // ── GET /api/customers/backup (Download JSON) ────────────────────────────
+  getBackupUrl: (): string => `${getApiBaseUrl()}/customers/backup`,
+
+  downloadBackup: (): Promise<Blob> =>
+    apiClient<Blob>('/customers/backup', { responseType: 'blob' }),
 
   // ── POST /api/customers/:id/assign-cards ─────────────────────────────────
   assignCards: (id: string, dto: ApiAssignCardsDto): Promise<{ message?: string; assigned_count?: number }> =>
@@ -62,3 +81,4 @@ export const customersApi = {
       method: 'DELETE',
     }),
 };
+

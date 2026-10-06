@@ -170,6 +170,15 @@ export interface ApiCard {
 }
 
 
+export interface ApiTrashCard extends ApiCard {
+  deleted_at?: string;
+  deletedAt?: string;
+}
+
+export interface ApiDeleteCardDto {
+  password?: string;
+}
+
 export interface ApiCardsPaginatedResponse {
   data: ApiCard[];
   total: number;
@@ -177,6 +186,7 @@ export interface ApiCardsPaginatedResponse {
   limit: number;
   totalPages: number;
 }
+
 
 export interface ApiCreateCardDto {
   card_code: string;
@@ -471,4 +481,14 @@ export interface ApiUpdateCustomerDto {
 export interface ApiAssignCardsDto {
   card_ids: string[];
 }
+
+export interface ApiTrashCustomer extends ApiCustomer {
+  deleted_at?: string;
+  deletedAt?: string;
+}
+
+export interface ApiDeleteCustomerDto {
+  password?: string;
+}
+
 

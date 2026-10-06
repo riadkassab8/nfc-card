@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { customersApi } from '../../services';
 import { ApiCustomer, fmtDate } from '../../types';
 import { CustomerModal } from '../../components/admin/CustomerModal';
+import { DeleteCustomerModal } from '../../components/admin/DeleteCustomerModal';
+import { CustomerTrashModal } from '../../components/admin/CustomerTrashModal';
 import {
   Users, Plus, Search, RefreshCw, Eye, Edit2,
   Trash2, Phone, CreditCard, AlertTriangle,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Download,
 } from 'lucide-react';
+
 
 
 type ToastType = 'success' | 'error' | 'info';
@@ -50,10 +53,34 @@ export const AdminCustomersPage: React.FC = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editCustomer, setEditCustomer] = useState<ApiCustomer | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ApiCustomer | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [trashModalOpen, setTrashModalOpen] = useState(false);
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
 
   const showToast = (msg: string, type: ToastType = 'success') => setToast({ msg, type });
+
+  const handleDownloadBackup = async () => {
+    setDownloadingBackup(true);
+    showToast('جاري تجهيز النسخة الاحتياطية...', 'info');
+    try {
+      const blob = await customersApi.downloadBackup();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `customers-backup-${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('تم تحميل النسخة الاحتياطية بنجاح ✓', 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'فشل تحميل النسخة الاحتياطية', 'error');
+    } finally {
+      setDownloadingBackup(false);
+    }
+  };
+
 
   const fetchCustomers = async (pg: number, currentLimit: number) => {
     setLoading(true);
@@ -78,91 +105,33 @@ export const AdminCustomersPage: React.FC = () => {
     fetchCustomers(page, limit);
   }, [page, limit, appliedSearch]);
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleteLoading(true);
-    try {
-      await customersApi.deleteCustomer(deleteTarget._id);
-      showToast(`تم حذف العميل "${deleteTarget.name}" بنجاح`, 'success');
-      setDeleteTarget(null);
-      fetchCustomers(page, limit);
-    } catch (err: any) {
-      showToast(err?.message || 'فشل حذف العميل', 'error');
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation with Password Modal */}
       {deleteTarget && (
-        <div className="modal-overlay" style={{ zIndex: 1200 }}>
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: 'var(--r-2xl)',
-              padding: '28px',
-              maxWidth: '420px',
-              width: '100%',
-              boxShadow: 'var(--shadow-xl)',
-              animation: 'modalIn 220ms var(--ease-out) both',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '20px' }}>
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
-                  backgroundColor: 'var(--clr-error-bg)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <AlertTriangle size={20} style={{ color: 'var(--clr-error)' }} />
-              </div>
-              <div>
-                <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 800, color: 'var(--txt-heading)' }}>
-                  تأكيد حذف العميل
-                </h3>
-                <p style={{ fontSize: '14px', color: 'var(--txt-secondary)', margin: 0, lineHeight: 1.5 }}>
-                  هل أنت متأكد من حذف العميل <strong>"{deleteTarget.name}"</strong>؟
-                </p>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setDeleteTarget(null)} className="btn-outline" disabled={deleteLoading}>
-                إلغاء
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleteLoading}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '7px',
-                  padding: '9px 18px',
-                  borderRadius: 'var(--r-md)',
-                  border: 'none',
-                  backgroundColor: 'var(--clr-error)',
-                  color: '#fff',
-                  cursor: deleteLoading ? 'not-allowed' : 'pointer',
-                  fontWeight: 700,
-                  fontSize: 'var(--fs-base)',
-                  opacity: deleteLoading ? 0.7 : 1,
-                }}
-              >
-                {deleteLoading ? <><RefreshCw size={14} className="spin" /> حذف...</> : 'تأكيد الحذف'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteCustomerModal
+          customer={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onSuccess={() => {
+            fetchCustomers(page, limit);
+          }}
+          onToast={showToast}
+        />
       )}
+
+      {/* Customer Trash Modal */}
+      {trashModalOpen && (
+        <CustomerTrashModal
+          onClose={() => setTrashModalOpen(false)}
+          onCustomerRestored={() => {
+            fetchCustomers(page, limit);
+          }}
+          onToast={showToast}
+        />
+      )}
+
 
       {/* Create / Edit Customer Modal */}
       {(createModalOpen || editCustomer) && (
@@ -211,7 +180,61 @@ export const AdminCustomersPage: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', zIndex: 1 }}>
+        <div style={{ display: 'flex', gap: '10px', zIndex: 1, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setTrashModalOpen(true)}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '12px',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              backgroundColor: 'rgba(239, 68, 68, 0.15)',
+              color: '#fca5a5',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+            }}
+            title="عرض العملاء المحذوفين مع إمكانية استرجاعهم"
+          >
+            <Trash2 size={16} />
+            <span> سلة المهملات</span>
+          </button>
+
+          <button
+            onClick={handleDownloadBackup}
+            disabled={downloadingBackup}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '12px',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              color: '#e2e8f0',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              cursor: downloadingBackup ? 'not-allowed' : 'pointer',
+              transition: 'all 150ms ease',
+            }}
+            title="تحميل ملف JSON كامل ببيانات العملاء وكروتهم"
+          >
+            {downloadingBackup ? (
+              <>
+                <RefreshCw size={15} className="spin" />
+                <span>جاري التحميل...</span>
+              </>
+            ) : (
+              <>
+                <Download size={16} />
+                <span> تحميل نسخة احتياطية (Backup)</span>
+              </>
+            )}
+          </button>
+
           <button
             onClick={() => setCreateModalOpen(true)}
             className="btn-primary"
@@ -230,6 +253,7 @@ export const AdminCustomersPage: React.FC = () => {
           </button>
         </div>
       </div>
+
 
       {/* Filter / Search Bar */}
       <div

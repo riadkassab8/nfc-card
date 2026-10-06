@@ -8,12 +8,15 @@ import {
 import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCardsModal';
 import { BulkAssignCustomerModal } from '../../components/admin/BulkAssignCustomerModal';
+import { DeleteCardModal } from '../../components/admin/DeleteCardModal';
+import { CardTrashModal } from '../../components/admin/CardTrashModal';
 import {
   Plus, Search, RefreshCw, CreditCard, CheckCircle2, XCircle,
   Power, Trash2, Eye, Download, FileDown, Layers, Copy,
   AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Link as LinkIcon,
   MoreVertical, UserCheck,
 } from 'lucide-react';
+
 
 
 type ToastType = 'success' | 'error' | 'info';
@@ -213,8 +216,11 @@ export const AdminInventoryPage: React.FC = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [cloneTarget, setCloneTarget] = useState<ApiCard | null>(null);
   const [assignCustomerTarget, setAssignCustomerTarget] = useState<{ ids: string[]; codes: string[] } | null>(null);
+  const [trashModalOpen, setTrashModalOpen] = useState(false);
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
   const [dropdownState, setDropdownState] = useState<{ id: string; top: number; left: number } | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
+
 
 
 
@@ -372,6 +378,29 @@ export const AdminInventoryPage: React.FC = () => {
     } catch (e: any) { showToast(e?.message || 'فشل التصدير', 'error'); }
   };
 
+  const downloadCardsBackup = async () => {
+    setDownloadingBackup(true);
+    showToast('جاري تجهيز النسخة الاحتياطية للكروت...', 'info');
+    try {
+      const blob = await cardsApi.downloadBackup();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `cards-backup-${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('تم تحميل النسخة الاحتياطية للكروت بنجاح ✓', 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'فشل تحميل النسخة الاحتياطية', 'error');
+    } finally {
+      setDownloadingBackup(false);
+    }
+  };
+
+
 
   const allSel = cards.length > 0 && cards.every(c => selected.has(c._id));
   const toggleAll = () => setSelected(allSel ? new Set() : new Set(cards.map(c => c._id)));
@@ -405,11 +434,30 @@ export const AdminInventoryPage: React.FC = () => {
     <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '18px', fontFamily: 'var(--font)' }}>
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
       {deleteTarget && (
-        <Confirm
-          msg={`هل تريد حذف البطاقة "${deleteTarget.card_code}"؟`}
-          onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} busy={deleteLoading}
+        <DeleteCardModal
+          card={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onSuccess={() => {
+            setDeleteTarget(null);
+            setDrawerCard(null);
+            fetchCards(page, limit);
+            loadGlobalStats();
+          }}
+          onToast={showToast}
         />
       )}
+
+      {trashModalOpen && (
+        <CardTrashModal
+          onClose={() => setTrashModalOpen(false)}
+          onCardRestored={() => {
+            fetchCards(page, limit);
+            loadGlobalStats();
+          }}
+          onToast={showToast}
+        />
+      )}
+
 
       {cloneTarget && (
         <CloneCardModal
@@ -481,6 +529,60 @@ export const AdminInventoryPage: React.FC = () => {
         </div>
 
         <div style={{ zIndex: 1, display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            onClick={() => setTrashModalOpen(true)}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '12px',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              backgroundColor: 'rgba(239, 68, 68, 0.15)',
+              color: '#fca5a5',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+            }}
+            title="عرض البطاقات المحذوفة مع إمكانية استرجاعها"
+          >
+            <Trash2 size={16} />
+            <span>سلة المهملات</span>
+          </button>
+
+          <button
+            onClick={downloadCardsBackup}
+            disabled={downloadingBackup}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '12px',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              color: '#e2e8f0',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              cursor: downloadingBackup ? 'not-allowed' : 'pointer',
+              transition: 'all 150ms ease',
+            }}
+            title="تحميل ملف JSON كامل ببيانات البطاقات للنسخ الاحتياطي"
+          >
+            {downloadingBackup ? (
+              <>
+                <RefreshCw size={15} className="spin" />
+                <span>جاري التحميل...</span>
+              </>
+            ) : (
+              <>
+                <Download size={16} />
+                <span> نسخة احتياطية (JSON Backup)</span>
+              </>
+            )}
+          </button>
+
           <button className="hero-action-btn" onClick={downloadExcel} title="تصدير Excel بحسب الفلاتر الحالية">
             <FileDown size={16} /> تصدير Excel
           </button>
@@ -508,6 +610,7 @@ export const AdminInventoryPage: React.FC = () => {
             <Plus size={18} /> إضافة بطاقة جديدة
           </button>
         </div>
+
       </div>
 
       {/* KPI Stats row */}
