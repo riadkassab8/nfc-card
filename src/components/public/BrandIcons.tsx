@@ -6,8 +6,43 @@ interface IconProps {
   style?: React.CSSProperties;
 }
 
-/* ── Authentic Official WhatsApp SVG ── */
-export const WhatsAppIcon: React.FC<IconProps> = ({ size = 48, className, style }) => (
+/* ── Generic App Icon Image with Fallback ── */
+const AppIconImage: React.FC<{
+  src: string;
+  alt: string;
+  size: number;
+  fallbackSvg: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}> = ({ src, alt, size, fallbackSvg, className, style }) => {
+  const [error, setError] = React.useState(false);
+
+  if (error) {
+    return <>{fallbackSvg}</>;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      width={size}
+      height={size}
+      className={className}
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        objectFit: 'contain',
+        borderRadius: `${size * 0.22}px`,
+        display: 'block',
+        ...style,
+      }}
+      onError={() => setError(true)}
+    />
+  );
+};
+
+/* ── WhatsApp SVG Fallback ── */
+const WhatsAppIconSvg: React.FC<IconProps> = ({ size = 48, className, style }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
     <rect width="48" height="48" rx="14" fill="#25D366" />
     <path
@@ -19,8 +54,19 @@ export const WhatsAppIcon: React.FC<IconProps> = ({ size = 48, className, style 
   </svg>
 );
 
-/* ── Authentic Official Instagram SVG ── */
-export const InstagramIcon: React.FC<IconProps> = ({ size = 48, className, style }) => (
+export const WhatsAppIcon: React.FC<IconProps> = (props) => (
+  <AppIconImage
+    src="/icons/whatsapp.png"
+    alt="WhatsApp"
+    size={props.size || 48}
+    className={props.className}
+    style={props.style}
+    fallbackSvg={<WhatsAppIconSvg {...props} />}
+  />
+);
+
+/* ── Instagram SVG Fallback ── */
+const InstagramIconSvg: React.FC<IconProps> = ({ size = 48, className, style }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
     <defs>
       <radialGradient id="ig-rg" cx="30%" cy="107%" r="130%">
@@ -41,10 +87,21 @@ export const InstagramIcon: React.FC<IconProps> = ({ size = 48, className, style
   </svg>
 );
 
-/* ── Authentic Official Facebook SVG ── */
-export const FacebookIcon: React.FC<IconProps> = ({ size = 48, className, style }) => (
+export const InstagramIcon: React.FC<IconProps> = (props) => (
+  <AppIconImage
+    src="/icons/instagram.png"
+    alt="Instagram"
+    size={props.size || 48}
+    className={props.className}
+    style={props.style}
+    fallbackSvg={<InstagramIconSvg {...props} />}
+  />
+);
+
+/* ── Facebook SVG Fallback ── */
+const FacebookIconSvg: React.FC<IconProps> = ({ size = 48, className, style }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
-    <circle cx="24" cy="24" r="24" fill="#1877F2" />
+    <rect width="48" height="48" rx="14" fill="#1877F2" />
     <path
       d="M29.5 25.5l.8-5.5h-5.3v-3.6c0-1.5.7-2.9 3-2.9h2.3V8.8s-2.1-.4-4.1-.4c-4.2 0-7 2.6-7 7.2v4.4h-4.8v5.5h4.8V39h6V25.5h4.3z"
       fill="white"
@@ -52,8 +109,19 @@ export const FacebookIcon: React.FC<IconProps> = ({ size = 48, className, style 
   </svg>
 );
 
-/* ── Authentic Official TikTok SVG ── */
-export const TikTokIcon: React.FC<IconProps> = ({ size = 48, className, style }) => (
+export const FacebookIcon: React.FC<IconProps> = (props) => (
+  <AppIconImage
+    src="/icons/facebook.png"
+    alt="Facebook"
+    size={props.size || 48}
+    className={props.className}
+    style={props.style}
+    fallbackSvg={<FacebookIconSvg {...props} />}
+  />
+);
+
+/* ── TikTok SVG Fallback ── */
+const TikTokIconSvg: React.FC<IconProps> = ({ size = 48, className, style }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
     <rect width="48" height="48" rx="14" fill="#000000" />
     <g transform="translate(6, 6)">
@@ -73,7 +141,18 @@ export const TikTokIcon: React.FC<IconProps> = ({ size = 48, className, style })
   </svg>
 );
 
-/* ── Authentic Official Google Maps SVG ── */
+export const TikTokIcon: React.FC<IconProps> = (props) => (
+  <AppIconImage
+    src="/icons/tiktok.png"
+    alt="TikTok"
+    size={props.size || 48}
+    className={props.className}
+    style={props.style}
+    fallbackSvg={<TikTokIconSvg {...props} />}
+  />
+);
+
+/* ── Google Maps SVG ── */
 export const GoogleMapsIcon: React.FC<IconProps> = ({ size = 48, className, style }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
     <rect width="48" height="48" rx="14" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="1.5" />
@@ -84,8 +163,8 @@ export const GoogleMapsIcon: React.FC<IconProps> = ({ size = 48, className, styl
   </svg>
 );
 
-/* ── Authentic Phone Call SVG ── */
-export const PhoneIcon: React.FC<IconProps> = ({ size = 48, className, style }) => (
+/* ── Phone Call SVG Fallback ── */
+const PhoneIconSvg: React.FC<IconProps> = ({ size = 48, className, style }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
     <rect width="48" height="48" rx="14" fill="#2563EB" />
     <path
@@ -95,7 +174,18 @@ export const PhoneIcon: React.FC<IconProps> = ({ size = 48, className, style }) 
   </svg>
 );
 
-/* ── Authentic Email SVG ── */
+export const PhoneIcon: React.FC<IconProps> = (props) => (
+  <AppIconImage
+    src="/icons/phone.png"
+    alt="Call"
+    size={props.size || 48}
+    className={props.className}
+    style={props.style}
+    fallbackSvg={<PhoneIconSvg {...props} />}
+  />
+);
+
+/* ── Email SVG ── */
 export const EmailIcon: React.FC<IconProps> = ({ size = 48, className, style }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
     <rect width="48" height="48" rx="14" fill="url(#em-grad)" />
@@ -109,7 +199,7 @@ export const EmailIcon: React.FC<IconProps> = ({ size = 48, className, style }) 
   </svg>
 );
 
-/* ── Authentic Globe SVG ── */
+/* ── Globe SVG ── */
 export const GlobeIcon: React.FC<IconProps> = ({ size = 48, className, style }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
     <rect width="48" height="48" rx="14" fill="url(#ws-grad)" />
@@ -139,74 +229,44 @@ export const VerifiedCheckIcon: React.FC<IconProps> = ({ size = 20, className, s
   </svg>
 );
 
-/* ── Authentic Official InstaPay Egypt Logo ── */
-export const InstaPayIcon: React.FC<IconProps> = ({ size = 48, className, style }) => {
-  const [err, setErr] = React.useState(false);
-  if (err) {
-    return (
-      <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
-        <rect width="48" height="48" rx="14" fill="#482583" />
-        <path d="M26 8L15 24h7l-2 14 13-17h-7l3-12z" fill="#FFD700" stroke="#FFFFFF" strokeWidth="1" />
-        <text x="24" y="42" fontFamily="'Plus Jakarta Sans', system-ui, sans-serif" fontWeight="900" fontSize="6.5" fill="#FFFFFF" textAnchor="middle" letterSpacing="0.6">instapay</text>
-      </svg>
-    );
-  }
+/* ── InstaPay SVG Fallback ── */
+const InstaPayIconSvg: React.FC<IconProps> = ({ size = 48, className, style }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
+    <rect width="48" height="48" rx="14" fill="#482583" />
+    <path d="M26 8L15 24h7l-2 14 13-17h-7l3-12z" fill="#FFD700" stroke="#FFFFFF" strokeWidth="1" />
+    <text x="24" y="42" fontFamily="'Plus Jakarta Sans', system-ui, sans-serif" fontWeight="900" fontSize="6.5" fill="#FFFFFF" textAnchor="middle" letterSpacing="0.6">instapay</text>
+  </svg>
+);
 
-  return (
-    <div style={{
-      width: `${size}px`,
-      height: `${size}px`,
-      borderRadius: `${size * 0.29}px`,
-      backgroundColor: '#482583',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-      ...style
-    }} className={className}>
-      <img
-        src="https://brandlogos.sgp1.digitaloceanspaces.com/png/arcticons/instapay-400.png"
-        alt="InstaPay"
-        style={{ width: `${size * 0.72}px`, height: `${size * 0.72}px`, objectFit: 'contain' }}
-        onError={() => setErr(true)}
-      />
-    </div>
-  );
-};
+export const InstaPayIcon: React.FC<IconProps> = (props) => (
+  <AppIconImage
+    src="/icons/instapay.png"
+    alt="InstaPay"
+    size={props.size || 48}
+    className={props.className}
+    style={props.style}
+    fallbackSvg={<InstaPayIconSvg {...props} />}
+  />
+);
 
-/* ── Authentic Official Vodafone Cash Logo ── */
-export const VodafoneCashIcon: React.FC<IconProps> = ({ size = 48, className, style }) => {
-  const [err, setErr] = React.useState(false);
-  if (err) {
-    return (
-      <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
-        <rect width="48" height="48" rx="14" fill="#E60000" />
-        <g transform="translate(10, 10)">
-          <path d="M14 0C6.268 0 0 6.268 0 14c0 4.9 2.5 9.2 6.3 11.7L4 30l7.3-2.4C12.3 27.8 13.1 28 14 28c7.732 0 14-6.268 14-14S21.732 0 14 0zm0 21c-3.866 0-7-3.134-7-7s3.134-7 7-7 7 3.134 7 7-3.134 7-7 7z" fill="#FFFFFF" />
-          <path d="M14 10c-2.209 0-4 1.791-4 4 0 2.209 1.791 4 4 4 2.209 0 4-1.791 4-4 0-2.209-1.791-4-4-4z" fill="#E60000" />
-        </g>
-      </svg>
-    );
-  }
+/* ── Vodafone Cash SVG Fallback ── */
+const VodafoneCashIconSvg: React.FC<IconProps> = ({ size = 48, className, style }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
+    <rect width="48" height="48" rx="14" fill="#E60000" />
+    <g transform="translate(10, 10)">
+      <path d="M14 0C6.268 0 0 6.268 0 14c0 4.9 2.5 9.2 6.3 11.7L4 30l7.3-2.4C12.3 27.8 13.1 28 14 28c7.732 0 14-6.268 14-14S21.732 0 14 0zm0 21c-3.866 0-7-3.134-7-7s3.134-7 7-7 7 3.134 7 7-3.134 7-7 7z" fill="#FFFFFF" />
+      <path d="M14 10c-2.209 0-4 1.791-4 4 0 2.209 1.791 4 4 4 2.209 0 4-1.791 4-4 0-2.209-1.791-4-4-4z" fill="#E60000" />
+    </g>
+  </svg>
+);
 
-  return (
-    <div style={{
-      width: `${size}px`,
-      height: `${size}px`,
-      borderRadius: `${size * 0.29}px`,
-      backgroundColor: '#E60000',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-      ...style
-    }} className={className}>
-      <img
-        src="https://commons.wikimedia.org/wiki/Special:Redirect/file/Vodafone_logo_2017.svg"
-        alt="Vodafone Cash"
-        style={{ width: `${size * 0.65}px`, height: `${size * 0.65}px`, objectFit: 'contain' }}
-        onError={() => setErr(true)}
-      />
-    </div>
-  );
-};
+export const VodafoneCashIcon: React.FC<IconProps> = (props) => (
+  <AppIconImage
+    src="/icons/vodafone_cash.png"
+    alt="Vodafone Cash"
+    size={props.size || 48}
+    className={props.className}
+    style={props.style}
+    fallbackSvg={<VodafoneCashIconSvg {...props} />}
+  />
+);
