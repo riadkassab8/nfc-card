@@ -12,6 +12,8 @@ import {
   UpdateProfileDto,
   ChangePasswordDto,
   UpdateSettingsDto,
+  ForgotPasswordResponse,
+  ResetPasswordResponse,
 } from '../../types';
 
 export const authApi = {
@@ -28,6 +30,30 @@ export const authApi = {
     if (data?.access_token) setToken(data.access_token);
     return data;
   },
+
+  /**
+   * POST /api/auth/forgot-password
+   * Request password reset token by username or email.
+   * Public - no token required.
+   */
+  forgotPassword: async (identifier: string): Promise<ForgotPasswordResponse> =>
+    apiClient<ForgotPasswordResponse>('/auth/forgot-password', {
+      method: 'POST',
+      body: { identifier },
+      requiresAuth: false,
+    }),
+
+  /**
+   * POST /api/auth/reset-password
+   * Reset password using token and new password.
+   * Public - no token required.
+   */
+  resetPassword: async (token: string, new_password: string): Promise<ResetPasswordResponse> =>
+    apiClient<ResetPasswordResponse>('/auth/reset-password', {
+      method: 'POST',
+      body: { token, new_password },
+      requiresAuth: false,
+    }),
 
   /**
    * GET /api/auth/me

@@ -6,6 +6,8 @@ import { ProtectedRoute } from './components/admin/ProtectedRoute';
 import { AdminShell } from './components/admin/AdminShell';
 
 import { LoginPage }               from './pages/LoginPage';
+import { ForgotPasswordPage }       from './pages/ForgotPasswordPage';
+import { ResetPasswordPage }        from './pages/ResetPasswordPage';
 import { AdminOverviewPage }        from './pages/admin/AdminOverviewPage';
 import { AdminCustomersPage }       from './pages/admin/AdminCustomersPage';
 import { CustomerDetailsPage }      from './pages/admin/CustomerDetailsPage';
@@ -22,8 +24,12 @@ export const App: React.FC = () => (
   <AuthProvider>
     <BrowserRouter>
       <Routes>
-        {/* ── Auth ── */}
+        {/* ── Auth (Public - no token required) ── */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/admin/forgot-password" element={<Navigate to="/forgot-password" replace />} />
+        <Route path="/admin/reset-password" element={<Navigate to="/reset-password" replace />} />
 
         {/* ── Public card routes (no auth) ── */}
         <Route path="/social/:publicCode"  element={<SocialPage />} />

@@ -29,6 +29,26 @@ export interface ApiAuthResponse {
   admin: ApiAdmin;
 }
 
+export interface ForgotPasswordDto {
+  identifier: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+  email?: string;
+  reset_token?: string;
+  expires_in?: string;
+}
+
+export interface ResetPasswordDto {
+  token: string;
+  new_password: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+}
+
 export interface UpdateProfileDto {
   name?: string;
   email?: string;

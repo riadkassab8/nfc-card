@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Lock, User, Zap, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, Zap, ShieldCheck, RefreshCw, CheckCircle2 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const { login, loading } = useAuth();
@@ -13,6 +13,8 @@ export const LoginPage: React.FC = () => {
   const [showPw, setShowPw]     = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]       = useState<string | null>(null);
+
+  const successMessage = (location.state as any)?.successMessage as string | undefined;
 
   const from = (location.state as any)?.from?.pathname || '/admin';
   const busy = submitting || loading;
@@ -79,6 +81,22 @@ export const LoginPage: React.FC = () => {
         {/* Card */}
         <div className="card" style={{ padding: '28px' }}>
 
+          {/* Success message from Reset Password */}
+          {successMessage && (
+            <div style={{
+              marginBottom: '18px', padding: '12px 14px',
+              borderRadius: 'var(--r-md)',
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              color: '#15803d',
+              fontSize: 'var(--fs-sm)', fontWeight: 700,
+              display: 'flex', alignItems: 'center', gap: '8px'
+            }}>
+              <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+              <span>{successMessage}</span>
+            </div>
+          )}
+
           {/* Error */}
           {error && (
             <div style={{
@@ -120,7 +138,23 @@ export const LoginPage: React.FC = () => {
 
             {/* Password */}
             <div className="form-group">
-              <label className="form-label">كلمة المرور</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label className="form-label" style={{ margin: 0 }}>كلمة المرور</label>
+                <Link
+                  to="/forgot-password"
+                  style={{
+                    fontSize: '12.5px',
+                    color: 'var(--clr-primary-600)',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    transition: 'color 140ms ease',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--clr-primary-700)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--clr-primary-600)')}
+                >
+                  نسيت كلمة المرور؟
+                </Link>
+              </div>
               <div style={{ position: 'relative' }}>
                 <Lock size={16} style={{
                   position: 'absolute', right: '12px', top: '50%',
