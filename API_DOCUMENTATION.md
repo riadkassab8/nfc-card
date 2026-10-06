@@ -928,3 +928,62 @@ All list endpoints return:
 
 Use ?page=1&limit=10 and render a pagination control from totalPages.
 ```
+
+---
+
+## 3. Customer Email Messaging (إرسال الإيميلات للعملاء)
+
+### 3.1 Send Email to a Specific Customer
+* **Path:** `POST /api/customers/:id/send-email`
+* **Headers:** `Authorization: Bearer <TOKEN>`
+* **Request Body:**
+```json
+{
+  "subject": "تنبيه: اقتراب موعد انتهاء باقة كروت الـ NFC",
+  "message": "عزيزنا العميل، نود إحاطتك علماً بأن اشتراك بطاقتك ينتهي خلال 3 أيام.\nيرجى تجديد الاشتراك لضمان استمرار عمل الروابط دون انقطاع.",
+  "badge": "تنبيه اشتراك",
+  "button_text": "تجديد الباقة الآن",
+  "button_url": "https://k2rty.vercel.app/renew"
+}
+```
+* **Success (200 OK):**
+```json
+{
+  "success": true,
+  "message": "تم إرسال البريد الإلكتروني إلى العميل \"أحمد علي\" بنجاح.",
+  "to": "ahmed@example.com"
+}
+```
+* **Customer has no email (400 Bad Request):**
+```json
+{
+  "statusCode": 400,
+  "message": "العميل \"أحمد علي\" ليس لديه بريد إلكتروني مسجل. يرجى إضافة بريده أولاً."
+}
+```
+
+### 3.2 Broadcast Email to All or Selected Customers
+* **Path:** `POST /api/customers/broadcast-email`
+* **Headers:** `Authorization: Bearer <TOKEN>`
+* **Request Body:**
+```json
+{
+  "subject": "🔥 خصم خاص 30% على ترقية باقات كروت NFC",
+  "message": "يسعدنا إعلامك ببدء عرض التخفيضات لهذا الشهر!\nاحصل على ترقية اشتراكك السنوي بخصم حصري ومميزات إضافية لفترة محدودة.",
+  "badge": "عرض خاص لفترة محدودة",
+  "button_text": "استعراض العرض والتجديد",
+  "button_url": "https://k2rty.vercel.app/offers",
+  "customer_ids": ["68e...", "68f..."]
+}
+```
+* **Success (200 OK):**
+```json
+{
+  "success": true,
+  "total_targeted": 15,
+  "sent_count": 15,
+  "failed_count": 0,
+  "message": "تم إرسال البريد بنجاح إلى 15 عميل."
+}
+```
+

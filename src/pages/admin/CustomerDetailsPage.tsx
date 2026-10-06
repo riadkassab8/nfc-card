@@ -5,6 +5,7 @@ import { ApiCustomerDetailResponse, fmtDate } from '../../types';
 import { AssignCardsModal } from '../../components/admin/AssignCardsModal';
 import { CustomerModal } from '../../components/admin/CustomerModal';
 import { CustomerHistorySection } from '../../components/admin/CustomerHistorySection';
+import { SendCustomerEmailModal } from '../../components/admin/SendCustomerEmailModal';
 import {
   User, Phone, Mail, MapPin, CreditCard,
   Unlink, Plus, ArrowRight, RefreshCw, AlertTriangle, Edit2, History
@@ -47,6 +48,7 @@ export const CustomerDetailsPage: React.FC = () => {
   // Modals & Actions
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [unassignTarget, setUnassignTarget] = useState<{ id: string; code: string } | null>(null);
   const [unassignLoading, setUnassignLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
@@ -224,6 +226,19 @@ export const CustomerDetailsPage: React.FC = () => {
         />
       )}
 
+      {/* Send Customer Email Modal */}
+      {emailModalOpen && (
+        <SendCustomerEmailModal
+          customer={customer}
+          onClose={() => setEmailModalOpen(false)}
+          onToast={showToast}
+          onEditCustomer={() => {
+            setEmailModalOpen(false);
+            setEditCustomerOpen(true);
+          }}
+        />
+      )}
+
       {/* Assign Cards Modal */}
       {assignModalOpen && (
         <AssignCardsModal
@@ -291,6 +306,32 @@ export const CustomerDetailsPage: React.FC = () => {
               </span>
             )}
           </button>
+
+          <button
+            onClick={() => {
+              if (!customer.email) {
+                showToast(`العميل "${customer.name}" ليس لديه بريد إلكتروني مسجل. يرجى إضافة بريده أولاً.`, 'error');
+              }
+              setEmailModalOpen(true);
+            }}
+            className="btn-outline"
+            style={{
+              padding: '8px 16px',
+              borderRadius: '10px',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: customer.email ? '#eff6ff' : undefined,
+              borderColor: customer.email ? '#bfdbfe' : undefined,
+              color: customer.email ? 'var(--clr-primary-700)' : undefined,
+            }}
+            title={customer.email ? `إرسال بريد إلكتروني إلى ${customer.email}` : 'العميل ليس لديه بريد مسجل'}
+          >
+            <Mail size={15} /> إرسال بريد إلكتروني
+          </button>
+
           <button
             onClick={() => setEditCustomerOpen(true)}
             className="btn-outline"
@@ -374,20 +415,49 @@ export const CustomerDetailsPage: React.FC = () => {
                 >
                   <Phone size={14} /> {customer.phone}
                 </a>
-                {customer.email && (
-                  <a
-                    href={`mailto:${customer.email}`}
-                    dir="ltr"
+                {customer.email ? (
+                  <button
+                    type="button"
+                    onClick={() => setEmailModalOpen(true)}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '5px',
-                      fontSize: '13.5px',
-                      color: 'var(--txt-secondary)',
+                      fontSize: '13px',
+                      color: 'var(--clr-primary-700)',
+                      backgroundColor: 'var(--clr-primary-50)',
+                      border: '1px solid var(--clr-primary-200)',
+                      padding: '2px 10px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: 600,
                     }}
+                    title="انقر لإرسال بريد إلكتروني للعميل"
                   >
-                    <Mail size={14} /> {customer.email}
-                  </a>
+                    <Mail size={13} />
+                    <span dir="ltr">{customer.email}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditCustomerOpen(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '12px',
+                      color: 'var(--clr-error)',
+                      backgroundColor: 'var(--clr-error-bg)',
+                      border: '1px solid var(--clr-error-bdr)',
+                      padding: '2px 8px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                    }}
+                    title="العميل ليس لديه بريد إلكتروني. انقر لإضافة البريد."
+                  >
+                    <span>+ إضافة بريد إلكتروني</span>
+                  </button>
                 )}
                 {customer.city && (
                   <span

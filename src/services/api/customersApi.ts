@@ -14,6 +14,10 @@ import {
   ApiAssignCardsDto,
   CustomerQueryParams,
   ApiCustomerHistory,
+  SendCustomerEmailDto,
+  SendCustomerEmailResponse,
+  BroadcastEmailDto,
+  BroadcastEmailResponse,
 } from '../../types';
 
 
@@ -86,5 +90,19 @@ export const customersApi = {
   // ── GET /api/customers/:id/history ───────────────────────────────────────
   getCustomerHistory: (id: string): Promise<ApiCustomerHistory[]> =>
     apiClient<ApiCustomerHistory[]>(`/customers/${id}/history`),
+
+  // ── POST /api/customers/:id/send-email ───────────────────────────────────
+  sendCustomerEmail: (id: string, dto: SendCustomerEmailDto): Promise<SendCustomerEmailResponse> =>
+    apiClient<SendCustomerEmailResponse>(`/customers/${id}/send-email`, {
+      method: 'POST',
+      body: dto,
+    }),
+
+  // ── POST /api/customers/broadcast-email ──────────────────────────────────
+  broadcastEmail: (dto: BroadcastEmailDto): Promise<BroadcastEmailResponse> =>
+    apiClient<BroadcastEmailResponse>('/customers/broadcast-email', {
+      method: 'POST',
+      body: dto,
+    }),
 };
 

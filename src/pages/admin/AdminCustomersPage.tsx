@@ -5,10 +5,12 @@ import { ApiCustomer, fmtDate } from '../../types';
 import { CustomerModal } from '../../components/admin/CustomerModal';
 import { DeleteCustomerModal } from '../../components/admin/DeleteCustomerModal';
 import { CustomerTrashModal } from '../../components/admin/CustomerTrashModal';
+import { SendCustomerEmailModal } from '../../components/admin/SendCustomerEmailModal';
+import { BroadcastEmailModal } from '../../components/admin/BroadcastEmailModal';
 import {
   Users, Plus, Search, RefreshCw, Eye, Edit2,
   Trash2, Phone, CreditCard, AlertTriangle,
-  ChevronLeft, ChevronRight, Download,
+  ChevronLeft, ChevronRight, Download, Mail, Megaphone,
 } from 'lucide-react';
 
 
@@ -57,7 +59,29 @@ export const AdminCustomersPage: React.FC = () => {
   const [downloadingBackup, setDownloadingBackup] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
 
+  // Email messaging states
+  const [emailCustomerTarget, setEmailCustomerTarget] = useState<ApiCustomer | null>(null);
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   const showToast = (msg: string, type: ToastType = 'success') => setToast({ msg, type });
+
+  const toggleSelectCustomer = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === customers.length && customers.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(customers.map((c) => c._id)));
+    }
+  };
 
   const handleDownloadBackup = async () => {
     setDownloadingBackup(true);
@@ -102,6 +126,7 @@ export const AdminCustomersPage: React.FC = () => {
   };
 
   useEffect(() => {
+    setSelectedIds(new Set());
     fetchCustomers(page, limit);
   }, [page, limit, appliedSearch]);
 
@@ -132,6 +157,29 @@ export const AdminCustomersPage: React.FC = () => {
         />
       )}
 
+      {/* Send Individual Customer Email Modal */}
+      {emailCustomerTarget && (
+        <SendCustomerEmailModal
+          customer={emailCustomerTarget}
+          onClose={() => setEmailCustomerTarget(null)}
+          onToast={showToast}
+          onEditCustomer={() => {
+            const target = emailCustomerTarget;
+            setEmailCustomerTarget(null);
+            setEditCustomer(target);
+          }}
+        />
+      )}
+
+      {/* Broadcast Email Campaign Modal */}
+      {broadcastModalOpen && (
+        <BroadcastEmailModal
+          totalCustomersCount={total}
+          selectedCustomers={customers.filter((c) => selectedIds.has(c._id))}
+          onClose={() => setBroadcastModalOpen(false)}
+          onToast={showToast}
+        />
+      )}
 
       {/* Create / Edit Customer Modal */}
       {(createModalOpen || editCustomer) && (
@@ -236,6 +284,28 @@ export const AdminCustomersPage: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setBroadcastModalOpen(true)}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '12px',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              backgroundColor: 'rgba(234, 88, 12, 0.2)',
+              color: '#ffedd5',
+              border: '1px solid rgba(234, 88, 12, 0.45)',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+            }}
+            title="إرسال بريد تسويقي أو عروض لجميع العملاء أو المحددين"
+          >
+            <Megaphone size={16} />
+            <span>حملة بريدية جماعية</span>
+          </button>
+
+          <button
             onClick={() => setCreateModalOpen(true)}
             className="btn-primary"
             style={{
@@ -254,6 +324,64 @@ export const AdminCustomersPage: React.FC = () => {
         </div>
       </div>
 
+
+      {/* Multi-selection Bar */}
+      {selectedIds.size > 0 && (
+        <div
+          style={{
+            backgroundColor: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            borderRadius: '14px',
+            padding: '12px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.08)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#1e40af' }}>
+              تم تحديد {selectedIds.size} من أصل {customers.length} عميل في هذه الصفحة
+            </span>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                cursor: 'pointer',
+                fontSize: '12.5px',
+                textDecoration: 'underline',
+                fontWeight: 600,
+              }}
+            >
+              إلغاء التحديد
+            </button>
+          </div>
+
+          <button
+            onClick={() => setBroadcastModalOpen(true)}
+            style={{
+              padding: '7px 18px',
+              borderRadius: '10px',
+              fontSize: '13px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#ea580c',
+              border: 'none',
+              color: '#ffffff',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(234, 88, 12, 0.25)',
+            }}
+          >
+            <Mail size={14} /> إرسال بريد للمحددين ({selectedIds.size})
+          </button>
+        </div>
+      )}
 
       {/* Filter / Search Bar */}
       <div
@@ -360,6 +488,15 @@ export const AdminCustomersPage: React.FC = () => {
             <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--bdr-light)' }}>
+                  <th style={{ padding: '14px 16px', width: '42px', textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={customers.length > 0 && selectedIds.size === customers.length}
+                      onChange={toggleSelectAll}
+                      style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--clr-primary-600)' }}
+                      title="تحديد الكل"
+                    />
+                  </th>
                   <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '12.5px', fontWeight: 800 }}>اسم العميل / النشاط</th>
                   <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '12.5px', fontWeight: 800 }}>الهاتف والتواصل</th>
                   <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '12.5px', fontWeight: 800 }}>المحافظة / العنوان</th>
@@ -374,15 +511,30 @@ export const AdminCustomersPage: React.FC = () => {
                     key={c._id}
                     style={{
                       borderBottom: '1px solid var(--bdr-light)',
+                      backgroundColor: selectedIds.has(c._id) ? 'rgba(37, 99, 235, 0.04)' : undefined,
                       transition: 'background-color 150ms ease',
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bg-hover)';
+                      if (!selectedIds.has(c._id)) {
+                        (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bg-hover)';
+                      }
                     }}
                     onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                      if (!selectedIds.has(c._id)) {
+                        (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                      }
                     }}
                   >
+                    {/* Selection Checkbox */}
+                    <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(c._id)}
+                        onChange={() => toggleSelectCustomer(c._id)}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--clr-primary-600)' }}
+                      />
+                    </td>
+
                     {/* Name */}
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -506,6 +658,34 @@ export const AdminCustomersPage: React.FC = () => {
                         >
                           <Eye size={14} />
                           <span>التفاصيل</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            if (!c.email) {
+                              showToast(`العميل "${c.name}" ليس لديه بريد إلكتروني مسجل. يرجى إضافة بريده أولاً.`, 'error');
+                            }
+                            setEmailCustomerTarget(c);
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 11px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--bdr-light)',
+                            backgroundColor: c.email ? '#eff6ff' : 'var(--bg-subtle)',
+                            color: c.email ? 'var(--clr-primary-700)' : 'var(--txt-muted)',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            fontFamily: 'var(--font)',
+                            transition: 'all 0.15s ease',
+                          }}
+                          title={c.email ? `إرسال بريد إلكتروني إلى ${c.email}` : 'العميل ليس لديه بريد إلكتروني مسجل'}
+                        >
+                          <Mail size={13} />
+                          <span>إرسال بريد</span>
                         </button>
 
                         <button

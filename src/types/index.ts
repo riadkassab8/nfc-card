@@ -559,4 +559,38 @@ export interface ApiCustomerHistory {
   recorded_at: string;
 }
 
+// ── Customer Email Messaging ──────────────────────────────────────────────
+
+export interface SendCustomerEmailDto {
+  subject: string;
+  message: string;
+  badge?: string;
+  button_text?: string;
+  button_url?: string;
+}
+
+export interface SendCustomerEmailResponse {
+  success: boolean;
+  message: string;
+  to: string;
+}
+
+export interface BroadcastEmailDto {
+  subject: string;
+  message: string;
+  badge?: string;
+  button_text?: string;
+  button_url?: string;
+  customer_ids?: string[];
+}
+
+export interface BroadcastEmailResponse {
+  success: boolean;
+  total_targeted: number;
+  sent_count: number;
+  failed_count: number;
+  message: string;
+}
+
+
 
