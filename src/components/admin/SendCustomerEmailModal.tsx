@@ -185,7 +185,7 @@ export const SendCustomerEmailModal: React.FC<SendCustomerEmailModalProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', fontSize: '13px', color: 'var(--txt-muted)' }}>
                 <span style={{ fontWeight: 700, color: 'var(--txt-body)' }}>{customer.name}</span>
                 {customer.email ? (
-                  <span style={{ dir: 'ltr', color: 'var(--clr-primary-700)' }}>({customer.email})</span>
+                  <span dir="ltr" style={{ color: 'var(--clr-primary-700)' }}>({customer.email})</span>
                 ) : (
                   <span style={{ color: 'var(--clr-error)', fontWeight: 600 }}>(لا يوجد بريد مسجل)</span>
                 )}
@@ -474,7 +474,7 @@ export const SendCustomerEmailModal: React.FC<SendCustomerEmailModalProps> = ({
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '4px' }}>
                   <span style={{ color: 'var(--txt-muted)', fontWeight: 600 }}>إلى:</span>
                   <span style={{ fontWeight: 700, color: 'var(--txt-body)' }}>{customer.name}</span>
-                  <span style={{ color: 'var(--txt-secondary)', dir: 'ltr' }}>&lt;{customer.email || 'no-email@example.com'}&gt;</span>
+                  <span dir="ltr" style={{ color: 'var(--txt-secondary)' }}>&lt;{customer.email || 'no-email@example.com'}&gt;</span>
                 </div>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <span style={{ color: 'var(--txt-muted)', fontWeight: 600 }}>الموضوع:</span>
@@ -604,7 +604,7 @@ export const SendCustomerEmailModal: React.FC<SendCustomerEmailModalProps> = ({
           }}
         >
           <div style={{ fontSize: '12px', color: 'var(--txt-muted)' }}>
-            المسار: <code style={{ dir: 'ltr', fontSize: '11px', color: 'var(--clr-primary-700)' }}>POST /api/customers/:id/send-email</code>
+            المسار: <code dir="ltr" style={{ fontSize: '11px', color: 'var(--clr-primary-700)' }}>POST /api/customers/:id/send-email</code>
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>

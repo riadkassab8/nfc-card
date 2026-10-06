@@ -3,7 +3,7 @@ import { customersApi } from '../../services';
 import { ApiCustomer, BroadcastEmailDto, BroadcastEmailResponse } from '../../types';
 import {
   X, Send, RefreshCw, Megaphone, ExternalLink, Sparkles,
-  Users, CheckCircle2, AlertTriangle, Eye, Edit3
+  Users, CheckCircle2, Eye, Edit3
 } from 'lucide-react';
 
 interface BroadcastEmailModalProps {
@@ -715,7 +715,7 @@ export const BroadcastEmailModal: React.FC<BroadcastEmailModalProps> = ({
               }}
             >
               <div style={{ fontSize: '12px', color: 'var(--txt-muted)' }}>
-                المسار: <code style={{ dir: 'ltr', fontSize: '11px', color: 'var(--clr-primary-700)' }}>POST /api/customers/broadcast-email</code>
+                المسار: <code dir="ltr" style={{ fontSize: '11px', color: 'var(--clr-primary-700)' }}>POST /api/customers/broadcast-email</code>
               </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>

@@ -154,6 +154,7 @@ export const AdminInventoryPage: React.FC = () => {
   const [globalActive, setGlobalActive] = useState(0);
   const [globalInactive, setGlobalInactive] = useState(0);
   const [globalExpired, setGlobalExpired] = useState(0);
+  const [globalAssigned, setGlobalAssigned] = useState(0);
 
   const getDurationText = (startStr: string, endStr: string) => {
     const s = new Date(startStr);
@@ -172,7 +173,7 @@ export const AdminInventoryPage: React.FC = () => {
 
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
-  const [statusF, setStatusF] = useState<'all' | 'active' | 'inactive' | 'expired'>(initStatus);
+  const [statusF, setStatusF] = useState<'all' | 'active' | 'inactive' | 'expired' | 'assigned'>(initStatus);
   const [typeF, setTypeF] = useState('');
   const [catF, setCatF] = useState('');
 
@@ -232,18 +233,26 @@ export const AdminInventoryPage: React.FC = () => {
     setLoading(true); setError(null);
     try {
       const isExpiredFilter = statusF === 'expired';
-      if (isExpiredFilter) {
+      const isAssignedFilter = statusF === 'assigned';
+      if (isExpiredFilter || isAssignedFilter) {
         const allCards = await cardsApi.getAllCardsForStats({
           search: appliedSearch || undefined,
           card_type: typeF || undefined,
           category_id: catF || undefined,
         });
-        const expiredCards = allCards.filter(c => (c.requires_subscription ?? true) && isSubscriptionExpired(c));
+        
+        let filteredCards = allCards;
+        if (isExpiredFilter) {
+          filteredCards = allCards.filter(c => (c.requires_subscription ?? true) && isSubscriptionExpired(c));
+        } else if (isAssignedFilter) {
+          filteredCards = allCards.filter(c => !!c.customer_id);
+        }
+
         const startIndex = (pg - 1) * currentLimit;
-        const pagedCards = expiredCards.slice(startIndex, startIndex + currentLimit);
+        const pagedCards = filteredCards.slice(startIndex, startIndex + currentLimit);
         setCards(pagedCards);
-        setTotalPages(Math.ceil(expiredCards.length / currentLimit) || 1);
-        setCurrentTotal(expiredCards.length);
+        setTotalPages(Math.ceil(filteredCards.length / currentLimit) || 1);
+        setCurrentTotal(filteredCards.length);
       } else {
         const cr = await cardsApi.getCards({
           page: pg,
@@ -278,11 +287,13 @@ export const AdminInventoryPage: React.FC = () => {
       const activeNum = countActive.total ?? all.filter(c => c.status === 'active').length;
       const inactiveNum = countInactive.total ?? all.filter(c => c.status === 'inactive').length;
       const expiredNum = all.filter(c => (c.requires_subscription ?? true) && isSubscriptionExpired(c)).length;
+      const assignedNum = all.filter(c => !!c.customer_id).length;
 
       setGlobalTotal(totalNum);
       setGlobalActive(activeNum);
       setGlobalInactive(inactiveNum);
       setGlobalExpired(expiredNum);
+      setGlobalAssigned(assignedNum);
     } catch (err) {
       console.error('Failed to load global stats:', err);
     }
@@ -323,7 +334,7 @@ export const AdminInventoryPage: React.FC = () => {
     try {
       showToast('جاري تصدير Excel...', 'info');
       const blob = await cardsApi.exportCardsExcel({
-        status: (statusF !== 'all' && statusF !== 'expired') ? (statusF as any) : undefined,
+        status: (statusF !== 'all' && statusF !== 'expired' && statusF !== 'assigned') ? (statusF as any) : undefined,
         card_type: typeF || undefined,
       });
       const url = URL.createObjectURL(blob);
@@ -578,6 +589,7 @@ export const AdminInventoryPage: React.FC = () => {
           { key: 'active', label: 'البطاقات النشطة', val: globalActive, icon: <CheckCircle2 size={20} />, color: '#10b981', bg: '#ecfdf5', border: '#a7f3d0' },
           { key: 'inactive', label: 'البطاقات المعطلة', val: globalInactive, icon: <XCircle size={20} />, color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
           { key: 'expired', label: 'منتهية الاشتراك', val: globalExpired, icon: <TrendingUp size={20} />, color: '#ef4444', bg: '#fef2f2', border: '#fecaca' },
+          { key: 'assigned', label: 'بطاقات مربوطة', val: globalAssigned, icon: <LinkIcon size={20} />, color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe' },
         ].map(s => {
           const isSelected = statusF === s.key;
           return (
@@ -755,6 +767,7 @@ export const AdminInventoryPage: React.FC = () => {
                 <th onClick={() => requestSort('type')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>النوع {sortConfig?.key === 'type' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
                 <th onClick={() => requestSort('category')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>التصنيف {sortConfig?.key === 'category' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
                 <th onClick={() => requestSort('status')} style={{ cursor: 'pointer', userSelect: 'none' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>الحالة {sortConfig?.key === 'status' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
+                <th style={{ userSelect: 'none', whiteSpace: 'nowrap' }}>الربط بعميل</th>
                 <th style={{ userSelect: 'none', whiteSpace: 'nowrap' }}>نوع الاشتراك</th>
                 <th onClick={() => requestSort('sub')} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}><div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>مدة الاشتراك {sortConfig?.key === 'sub' ? (sortConfig.dir === 'asc' ? '↑' : '↓') : <span style={{ opacity: 0.3 }}>↕</span>}</div></th>
                 <th style={{ textAlign: 'center' }}>إجراءات</th>
@@ -813,6 +826,11 @@ export const AdminInventoryPage: React.FC = () => {
                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'currentColor', display: 'inline-block' }} />
                             {card.status === 'active' ? 'نشطة' : 'معطلة'}
                           </span>
+                        </td>
+                        <td style={{ fontSize: 'var(--fs-xs)', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                          {card.customer_id
+                            ? <span style={{ color: 'var(--clr-success)', fontWeight: 800, fontSize: '12px' }}>مربوط ✅</span>
+                            : <span style={{ color: 'var(--txt-muted)', fontWeight: 600, fontSize: '12px' }}>غير مربوط ❌</span>}
                         </td>
                         <td style={{ fontSize: 'var(--fs-xs)', whiteSpace: 'nowrap' }}>
                           {!card.requires_subscription
