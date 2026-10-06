@@ -32,11 +32,11 @@ export const cardsApi = {
   getCards: (params?: CardQueryParams): Promise<ApiCardsPaginatedResponse> =>
     apiClient<ApiCardsPaginatedResponse>('/cards', {
       params: {
-        page:        params?.page        ?? 1,
-        limit:       params?.limit       ?? 50,
-        search:      params?.search,
-        status:      params?.status,
-        card_type:   params?.card_type,
+        page: params?.page ?? 1,
+        limit: params?.limit ?? 50,
+        search: params?.search,
+        status: params?.status,
+        card_type: params?.card_type,
         category_id: params?.category_id,
       },
     }),
@@ -64,11 +64,11 @@ export const cardsApi = {
     apiClient<ApiCardsPaginatedResponse>('/cards', {
       requiresAuth: false,
       params: {
-        page:        params?.page        ?? 1,
-        limit:       params?.limit       ?? 50,
-        search:      params?.search,
-        status:      params?.status,
-        card_type:   params?.card_type,
+        page: params?.page ?? 1,
+        limit: params?.limit ?? 50,
+        search: params?.search,
+        status: params?.status,
+        card_type: params?.card_type,
         category_id: params?.category_id,
       },
     }),
@@ -170,7 +170,7 @@ export const cardsApi = {
     apiClient<Blob>('/export/cards', {
       responseType: 'blob',
       params: {
-        status:    params?.status,
+        status: params?.status,
         card_type: params?.card_type,
       },
     }),
@@ -184,7 +184,7 @@ export const cardsApi = {
     }),
 
   // ── POST /api/upload or /api/cards/upload-logo ────────────────────────────
-  uploadLogo: async (file: File): Promise<{ url: string; [key: string]: any }> => {
+  uploadLogo: async (file: File): Promise<{ url: string;[key: string]: any }> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('logo', file);

@@ -176,6 +176,7 @@ export const AdminInventoryPage: React.FC = () => {
   const [statusF, setStatusF] = useState<'all' | 'active' | 'inactive' | 'expired' | 'assigned'>(initStatus);
   const [typeF, setTypeF] = useState('');
   const [catF, setCatF] = useState('');
+  const [assignedF, setAssignedF] = useState<'all' | 'assigned' | 'unassigned'>('unassigned');
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -234,18 +235,31 @@ export const AdminInventoryPage: React.FC = () => {
     try {
       const isExpiredFilter = statusF === 'expired';
       const isAssignedFilter = statusF === 'assigned';
-      if (isExpiredFilter || isAssignedFilter) {
+      const needsLocalFilter = isExpiredFilter || isAssignedFilter || assignedF !== 'all';
+
+      if (needsLocalFilter) {
         const allCards = await cardsApi.getAllCardsForStats({
           search: appliedSearch || undefined,
           card_type: typeF || undefined,
           category_id: catF || undefined,
         });
-        
+
         let filteredCards = allCards;
+
+        // status filter
         if (isExpiredFilter) {
-          filteredCards = allCards.filter(c => (c.requires_subscription ?? true) && isSubscriptionExpired(c));
+          filteredCards = filteredCards.filter(c => (c.requires_subscription ?? true) && isSubscriptionExpired(c));
         } else if (isAssignedFilter) {
-          filteredCards = allCards.filter(c => !!c.customer_id);
+          filteredCards = filteredCards.filter(c => !!c.customer_id);
+        } else if (statusF !== 'all') {
+          filteredCards = filteredCards.filter(c => c.status === statusF);
+        }
+
+        // assignment filter
+        if (assignedF === 'assigned') {
+          filteredCards = filteredCards.filter(c => !!c.customer_id);
+        } else if (assignedF === 'unassigned') {
+          filteredCards = filteredCards.filter(c => !c.customer_id);
         }
 
         const startIndex = (pg - 1) * currentLimit;
@@ -306,7 +320,7 @@ export const AdminInventoryPage: React.FC = () => {
 
   useEffect(() => {
     fetchCards(page, limit);
-  }, [page, limit, appliedSearch, statusF, typeF, catF]);
+  }, [page, limit, appliedSearch, statusF, typeF, catF, assignedF]);
 
   /* actions */
   const handleToggle = async (card: ApiCard) => {
@@ -667,20 +681,154 @@ export const AdminInventoryPage: React.FC = () => {
           </button>
         </div>
 
-        <select value={statusF} onChange={e => { setStatusF(e.target.value as any); setPage(1); }} style={{ ...selStyle, height: '40px', borderRadius: '10px' }}>
-          <option value="all">كل الحالات</option>
-          <option value="active">نشطة</option>
-          <option value="inactive">معطلة</option>
-          <option value="expired">منتهية الاشتراك</option>
-        </select>
-        <select value={typeF} onChange={e => { setTypeF(e.target.value); setPage(1); }} style={{ ...selStyle, height: '40px', borderRadius: '10px' }}>
-          <option value="">كل الأنواع</option>
-          {CARD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <select value={catF} onChange={e => { setCatF(e.target.value); setPage(1); }} style={{ ...selStyle, height: '40px', borderRadius: '10px' }}>
-          <option value="">كل التصنيفات</option>
-          {categories.filter(c => c.is_active).map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-        </select>
+        {/* Custom pill toggle for status filter */}
+        <div style={{ display: 'inline-flex', flexWrap: 'wrap', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '3px', gap: '2px' }}>
+          {[
+            { value: 'all', label: 'كل الحالات' },
+            { value: 'active', label: 'نشطة' },
+            { value: 'inactive', label: 'معطلة' },
+            { value: 'expired', label: 'منتهية الاشتراك' },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { setStatusF(opt.value as any); setPage(1); }}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                border: 'none',
+                fontSize: '12.5px',
+                fontWeight: statusF === opt.value ? 700 : 500,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                backgroundColor: statusF === opt.value ? '#ffffff' : 'transparent',
+                color: statusF === opt.value ? 'var(--clr-primary-700)' : 'var(--txt-muted)',
+                boxShadow: statusF === opt.value ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {/* Custom pill toggle for assignment filter */}
+        <div style={{ display: 'inline-flex', flexWrap: 'wrap', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '3px', gap: '2px' }}>
+          {[
+            { value: 'all', label: 'كل البطاقات' },
+            { value: 'unassigned', label: 'غير مربوطة' },
+            { value: 'assigned', label: 'مربوطة بعميل' },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { setAssignedF(opt.value as any); setPage(1); }}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                border: 'none',
+                fontSize: '12.5px',
+                fontWeight: assignedF === opt.value ? 700 : 500,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                backgroundColor: assignedF === opt.value ? '#ffffff' : 'transparent',
+                color: assignedF === opt.value ? 'var(--clr-primary-700)' : 'var(--txt-muted)',
+                boxShadow: assignedF === opt.value ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {/* Custom pill toggle for type filter */}
+        <div style={{ display: 'inline-flex', flexWrap: 'wrap', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '3px', gap: '2px' }}>
+          <button
+            type="button"
+            onClick={() => { setTypeF(''); setPage(1); }}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '12.5px',
+              fontWeight: typeF === '' ? 700 : 500,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              backgroundColor: typeF === '' ? '#ffffff' : 'transparent',
+              color: typeF === '' ? 'var(--clr-primary-700)' : 'var(--txt-muted)',
+              boxShadow: typeF === '' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            كل الأنواع
+          </button>
+          {CARD_TYPES.map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => { setTypeF(t); setPage(1); }}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                border: 'none',
+                fontSize: '12.5px',
+                fontWeight: typeF === t ? 700 : 500,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                backgroundColor: typeF === t ? '#ffffff' : 'transparent',
+                color: typeF === t ? 'var(--clr-primary-700)' : 'var(--txt-muted)',
+                boxShadow: typeF === t ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom pill toggle for category filter */}
+        <div style={{ display: 'inline-flex', flexWrap: 'wrap', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '3px', gap: '2px' }}>
+          <button
+            type="button"
+            onClick={() => { setCatF(''); setPage(1); }}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '12.5px',
+              fontWeight: catF === '' ? 700 : 500,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              backgroundColor: catF === '' ? '#ffffff' : 'transparent',
+              color: catF === '' ? 'var(--clr-primary-700)' : 'var(--txt-muted)',
+              boxShadow: catF === '' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            كل التصنيفات
+          </button>
+          {categories.filter(c => c.is_active).map(c => (
+            <button
+              key={c._id}
+              type="button"
+              onClick={() => { setCatF(c._id); setPage(1); }}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                border: 'none',
+                fontSize: '12.5px',
+                fontWeight: catF === c._id ? 700 : 500,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                backgroundColor: catF === c._id ? '#ffffff' : 'transparent',
+                color: catF === c._id ? 'var(--clr-primary-700)' : 'var(--txt-muted)',
+                boxShadow: catF === c._id ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
         <button className="btn-outline" onClick={() => { fetchCards(page, limit); loadGlobalStats(); }} style={{ padding: '0 16px', height: '40px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
           <RefreshCw size={14} /> تحديث
         </button>
