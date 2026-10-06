@@ -679,7 +679,7 @@ export const AdminInventoryPage: React.FC = () => {
         </select>
         <select value={catF} onChange={e => { setCatF(e.target.value); setPage(1); }} style={{ ...selStyle, height: '40px', borderRadius: '10px' }}>
           <option value="">كل التصنيفات</option>
-          {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+          {categories.filter(c => c.is_active).map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
         </select>
         <button className="btn-outline" onClick={() => { fetchCards(page, limit); loadGlobalStats(); }} style={{ padding: '0 16px', height: '40px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
           <RefreshCw size={14} /> تحديث
