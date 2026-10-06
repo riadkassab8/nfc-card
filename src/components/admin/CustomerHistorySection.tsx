@@ -3,8 +3,8 @@ import { customersApi } from '../../services';
 import { ApiCustomerHistory, CustomerSnapshot, fmtDateTime } from '../../types';
 import { CustomerSnapshotModal, getActionBadgeConfig } from './CustomerSnapshotModal';
 import {
-  History, RefreshCw, Eye, Calendar, Filter, Clock,
-  Search, List, GitCommit, AlertTriangle, FileText
+  History, RefreshCw, Eye, Clock,
+  Search, List, GitCommit, AlertTriangle
 } from 'lucide-react';
 
 interface CustomerHistorySectionProps {
