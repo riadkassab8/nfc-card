@@ -532,7 +532,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   const expired   = isSubscriptionExpired(card);
   const cat       = getPopulatedCategory(card.category_id);
   const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smart-card-qr-api.koyeb.app');
-  const staticUrl = `${domainOrigin}/r/${card.card_code}`;
+  const staticUrl = `${card.qr_code}`;
   const rulesCount = (card.redirect_rules ?? []).length;
 
   const copyText = (text: string, key: string) => {
