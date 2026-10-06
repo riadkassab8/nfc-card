@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { cardsApi } from '../../services';
+import { cardsApi, customersApi } from '../../services';
 import {
   ApiCard, ApiCategory, ApiCardHistory, RedirectRule,
   BusinessData, fmtDate, isSubscriptionExpired,
-  getPopulatedCategory, ApiUpdateRedirectRulesDto,
+  getPopulatedCategory, ApiUpdateRedirectRulesDto, ApiCustomer,
 } from '../../types';
 import {
   X, Info, Link as LinkIcon, QrCode, History,
   Copy, Check, Download, Power, Trash2, RefreshCw,
   Save, Edit2, ExternalLink, GitBranch, Plus,
-  AlertCircle, GripVertical,
+  AlertCircle, GripVertical, User,
 } from 'lucide-react';
+
+
 import QRCode from 'qrcode';
 import { useNavigate } from 'react-router-dom';
 
@@ -446,6 +448,8 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   const [toggling, setToggling]     = useState(false);
   const [renewing, setRenewing]     = useState(false);
   const [copied, setCopied]         = useState<string | null>(null);
+  const [linkedCustomer, setLinkedCustomer] = useState<ApiCustomer | null>(null);
+  const [custLoading, setCustLoading] = useState(false);
 
   /* reset on card change */
   useEffect(() => {
@@ -453,7 +457,43 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
     setTab('info'); setConfirmDel(false);
     setNewUrl(card.current_redirect_url ? card.current_redirect_url.replace(/https?:\/\/[^\/]+\/social\//, 'https://smart-card-qr-api.koyeb.app/r/').replace(/https?:\/\/smartcard-app\.com/g, 'https://smart-card-qr-api.koyeb.app') : '');
     setQrDataUrl(null); setHistory([]); setHistLoaded(false);
+
+    // If card directly contains populated customer object
+    if (card.customer && typeof card.customer === 'object') {
+      setLinkedCustomer(card.customer);
+      setCustLoading(false);
+    } else if (card.customer_id && typeof card.customer_id === 'object') {
+      setLinkedCustomer(card.customer_id as ApiCustomer);
+      setCustLoading(false);
+    } else if (typeof card.customer_id === 'string' && card.customer_id) {
+      // If only ID is present, fetch customer details
+      setCustLoading(true);
+      customersApi.getCustomerById(card.customer_id)
+        .then(res => setLinkedCustomer(res.customer))
+        .catch(() => setLinkedCustomer(null))
+        .finally(() => setCustLoading(false));
+    } else {
+      // Search if this card is assigned to any customer
+      setCustLoading(true);
+      customersApi.getCustomers({ limit: 100 })
+        .then(async (res) => {
+          const list = res.data || [];
+          for (const c of list) {
+            try {
+              const detail = await customersApi.getCustomerById(c._id);
+              if (detail.cards?.some(cd => cd._id === card._id || cd.card_code === card.card_code)) {
+                setLinkedCustomer(detail.customer);
+                return;
+              }
+            } catch { /* continue */ }
+          }
+          setLinkedCustomer(null);
+        })
+        .catch(() => setLinkedCustomer(null))
+        .finally(() => setCustLoading(false));
+    }
   }, [card]);
+
 
   /* QR */
   const genQr = useCallback(async (url: string) => {
@@ -634,6 +674,98 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                   <Edit2 size={13} /> تعديل
                 </button>
               </div>
+
+              {/* Linked Customer Card (CRM) */}
+              <div
+                style={{
+                  borderRadius: 'var(--r-lg)',
+                  padding: '14px 16px',
+                  border: `1.5px solid ${linkedCustomer ? 'var(--clr-primary-300)' : 'var(--bdr-light)'}`,
+                  backgroundColor: linkedCustomer ? 'var(--clr-primary-50)' : 'var(--bg-subtle)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '10px',
+                      backgroundColor: linkedCustomer ? '#fff' : 'var(--bg-hover)',
+                      color: linkedCustomer ? 'var(--clr-primary-700)' : 'var(--txt-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      border: `1px solid ${linkedCustomer ? 'var(--clr-primary-200)' : 'var(--bdr-light)'}`,
+                    }}
+                  >
+                    <User size={22} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--txt-muted)', marginBottom: '2px' }}>
+                      العميل المربوط به الكارت
+                    </div>
+                    {custLoading ? (
+                      <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--txt-muted)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <RefreshCw size={12} className="spin" /> جاري التحقق...
+                      </span>
+                    ) : linkedCustomer ? (
+                      <div>
+                        <div style={{ fontSize: 'var(--fs-base)', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                          {linkedCustomer.name}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px', fontSize: 'var(--fs-xs)' }}>
+                          <span dir="ltr" style={{ color: 'var(--clr-primary-700)', fontWeight: 700 }}>
+                            📞 {linkedCustomer.phone}
+                          </span>
+                          {linkedCustomer.city && (
+                            <span style={{ color: 'var(--txt-secondary)' }}>
+                              📍 {linkedCustomer.city}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--txt-muted)' }}>
+                        كارت حر (غير مربوط بأي عميل حالياً)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {linkedCustomer && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      navigate(`/admin/customers/${linkedCustomer._id}`);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--clr-primary-300)',
+                      backgroundColor: '#fff',
+                      color: 'var(--clr-primary-700)',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      fontFamily: 'var(--font)',
+                      boxShadow: 'var(--shadow-xs)',
+                    }}
+                  >
+                    <span>بروفايل العميل</span>
+                    <ExternalLink size={13} />
+                  </button>
+                )}
+              </div>
+
 
               {/* Fields grid */}
               <div style={{

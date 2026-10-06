@@ -160,11 +160,15 @@ export interface ApiCard {
   redirect_rules: RedirectRule[];
   /** category_id is returned as a populated object from the backend */
   category_id?: ApiCategory | string | null;
+  /** Customer if assigned to a customer */
+  customer_id?: ApiCustomer | string | null;
+  customer?: ApiCustomer | null;
   business_data?: BusinessData | null;
   visit_count?: number;
   createdAt: string;
   updatedAt: string;
 }
+
 
 export interface ApiCardsPaginatedResponse {
   data: ApiCard[];
