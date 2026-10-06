@@ -7,26 +7,33 @@ import {
 } from '../../types';
 import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCardsModal';
+import { BulkAssignCustomerModal } from '../../components/admin/BulkAssignCustomerModal';
 import {
   Plus, Search, RefreshCw, CreditCard, CheckCircle2, XCircle,
   Power, Trash2, Eye, Download, FileDown, Layers, Copy,
   AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Link as LinkIcon,
-  MoreVertical,
+  MoreVertical, UserCheck,
 } from 'lucide-react';
+
 
 type ToastType = 'success' | 'error' | 'info';
 
 /* ── Toast ─────────────────────────────────────────────────────── */
 const Toast: React.FC<{ msg: string; type: ToastType; onClose: () => void }> = ({ msg, type, onClose }) => {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
+  useEffect(() => {
+    const duration = type === 'error' ? 6000 : 3500;
+    const t = setTimeout(onClose, duration);
+    return () => clearTimeout(t);
+  }, [onClose, type]);
   const cls = type === 'success' ? 'toast-success' : type === 'error' ? 'toast-error' : 'toast-info';
   return (
-    <div className={`toast ${cls}`}>
+    <div className={`toast ${cls}`} style={{ maxWidth: '480px', lineHeight: 1.5 }}>
       <span style={{ flex: 1 }}>{msg}</span>
       <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '1rem', padding: '0 2px' }}>✕</button>
     </div>
   );
 };
+
 
 /* ── Confirm ────────────────────────────────────────────────────── */
 const Confirm: React.FC<{ msg: string; onConfirm: () => void; onCancel: () => void; busy?: boolean }> = ({ msg, onConfirm, onCancel, busy }) => (
@@ -205,8 +212,10 @@ export const AdminInventoryPage: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<ApiCard | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [cloneTarget, setCloneTarget] = useState<ApiCard | null>(null);
+  const [assignCustomerTarget, setAssignCustomerTarget] = useState<{ ids: string[]; codes: string[] } | null>(null);
   const [dropdownState, setDropdownState] = useState<{ id: string; top: number; left: number } | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
+
 
 
   const [sortConfig, setSortConfig] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
@@ -411,7 +420,22 @@ export const AdminInventoryPage: React.FC = () => {
         />
       )}
 
+      {assignCustomerTarget && (
+        <BulkAssignCustomerModal
+          cardIds={assignCustomerTarget.ids}
+          cardCodes={assignCustomerTarget.codes}
+          onClose={() => setAssignCustomerTarget(null)}
+          onSuccess={() => {
+            setSelected(new Set());
+            fetchCards(page, limit);
+            loadGlobalStats();
+          }}
+          onToast={showToast}
+        />
+      )}
+
       <CardDetailsDrawer
+
         card={drawerCard} categories={categories}
         onClose={() => setDrawerCard(null)}
         onUpdated={() => { fetchCards(page, limit); setDrawerCard(null); }}
@@ -599,12 +623,32 @@ export const AdminInventoryPage: React.FC = () => {
           <span style={{ fontWeight: 700, color: 'var(--clr-primary-800)', fontSize: 'var(--fs-sm)' }}>
             {selected.size} بطاقة محددة
           </span>
-          <div style={{ display: 'flex', gap: '7px', marginInlineStart: 'auto', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '7px', marginInlineStart: 'auto', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={() => {
+                const selCards = cards.filter(c => selected.has(c._id));
+                setAssignCustomerTarget({
+                  ids: selCards.map(c => c._id),
+                  codes: selCards.map(c => c.card_code),
+                });
+              }}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '6px 14px', borderRadius: 'var(--r-sm)', border: 'none',
+                backgroundColor: 'var(--clr-primary-500)', color: '#fff',
+                fontFamily: 'var(--font)', fontWeight: 800, fontSize: 'var(--fs-xs)',
+                cursor: 'pointer', boxShadow: 'var(--shadow-blue)',
+              }}
+            >
+              <UserCheck size={14} />
+              <span>ربط بعميل (Assign Cards)</span>
+            </button>
+
             {[
               { label: 'تفعيل', action: () => bulkToggle('active'), bg: 'var(--clr-success-bg)', color: 'var(--clr-success)' },
               { label: 'تعطيل', action: () => bulkToggle('inactive'), bg: 'var(--clr-warning-bg)', color: 'var(--clr-warning)' },
               { label: 'حذف', action: bulkDelete, bg: 'var(--clr-error-bg)', color: 'var(--clr-error)' },
-              { label: 'إلغاء', action: () => setSelected(new Set()), bg: 'var(--bg-hover)', color: 'var(--txt-secondary)' },
+              { label: 'إلغاء التحديد', action: () => setSelected(new Set()), bg: 'var(--bg-hover)', color: 'var(--txt-secondary)' },
             ].map(b => (
               <button key={b.label} onClick={b.action} style={{
                 display: 'inline-flex', alignItems: 'center', gap: '5px',
@@ -619,6 +663,7 @@ export const AdminInventoryPage: React.FC = () => {
           </div>
         </div>
       )}
+
 
       {/* Error */}
       {error && (
@@ -882,6 +927,20 @@ export const AdminInventoryPage: React.FC = () => {
               <button
                 className="menu-item-btn"
                 onClick={() => {
+                  setAssignCustomerTarget({
+                    ids: [dCard._id],
+                    codes: [dCard.card_code],
+                  });
+                  setDropdownState(null);
+                }}
+              >
+                <UserCheck size={15} style={{ color: 'var(--clr-primary-600)' }} />
+                <span>ربط بالعميل (Assign)</span>
+              </button>
+
+              <button
+                className="menu-item-btn"
+                onClick={() => {
                   setCloneTarget(dCard);
                   setDropdownState(null);
                 }}
@@ -889,6 +948,7 @@ export const AdminInventoryPage: React.FC = () => {
                 <Copy size={15} style={{ color: '#7c3aed' }} />
                 <span>نسخ البطاقة</span>
               </button>
+
 
               <button
                 className="menu-item-btn"

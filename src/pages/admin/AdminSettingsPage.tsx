@@ -132,8 +132,9 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
   // Active tab state: url query param has precedence, then initialTab
   const queryTab = searchParams.get('tab') as 'profile' | 'security' | null;
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>(
-    queryTab === 'security' ? 'security' : 'profile'
+    queryTab === 'security' || queryTab === 'profile' ? queryTab : initialTab
   );
+
 
   const [toast, setToast] = useState<ToastInfo | null>(null);
 

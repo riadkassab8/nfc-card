@@ -393,3 +393,78 @@ export const CUSTOM_SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const getCardSlugOrCode = (card: { custom_slug?: string | null; card_code: string }): string => {
   return card.custom_slug?.trim() ? card.custom_slug.trim() : card.card_code;
 };
+
+// ── Customers (CRM Module) ────────────────────────────────────────────────
+
+export interface ApiCustomer {
+  _id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  city?: string;
+  address?: string;
+  notes?: string;
+  total_cards?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CustomerQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export interface ApiCustomersPaginatedResponse {
+  data: ApiCustomer[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ApiCustomerCardSummary {
+  total_cards: number;
+  active_cards: number;
+  inactive_cards: number;
+}
+
+export interface ApiCustomerDetailCard {
+  _id: string;
+  card_code: string;
+  custom_slug?: string | null;
+  card_type: string;
+  status: CardStatus;
+  current_redirect_url?: string;
+  requires_subscription?: boolean;
+  subscription_end_date?: string | null;
+}
+
+export interface ApiCustomerDetailResponse {
+  customer: ApiCustomer;
+  summary: ApiCustomerCardSummary;
+  cards: ApiCustomerDetailCard[];
+}
+
+export interface ApiCreateCustomerDto {
+  name: string;
+  phone: string;
+  email?: string;
+  city?: string;
+  address?: string;
+  notes?: string;
+}
+
+export interface ApiUpdateCustomerDto {
+  name?: string;
+  phone?: string;
+  email?: string;
+  city?: string;
+  address?: string;
+  notes?: string;
+}
+
+export interface ApiAssignCardsDto {
+  card_ids: string[];
+}
+

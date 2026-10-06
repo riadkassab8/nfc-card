@@ -7,6 +7,8 @@ import { AdminShell } from './components/admin/AdminShell';
 
 import { LoginPage }               from './pages/LoginPage';
 import { AdminOverviewPage }        from './pages/admin/AdminOverviewPage';
+import { AdminCustomersPage }       from './pages/admin/AdminCustomersPage';
+import { CustomerDetailsPage }      from './pages/admin/CustomerDetailsPage';
 import { AdminInventoryPage }       from './pages/admin/AdminInventoryPage';
 import { AdminAddCardPage }         from './pages/admin/AdminAddCardPage';
 import { AdminCategoriesPage }      from './pages/admin/AdminCategoriesPage';
@@ -39,6 +41,26 @@ export const App: React.FC = () => (
           }
         />
         <Route
+          path="/admin/customers"
+          element={
+            <ProtectedRoute>
+              <AdminShell title="إدارة العملاء">
+                <AdminCustomersPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/customers/:id"
+          element={
+            <ProtectedRoute>
+              <AdminShell title="تفاصيل العميل">
+                <CustomerDetailsPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/cards"
           element={
             <ProtectedRoute>
@@ -48,6 +70,7 @@ export const App: React.FC = () => (
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/admin/categories"
           element={

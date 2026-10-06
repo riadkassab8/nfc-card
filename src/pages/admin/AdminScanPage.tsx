@@ -3,8 +3,9 @@ import { cardsApi, categoriesApi } from '../../services';
 import { ApiCard, ApiCategory, BusinessData, fmtDate, isSubscriptionExpired, parseCategoryMeta } from '../../types';
 import {
   Search, Save, RefreshCw, XCircle, ExternalLink, QrCode, X, Camera,
-  CreditCard, Copy, Link as LinkIcon, Download, CheckCircle2, Sparkles,
+  CreditCard, Copy, Download, Sparkles,
 } from 'lucide-react';
+
 import jsQR from 'jsqr';
 
 const EMPTY: BusinessData = {
