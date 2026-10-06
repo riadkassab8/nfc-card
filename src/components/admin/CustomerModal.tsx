@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { customersApi } from '../../services';
-import { ApiCustomer, ApiCreateCustomerDto, ApiUpdateCustomerDto } from '../../types';
-import { X, Save, RefreshCw, User, Phone } from 'lucide-react';
+import { customersApi, cardsApi } from '../../services';
+import { ApiCustomer, ApiCreateCustomerDto, ApiUpdateCustomerDto, ApiCard } from '../../types';
+import { X, Save, RefreshCw, User, Phone, CreditCard, Plus } from 'lucide-react';
+import { SelectCardsModal } from './SelectCardsModal';
 
 
 interface CustomerModalProps {
@@ -28,6 +29,30 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [cardsModalOpen, setCardsModalOpen] = useState(false);
+  const [selectedCards, setSelectedCards] = useState<ApiCard[]>([]);
+  const [initialCardIds, setInitialCardIds] = useState<Set<string>>(new Set());
+  const [loadingCards, setLoadingCards] = useState(isEdit);
+
+  React.useEffect(() => {
+    if (isEdit && customer) {
+      customersApi.getCustomerById(customer._id)
+        .then((res) => {
+          // Cast ApiCustomerDetailCard to ApiCard for compatibility in state, or just fetch full cards.
+          // Since SelectCardsModal uses ApiCard, we might need full cards. But we only need _id, card_code, business_data.
+          const mappedCards = res.cards.map(c => ({
+            _id: c._id,
+            card_code: c.card_code,
+            business_data: { business_name: c.custom_slug || '' }
+          } as ApiCard));
+          setSelectedCards(mappedCards);
+          setInitialCardIds(new Set(mappedCards.map(c => c._id)));
+        })
+        .catch(console.error)
+        .finally(() => setLoadingCards(false));
+    }
+  }, [isEdit, customer]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +82,23 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
           notes: notes.trim() || undefined,
         };
         const updated = await customersApi.updateCustomer(customer._id, dto);
+        
+        // Handle cards diff
+        const currentCardIds = new Set(selectedCards.map(c => c._id));
+        
+        // unassign removed cards
+        for (const oldId of initialCardIds) {
+          if (!currentCardIds.has(oldId)) {
+            await customersApi.unassignCard(updated._id, oldId).catch(console.error);
+          }
+        }
+        
+        // assign new cards
+        const toAssign = Array.from(currentCardIds).filter(id => !initialCardIds.has(id));
+        if (toAssign.length > 0) {
+          await customersApi.assignCards(updated._id, { card_ids: toAssign }).catch(console.error);
+        }
+
         onToast('تم تحديث بيانات العميل بنجاح ✓', 'success');
         onSuccess(updated);
         onClose();
@@ -70,6 +112,11 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
           notes: notes.trim() || undefined,
         };
         const created = await customersApi.createCustomer(dto);
+
+        if (selectedCards.length > 0) {
+          await customersApi.assignCards(created._id, { card_ids: selectedCards.map(c => c._id) }).catch(console.error);
+        }
+
         onToast('تمت إضافة العميل الجديد بنجاح ✓', 'success');
         onSuccess(created);
         onClose();
@@ -284,7 +331,77 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
               />
             </div>
           </form>
+
+          {/* Cards Assignment Section */}
+          <div style={{ marginTop: '24px', borderTop: '1px solid var(--bdr-light)', paddingTop: '16px' }}>
+            <label className="form-label" style={{ fontWeight: 700, fontSize: 'var(--fs-sm)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CreditCard size={15} style={{ color: 'var(--clr-primary-500)' }} />
+              ربط الكروت بالعميل
+            </label>
+            
+            {loadingCards ? (
+              <div style={{ fontSize: '12px', color: 'var(--txt-muted)' }}>جاري تحميل الكروت...</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {selectedCards.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {selectedCards.map(c => (
+                      <div key={c._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--clr-primary-200)', backgroundColor: 'var(--clr-primary-50)' }}>
+                        <div>
+                          <div style={{ fontWeight: 700, color: 'var(--clr-primary-800)', fontSize: '13.5px', fontFamily: 'monospace' }}>
+                            {c.card_code}
+                          </div>
+                        </div>
+                        <button type="button" onClick={() => setSelectedCards(prev => prev.filter(sc => sc._id !== c._id))} style={{ background: 'none', border: 'none', color: 'var(--clr-error)', cursor: 'pointer', padding: '4px' }}>
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setCardsModalOpen(true)}
+                      className="btn-outline"
+                      style={{ padding: '8px', fontSize: '12.5px', borderRadius: '8px', marginTop: '4px' }}
+                    >
+                      + تعديل / إضافة كروت أخرى
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCardsModalOpen(true)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: '1px dashed var(--clr-primary-300)',
+                      backgroundColor: 'var(--bg-subtle)',
+                      color: 'var(--clr-primary-600)',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <Plus size={15} /> اختيار كروت للربط
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+        {cardsModalOpen && (
+          <SelectCardsModal
+            onClose={() => setCardsModalOpen(false)}
+            onSelect={(cards) => setSelectedCards(cards)}
+            initialSelectedCards={selectedCards}
+          />
+        )}
 
         {/* Footer */}
         <div

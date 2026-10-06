@@ -18,6 +18,170 @@ import {
   VodafoneCashIcon,
 } from './BrandIcons';
 
+const PremiumTile = ({ link, onClick }: { link: any, onClick: (e: React.MouseEvent) => void }) => {
+  const cardRef = useRef<HTMLAnchorElement>(null);
+  const iconRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLSpanElement>(null);
+  const subtitleRef = useRef<HTMLSpanElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+  
+  const xTo = useRef<gsap.QuickToFunc>();
+  const yTo = useRef<gsap.QuickToFunc>();
+  
+  useEffect(() => {
+    const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    
+    if (!isTouch && !prefersReducedMotion && cardRef.current) {
+      xTo.current = gsap.quickTo(cardRef.current, 'rotateY', { duration: 0.8, ease: 'power3.out' });
+      yTo.current = gsap.quickTo(cardRef.current, 'rotateX', { duration: 0.8, ease: 'power3.out' });
+    }
+  }, []);
+
+  const handleMouseEnter = () => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      gsap.to(cardRef.current, { y: -4, duration: 0.4, ease: 'power2.out' });
+      return;
+    }
+
+    gsap.to(cardRef.current, {
+      y: -10,
+      boxShadow: '0 22px 45px rgba(0,0,0,0.08)',
+      duration: 0.8,
+      ease: 'power3.out'
+    });
+
+    gsap.to(iconRef.current, {
+      y: -6,
+      scale: 1.12,
+      rotation: 5,
+      duration: 1.0,
+      ease: 'power3.out'
+    });
+    
+    if (glowRef.current) {
+      gsap.to(glowRef.current, {
+        opacity: 0.15,
+        scale: 1.2,
+        duration: 1.0,
+        ease: 'power3.out'
+      });
+    }
+
+    gsap.to(titleRef.current, {
+      y: -2,
+      duration: 0.8,
+      ease: 'power3.out'
+    });
+
+    gsap.to(subtitleRef.current, {
+      y: -1,
+      duration: 0.8,
+      ease: 'power3.out'
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!xTo.current || !yTo.current || !cardRef.current) return;
+    
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const rotateX = ((y - centerY) / centerY) * -3;
+    const rotateY = ((x - centerX) / centerX) * 3;
+    
+    xTo.current(rotateY);
+    yTo.current(rotateX);
+  };
+
+  const handleMouseLeave = () => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      gsap.to(cardRef.current, { y: 0, duration: 0.4, ease: 'power2.out' });
+      return;
+    }
+
+    gsap.to(cardRef.current, {
+      y: 0,
+      rotateX: 0,
+      rotateY: 0,
+      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.02)', // var(--shadow-subtle)
+      duration: 0.8,
+      ease: 'power3.out'
+    });
+
+    gsap.to(iconRef.current, {
+      y: 0,
+      scale: 1,
+      rotation: 0,
+      duration: 0.9,
+      ease: 'power3.out'
+    });
+    
+    if (glowRef.current) {
+      gsap.to(glowRef.current, {
+        opacity: 0,
+        scale: 1,
+        duration: 0.9,
+        ease: 'power3.out'
+      });
+    }
+
+    gsap.to([titleRef.current, subtitleRef.current], {
+      y: 0,
+      duration: 0.8,
+      ease: 'power3.out'
+    });
+  };
+
+  return (
+    <a
+      ref={cardRef}
+      href={link.url}
+      target={link.url.startsWith('tel:') || link.url.startsWith('mailto:') ? '_self' : '_blank'}
+      rel="noopener noreferrer"
+      className="nfc-tile gsap-tile"
+      style={{ '--brand-color': link.brandColor } as React.CSSProperties}
+      onClick={onClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="nfc-tile-icon-wrap" style={{ position: 'relative' }}>
+        <div 
+          ref={glowRef}
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: '100%',
+            height: '100%',
+            backgroundColor: link.brandColor,
+            transform: 'translate(-50%, -50%)',
+            borderRadius: '50%',
+            filter: 'blur(15px)',
+            opacity: 0,
+            zIndex: 0,
+            pointerEvents: 'none'
+          }}
+        />
+        <div ref={iconRef} className="nfc-tile-icon" style={{ position: 'relative', zIndex: 1 }}>
+          {link.icon}
+        </div>
+      </div>
+      <div className="nfc-tile-content" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px', position: 'relative', zIndex: 1 }}>
+        <span ref={titleRef} className="nfc-tile-label" style={{ fontSize: '1.05rem', textAlign: 'center', lineHeight: '1.2', display: 'block' }}>{link.title}</span>
+        <span ref={subtitleRef} className="nfc-tile-subtitle" style={{ fontSize: '0.8rem', color: '#9ca3af', textAlign: 'center', display: 'block' }}>{link.subtitle}</span>
+      </div>
+    </a>
+  );
+};
+
 export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -29,32 +193,78 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
     setTimeout(() => setToastMsg(null), 2500);
   };
   
+  const handleSaveContact = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!biz) return;
+    
+    // Generate vCard data
+    const lines = [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      `FN:${biz.business_name || card.custom_slug || card.card_code}`,
+    ];
+    
+    if (biz.phone?.trim()) {
+      lines.push(`TEL;TYPE=CELL:${biz.phone.trim()}`);
+    }
+    if (biz.email?.trim()) {
+      lines.push(`EMAIL;TYPE=WORK:${biz.email.trim()}`);
+    }
+    if (biz.website?.trim()) {
+      lines.push(`URL:${biz.website.trim()}`);
+    }
+    if (biz.google_maps?.trim()) {
+      lines.push(`URL;TYPE=MAP:${biz.google_maps.trim()}`);
+    }
+    
+    // Fallback to social page link
+    lines.push(`URL;TYPE=PROFILE:${window.location.href}`);
+    
+    if (biz.description?.trim()) {
+      lines.push(`NOTE:${biz.description.trim()}`);
+    }
+    
+    lines.push('END:VCARD');
+    
+    const vcardContent = lines.join('\n');
+    const blob = new Blob([vcardContent], { type: 'text/vcard;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${biz.business_name || card.custom_slug || card.card_code}.vcf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  
   // Extract links
   const links: any[] = [];
   
   if (biz?.whatsapp?.trim()) {
-    links.push({ id: 'wa', platform: 'whatsapp', title: 'WhatsApp', url: biz.whatsapp, icon: <WhatsAppIcon size={32} />, brandColor: '#25D366' });
+    links.push({ id: 'wa', platform: 'whatsapp', title: 'WhatsApp', subtitle: 'تواصل معنا مباشرة', url: biz.whatsapp, icon: <WhatsAppIcon size={36} />, brandColor: '#25D366' });
   }
   if (biz?.instagram?.trim()) {
-    links.push({ id: 'ig', platform: 'instagram', title: 'Instagram', url: biz.instagram, icon: <InstagramIcon size={32} />, brandColor: '#E1306C' });
+    links.push({ id: 'ig', platform: 'instagram', title: 'Instagram', subtitle: 'شاهد يومياتنا', url: biz.instagram, icon: <InstagramIcon size={36} />, brandColor: '#E1306C' });
   }
   if (biz?.facebook?.trim()) {
-    links.push({ id: 'fb', platform: 'facebook', title: 'Facebook', url: biz.facebook, icon: <FacebookIcon size={32} />, brandColor: '#1877F2' });
+    links.push({ id: 'fb', platform: 'facebook', title: 'Facebook', subtitle: 'تابع آخر الأخبار', url: biz.facebook, icon: <FacebookIcon size={36} />, brandColor: '#1877F2' });
   }
   if (biz?.tiktok?.trim()) {
-    links.push({ id: 'tt', platform: 'tiktok', title: 'TikTok', url: biz.tiktok, icon: <TikTokIcon size={32} />, brandColor: '#000000' });
+    links.push({ id: 'tt', platform: 'tiktok', title: 'TikTok', subtitle: 'اكتشف المزيد', url: biz.tiktok, icon: <TikTokIcon size={36} />, brandColor: '#000000' });
   }
   if (biz?.google_maps?.trim()) {
-    links.push({ id: 'gm', platform: 'google_maps', title: 'Google Review', url: biz.google_maps, icon: <GoogleMapsIcon size={32} />, brandColor: '#EA4335' });
+    links.push({ id: 'gm', platform: 'google_maps', title: 'Google Review', subtitle: 'موقعنا على الخريطة', url: biz.google_maps, icon: <GoogleMapsIcon size={36} />, brandColor: '#EA4335' });
   }
   if (biz?.phone?.trim()) {
-    links.push({ id: 'ph', platform: 'phone', title: 'Call', url: `tel:${biz.phone}`, icon: <PhoneIcon size={32} />, brandColor: '#10B981' });
+    links.push({ id: 'ph', platform: 'phone', title: 'Call', subtitle: 'يسعدنا استقبال مكالمتك', url: `tel:${biz.phone}`, icon: <PhoneIcon size={36} />, brandColor: '#10B981' });
   }
   if (biz?.email?.trim()) {
-    links.push({ id: 'em', platform: 'email', title: 'Email', url: `mailto:${biz.email}`, icon: <EmailIcon size={32} />, brandColor: '#6366F1' });
+    links.push({ id: 'em', platform: 'email', title: 'Email', subtitle: 'راسلنا عبر البريد', url: `mailto:${biz.email}`, icon: <EmailIcon size={36} />, brandColor: '#6366F1' });
   }
   if (biz?.website?.trim()) {
-    links.push({ id: 'ws', platform: 'website', title: 'Website', url: biz.website, icon: <GlobeIcon size={32} />, brandColor: '#3B82F6' });
+    links.push({ id: 'ws', platform: 'website', title: 'Website', subtitle: 'تصفح موقعنا', url: biz.website, icon: <GlobeIcon size={36} />, brandColor: '#3B82F6' });
   }
   if (biz?.instapay?.trim()) {
     const val = biz.instapay.trim();
@@ -62,10 +272,10 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
     links.push({
       id: 'ip',
       platform: 'instapay',
-      title: 'الدفع عبر إنستاباي (InstaPay)',
-      subtitle: val,
+      title: 'InstaPay',
+      subtitle: 'للدفع والتحويل',
       url: isUrl ? val : `https://instapay.eg`,
-      icon: <InstaPayIcon size={32} />,
+      icon: <InstaPayIcon size={36} />,
       brandColor: '#49258E',
       copyValue: val,
       copyMessage: `تم نسخ معرّف إنستاباي (${val}) بنجاح ✓`,
@@ -76,10 +286,10 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
     links.push({
       id: 'vc',
       platform: 'vodafone_cash',
-      title: 'فودافون كاش (Vodafone Cash)',
-      subtitle: val,
+      title: 'Vodafone Cash',
+      subtitle: 'حول بسهولة وأمان',
       url: `tel:${val}`,
-      icon: <VodafoneCashIcon size={32} />,
+      icon: <VodafoneCashIcon size={36} />,
       brandColor: '#E60000',
       copyValue: val,
       copyMessage: `تم نسخ رقم محفظة فودافون كاش (${val}) بنجاح ✓`,
@@ -147,70 +357,16 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
     return (
       <div className="nfc-grid">
         {links.map((link) => (
-          <a
+          <PremiumTile
             key={link.id}
-            href={link.url}
-            target={link.url.startsWith('tel:') || link.url.startsWith('mailto:') ? '_self' : '_blank'}
-            rel="noopener noreferrer"
-            className="nfc-tile gsap-tile"
-            style={{ '--brand-color': link.brandColor } as React.CSSProperties}
+            link={link}
             onClick={(e) => {
               if (link.copyValue && (link.platform === 'vodafone_cash' || (link.platform === 'instapay' && !link.url.startsWith('http')))) {
                 e.preventDefault();
                 copyToClipboard(link.copyValue, link.copyMessage);
               }
             }}
-          >
-            <div className="nfc-tile-icon">{React.cloneElement(link.icon as React.ReactElement, { size: 48 })}</div>
-            <div className="nfc-tile-content">
-              <span className="nfc-tile-label">{link.title}</span>
-              {link.subtitle && (
-                <span
-                  style={{
-                    fontSize: '0.8rem',
-                    color: 'var(--text-secondary)',
-                    display: 'block',
-                    direction: 'ltr',
-                    textAlign: 'right',
-                    marginTop: '2px',
-                    fontWeight: 600,
-                  }}
-                >
-                  {link.subtitle}
-                </span>
-              )}
-            </div>
-            <div className="nfc-tile-arrow" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {link.copyValue && (
-                <button
-                  type="button"
-                  title="نسخ"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    copyToClipboard(link.copyValue, link.copyMessage);
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: '4px',
-                    cursor: 'pointer',
-                    color: 'inherit',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Copy size={16} />
-                </button>
-              )}
-              {(!link.copyValue || link.url.startsWith('http')) && (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-              )}
-            </div>
-          </a>
+          />
         ))}
       </div>
     );
@@ -222,15 +378,15 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800;900&display=swap');
 
         :root {
-          --bg-base: #f8f9fa;
-          --bg-solid: #f8f9fa;
+          --bg-base: #FAF8F5;
+          --bg-solid: #FAF8F5;
           --surface: #ffffff;
           --text-primary: #111827;
           --text-secondary: #6b7280;
-          --border-light: rgba(0, 0, 0, 0.05);
-          --shadow-subtle: 0 2px 10px rgba(0, 0, 0, 0.03);
-          --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.06);
-          --radius-card: 20px;
+          --border-light: rgba(0, 0, 0, 0.04);
+          --shadow-subtle: 0 4px 16px rgba(0, 0, 0, 0.02);
+          --shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.05);
+          --radius-card: 24px;
         }
 
         body {
@@ -251,12 +407,12 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           padding: 48px 20px;
           overflow-x: hidden;
           z-index: 1;
-          background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+          background-color: var(--bg-solid);
         }
 
         .nfc-container {
           width: 100%;
-          max-width: 440px; /* Mobile first Linktree style */
+          max-width: 900px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -264,12 +420,22 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         }
 
         .nfc-grid {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 16px;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 20px;
           width: 100%;
+          max-width: 900px;
           margin-top: 32px;
+          padding: 0 10px;
+          box-sizing: border-box;
+          perspective: 1000px;
+        }
+
+        /* Override to 3 columns on larger screens explicitly to match design */
+        @media (min-width: 800px) {
+          .nfc-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
         }
 
         .nfc-tile {
@@ -277,98 +443,33 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           background-color: var(--surface);
           border: 1px solid var(--border-light);
           border-radius: var(--radius-card);
-          padding: 16px 20px;
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          justify-content: space-between;
-          text-decoration: none;
-          color: var(--text-primary);
-          box-shadow: var(--shadow-subtle);
-          transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-          position: relative;
-          overflow: hidden;
-          box-sizing: border-box;
-          z-index: 1;
-        }
-
-        .nfc-tile::before {
-          content: "";
-          position: absolute;
-          top: 0; left: 0; right: 0; bottom: 0;
-          background: var(--brand-color);
-          opacity: 0;
-          transform: scaleX(0);
-          transform-origin: right;
-          transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s;
-          z-index: -1;
-          border-radius: inherit;
-        }
-
-        .nfc-tile:hover {
-          transform: translateY(-4px) scale(1.02);
-          box-shadow: 0 16px 32px color-mix(in srgb, var(--brand-color, #000) 15%, transparent);
-          border-color: color-mix(in srgb, var(--brand-color, #000) 30%, transparent);
-        }
-
-        .nfc-tile:hover::before {
-          transform: scaleX(1);
-          opacity: 0.08;
-          transform-origin: left;
-        }
-
-        @keyframes jellyFlip {
-          0% { transform: scale(1) rotate(0deg); }
-          30% { transform: scale(1.2) rotate(-15deg); }
-          60% { transform: scale(0.9) rotate(10deg); }
-          100% { transform: scale(1.05) rotate(0deg); }
-        }
-
-        .nfc-tile-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .nfc-tile:hover .nfc-tile-icon {
-          animation: jellyFlip 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-        
-        .nfc-tile-arrow {
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--text-secondary);
-          transition: transform 0.3s ease, color 0.3s ease;
-        }
-
-        .nfc-tile:hover .nfc-tile-arrow {
-          color: var(--brand-color);
-          transform: translateX(-4px);
-        }
-
-        .nfc-tile-content {
-          flex: 1;
+          padding: 32px 16px;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          text-align: center;
-          padding: 0 16px;
+          gap: 16px;
+          text-decoration: none;
+          color: var(--text-primary);
+          box-shadow: var(--shadow-subtle);
+          position: relative;
+          overflow: visible;
+          box-sizing: border-box;
+          z-index: 1;
+          transform-style: preserve-3d;
         }
-
+        
+        .nfc-tile-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
         .nfc-tile-label {
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 700;
           letter-spacing: -0.01em;
           color: var(--text-primary);
-        }
-        
-        .nfc-tile-cta {
-          display: none; /* Hide subtitle for a cleaner look */
         }
 
         /* Ensure tiles are visible even if GSAP animation fails to run */
@@ -467,7 +568,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
                   boxShadow: 'var(--shadow-subtle)',
                 }}>
                   <Eye size={14} style={{ color: '#8b5cf6' }} />
-                  <span>{Math.round(card.visit_count / 2).toLocaleString('ar-EG')} زيارة</span>
+                  <span>{card.visit_count.toLocaleString('ar-EG')} زيارة</span>
                 </div>
               </div>
             )}
@@ -476,8 +577,8 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
             {biz?.phone?.trim() && (
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
                 <a
-                  href={cardsApi.getVcardUrl(card.custom_slug || card.card_code)}
-                  download={`${card.business_data?.business_name || card.custom_slug || card.card_code}.vcf`}
+                  href="#"
+                  onClick={handleSaveContact}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
