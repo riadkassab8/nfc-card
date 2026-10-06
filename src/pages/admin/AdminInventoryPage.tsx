@@ -13,9 +13,10 @@ import { CardTrashModal } from '../../components/admin/CardTrashModal';
 import {
   Plus, Search, RefreshCw, CreditCard, CheckCircle2, XCircle,
   Power, Trash2, Eye, Download, FileDown, Layers, Copy,
-  AlertTriangle, ChevronLeft, ChevronRight, TrendingUp, Link as LinkIcon,
+  ChevronLeft, ChevronRight, TrendingUp, Link as LinkIcon,
   MoreVertical, UserCheck,
 } from 'lucide-react';
+
 
 
 
@@ -38,36 +39,6 @@ const Toast: React.FC<{ msg: string; type: ToastType; onClose: () => void }> = (
 };
 
 
-/* ── Confirm ────────────────────────────────────────────────────── */
-const Confirm: React.FC<{ msg: string; onConfirm: () => void; onCancel: () => void; busy?: boolean }> = ({ msg, onConfirm, onCancel, busy }) => (
-  <div className="modal-overlay" style={{ zIndex: 1100 }}>
-    <div style={{
-      background: 'var(--bg-white)', borderRadius: 'var(--r-2xl)',
-      padding: '28px', maxWidth: '420px', width: '100%',
-      boxShadow: 'var(--shadow-xl)', fontFamily: 'var(--font)',
-      animation: 'modalIn 220ms var(--ease-out) both',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '22px' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: 'var(--r-md)', backgroundColor: 'var(--clr-error-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <AlertTriangle size={20} style={{ color: 'var(--clr-error)' }} />
-        </div>
-        <p style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--txt-body)', margin: 0, lineHeight: 1.6 }}>{msg}</p>
-      </div>
-      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-        <button onClick={onCancel} className="btn-outline" disabled={busy}>إلغاء</button>
-        <button onClick={onConfirm} disabled={busy} style={{
-          display: 'inline-flex', alignItems: 'center', gap: '7px',
-          padding: '9px 18px', borderRadius: 'var(--r-md)', border: 'none',
-          backgroundColor: 'var(--clr-error)', color: '#fff', cursor: busy ? 'not-allowed' : 'pointer',
-          fontFamily: 'var(--font)', fontWeight: 700, fontSize: 'var(--fs-base)',
-          opacity: busy ? 0.7 : 1,
-        }}>
-          {busy ? <><RefreshCw size={14} className="spin" /> حذف...</> : 'تأكيد الحذف'}
-        </button>
-      </div>
-    </div>
-  </div>
-);
 
 /* ── Clone Card Modal ───────────────────────────────────────────── */
 const CloneCardModal: React.FC<{
@@ -213,8 +184,8 @@ export const AdminInventoryPage: React.FC = () => {
   const [drawerCard, setDrawerCard] = useState<ApiCard | null>(null);
   const [batchOpen, setBatchOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ApiCard | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [cloneTarget, setCloneTarget] = useState<ApiCard | null>(null);
+
   const [assignCustomerTarget, setAssignCustomerTarget] = useState<{ ids: string[]; codes: string[] } | null>(null);
   const [trashModalOpen, setTrashModalOpen] = useState(false);
   const [downloadingBackup, setDownloadingBackup] = useState(false);
@@ -336,19 +307,6 @@ export const AdminInventoryPage: React.FC = () => {
     } catch (e: any) { showToast(e?.message || 'فشل', 'error'); }
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleteLoading(true);
-    try {
-      await cardsApi.deleteCard(deleteTarget._id);
-      showToast(`تم حذف ${deleteTarget.card_code}`);
-      setDeleteTarget(null);
-      setDrawerCard(null);
-      fetchCards(page, limit);
-      loadGlobalStats();
-    } catch (e: any) { showToast(e?.message || 'فشل الحذف', 'error'); }
-    finally { setDeleteLoading(false); }
-  };
 
   const downloadQR = async (card: ApiCard) => {
     try {

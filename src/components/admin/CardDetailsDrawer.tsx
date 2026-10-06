@@ -445,8 +445,6 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   const [history, setHistory]       = useState<ApiCardHistory[]>([]);
   const [histLoading, setHistLoading] = useState(false);
   const [histLoaded, setHistLoaded] = useState(false);
-  const [confirmDel, setConfirmDel] = useState(false);
-  const [deleting, setDeleting]     = useState(false);
   const [toggling, setToggling]     = useState(false);
   const [renewing, setRenewing]     = useState(false);
   const [copied, setCopied]         = useState<string | null>(null);
@@ -456,8 +454,10 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   /* reset on card change */
   useEffect(() => {
     if (!card) return;
-    setTab('info'); setConfirmDel(false);
+    setTab('info');
+    setShowDeleteModal(false);
     setNewUrl(card.current_redirect_url ? card.current_redirect_url.replace(/https?:\/\/[^\/]+\/social\//, 'https://smart-card-qr-api.koyeb.app/r/').replace(/https?:\/\/smartcard-app\.com/g, 'https://smart-card-qr-api.koyeb.app') : '');
+
     setQrDataUrl(null); setHistory([]); setHistLoaded(false);
 
     // If card directly contains populated customer object
@@ -894,19 +894,17 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                   {renewing ? <RefreshCw size={13} className="spin" /> : <RefreshCw size={13} />}
                   تجديد الاشتراك
                 </button>
-                {!confirmDel
-                  ? <button className="btn-outline" style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px', borderColor: 'var(--clr-error-bdr)', color: 'var(--clr-error)' }} onClick={() => setConfirmDel(true)}>
-                      <Trash2 size={13} /> حذف
-                    </button>
-                  : <>
-                      <button onClick={handleDelete} disabled={deleting} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: 'var(--r-md)', border: 'none', backgroundColor: 'var(--clr-error)', color: '#fff', cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 'var(--fs-sm)', opacity: deleting ? 0.7 : 1 }}>
-                        {deleting ? 'حذف...' : '⚠ تأكيد الحذف'}
-                      </button>
-                      <button className="btn-outline" style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px' }} onClick={() => setConfirmDel(false)}>إلغاء</button>
-                    </>}
+                <button
+                  className="btn-outline"
+                  style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px', borderColor: 'var(--clr-error-bdr)', color: 'var(--clr-error)' }}
+                  onClick={() => setShowDeleteModal(true)}
+                >
+                  <Trash2 size={13} /> حذف الكارت
+                </button>
               </div>
             </div>
           )}
+
 
           {/* ════ REDIRECT ════ */}
           {tab === 'redirect' && (

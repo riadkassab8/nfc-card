@@ -369,6 +369,22 @@ export const fmtDate = (iso?: string | null): string => {
   });
 };
 
+/** Format an ISO date string to Arabic date with time */
+export const fmtDateTime = (iso?: string | null): string => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const datePart = d.toLocaleDateString('ar-EG', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+  const timePart = d.toLocaleTimeString('ar-EG', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${datePart} - ${timePart}`;
+};
+
 /** Returns true if subscription_end_date is in the past.
  *  Cards with requires_subscription: false are never expired. */
 export const isSubscriptionExpired = (card: ApiCard): boolean => {
@@ -489,6 +505,38 @@ export interface ApiTrashCustomer extends ApiCustomer {
 
 export interface ApiDeleteCustomerDto {
   password?: string;
+}
+
+// ── Customer History & Audit Log ──────────────────────────────────────────
+
+export type CustomerHistoryAction =
+  | 'created'
+  | 'updated'
+  | 'cards_assigned'
+  | 'card_unassigned'
+  | 'deleted'
+  | 'restored'
+  | string;
+
+export interface CustomerSnapshot {
+  _id?: string;
+  name?: string;
+  phone?: string;
+  email?: string;
+  city?: string;
+  address?: string;
+  notes?: string;
+  total_cards?: number;
+  [key: string]: any;
+}
+
+export interface ApiCustomerHistory {
+  _id: string;
+  customer_id: string;
+  action: CustomerHistoryAction;
+  details?: string;
+  snapshot?: CustomerSnapshot | null;
+  recorded_at: string;
 }
 
 

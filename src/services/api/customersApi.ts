@@ -13,6 +13,7 @@ import {
   ApiUpdateCustomerDto,
   ApiAssignCardsDto,
   CustomerQueryParams,
+  ApiCustomerHistory,
 } from '../../types';
 
 
@@ -50,6 +51,7 @@ export const customersApi = {
     apiClient<{ message?: string; customer_id?: string }>(`/customers/${id}`, {
       method: 'DELETE',
       body: password ? { password } : undefined,
+      skipUnauthorizedRedirect: true,
     }),
 
   // ── GET /api/customers/trash ─────────────────────────────────────────────
@@ -80,5 +82,9 @@ export const customersApi = {
     apiClient<{ message?: string }>(`/customers/${id}/cards/${cardId}`, {
       method: 'DELETE',
     }),
+
+  // ── GET /api/customers/:id/history ───────────────────────────────────────
+  getCustomerHistory: (id: string): Promise<ApiCustomerHistory[]> =>
+    apiClient<ApiCustomerHistory[]>(`/customers/${id}/history`),
 };
 

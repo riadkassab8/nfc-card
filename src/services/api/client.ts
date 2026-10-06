@@ -25,7 +25,37 @@ export const clearToken = (): void => {
   try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
 };
 
-export const isAuthenticated = (): boolean => !!getToken();
+export const isTokenExpired = (token: string): boolean => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const payload = JSON.parse(jsonPayload);
+    if (payload && typeof payload.exp === 'number') {
+      return Date.now() >= payload.exp * 1000;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+export const isAuthenticated = (): boolean => {
+  const token = getToken();
+  if (!token) return false;
+  if (isTokenExpired(token)) {
+    clearToken();
+    return false;
+  }
+  return true;
+};
 
 // ── Error class ───────────────────────────────────────────────────────────
 
@@ -49,6 +79,7 @@ export interface RequestOptions {
   params?: Record<string, string | number | boolean | undefined | null>;
   requiresAuth?: boolean;
   responseType?: 'json' | 'blob';
+  skipUnauthorizedRedirect?: boolean;
 }
 
 // ── Core fetch wrapper ────────────────────────────────────────────────────
@@ -63,6 +94,7 @@ export async function apiClient<T = unknown>(
     params,
     requiresAuth = true,
     responseType = 'json',
+    skipUnauthorizedRedirect = false,
   } = options;
 
   // Build query string
@@ -98,13 +130,6 @@ export async function apiClient<T = unknown>(
     throw new ApiError(0, 'فشل الاتصال بالسيرفر. تحقق من الإنترنت.', 'NetworkError');
   }
 
-  // Global 401 handler
-  if (response.status === 401 && requiresAuth) {
-    clearToken();
-    window.dispatchEvent(new CustomEvent('api:unauthorized'));
-    throw new ApiError(401, 'انتهت جلسة الدخول. يرجى تسجيل الدخول مجدداً.', 'UnauthorizedException');
-  }
-
   if (!response.ok) {
     let message = `خطأ ${response.status}: ${response.statusText}`;
     let errorType = 'HttpError';
@@ -119,6 +144,24 @@ export async function apiClient<T = unknown>(
 
     if (response.status === 429) {
       message = 'تم تجاوز الحد المسموح به. انتظر دقيقة ثم حاول مجدداً.';
+    }
+
+    // Global 401 handler
+    if (response.status === 401 && requiresAuth) {
+      // Check if this 401 is simply an invalid confirmation password (e.g. deleting customer/card)
+      const hasPasswordInBody = body && typeof body === 'object' && 'password' in (body as any);
+      const isPasswordConfirmationError =
+        skipUnauthorizedRedirect ||
+        hasPasswordInBody ||
+        method === 'DELETE' ||
+        message.includes('كلمة مرور') ||
+        message.toLowerCase().includes('password');
+
+      if (!isPasswordConfirmationError) {
+        clearToken();
+        window.dispatchEvent(new CustomEvent('api:unauthorized'));
+        throw new ApiError(401, 'انتهت جلسة الدخول. يرجى تسجيل الدخول مجدداً.', 'UnauthorizedException', details);
+      }
     }
 
     throw new ApiError(response.status, message, errorType, details);

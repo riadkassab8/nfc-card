@@ -25,29 +25,66 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const ADMIN_STORAGE_KEY = 'nfc_admin_profile';
+
+const getStoredAdmin = (): ApiAdmin | null => {
+  try {
+    const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const setStoredAdmin = (admin: ApiAdmin | null) => {
+  try {
+    if (admin) {
+      localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(admin));
+    } else {
+      localStorage.removeItem(ADMIN_STORAGE_KEY);
+    }
+  } catch { /* ignore */ }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<AuthState>({
+  const [state, setState] = useState<AuthState>(() => ({
     isAuthenticated: authApi.isAuthenticated(),
-    admin: null,
+    admin: getStoredAdmin(),
     loading: true,
     error: null,
-  });
+  }));
 
   const setPartial = (partial: Partial<AuthState>) =>
     setState((prev) => ({ ...prev, ...partial }));
 
-  // Verify token is still valid by calling GET /api/auth/profile
+  // Verify token is still valid by calling GET /api/auth/profile or /api/auth/me
   const verifySession = useCallback(async () => {
     if (!authApi.isAuthenticated()) {
+      setStoredAdmin(null);
       setPartial({ isAuthenticated: false, admin: null, loading: false });
       return;
     }
     try {
-      const admin = await authApi.getProfile();
+      let admin: ApiAdmin;
+      try {
+        admin = await authApi.getProfile();
+      } catch (err: any) {
+        if (err?.statusCode === 401) throw err;
+        admin = await authApi.getMe();
+      }
+      setStoredAdmin(admin);
       setPartial({ isAuthenticated: true, admin, loading: false, error: null });
-    } catch {
-      authApi.logout();
-      setPartial({ isAuthenticated: false, admin: null, loading: false });
+    } catch (err: any) {
+      // ONLY log out if strictly 401 Unauthorized
+      if (err?.statusCode === 401) {
+        authApi.logout();
+        setStoredAdmin(null);
+        setPartial({ isAuthenticated: false, admin: null, loading: false });
+      } else {
+        // Network drop or Koyeb cold start: keep session intact with cached profile!
+        console.warn('Session verification encountered transient error, keeping session:', err);
+        setPartial({ isAuthenticated: true, loading: false });
+      }
     }
   }, []);
 
@@ -57,6 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Global 401 listener — any API call that returns 401 fires this event
     const handle401 = () => {
       authApi.logout();
+      setStoredAdmin(null);
       setPartial({
         isAuthenticated: false,
         admin: null,
@@ -73,10 +111,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await authApi.login(username, password);
       // Token is stored by authApi.login; fetch full profile
-      const admin = res.admin ?? (await authApi.getMe());
+      let admin = res.admin;
+      if (!admin) {
+        try {
+          admin = await authApi.getProfile();
+        } catch {
+          admin = await authApi.getMe();
+        }
+      }
+      setStoredAdmin(admin);
       setPartial({ isAuthenticated: true, admin, loading: false, error: null });
     } catch (err: any) {
       const msg = err?.message || 'اسم المستخدم أو كلمة المرور غير صحيحة';
+      setStoredAdmin(null);
       setPartial({ isAuthenticated: false, admin: null, loading: false, error: msg });
       throw new Error(msg);
     }
@@ -84,21 +131,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     authApi.logout();
+    setStoredAdmin(null);
     setPartial({ isAuthenticated: false, admin: null, error: null });
   };
 
   const clearError = () => setPartial({ error: null });
 
   const updateAdmin = (admin: ApiAdmin | Partial<ApiAdmin>) => {
-    setState((prev) => ({
-      ...prev,
-      admin: prev.admin ? { ...prev.admin, ...admin } : (admin as ApiAdmin),
-    }));
+    setState((prev) => {
+      const updated = prev.admin ? { ...prev.admin, ...admin } : (admin as ApiAdmin);
+      setStoredAdmin(updated);
+      return {
+        ...prev,
+        admin: updated,
+      };
+    });
   };
 
   const refreshProfile = async () => {
     try {
-      const admin = await authApi.getProfile();
+      let admin: ApiAdmin;
+      try {
+        admin = await authApi.getProfile();
+      } catch {
+        admin = await authApi.getMe();
+      }
+      setStoredAdmin(admin);
       setPartial({ admin });
     } catch {
       // Ignore or let caller handle

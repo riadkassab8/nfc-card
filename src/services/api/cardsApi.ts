@@ -112,6 +112,7 @@ export const cardsApi = {
     apiClient<{ message: string; card_id?: string }>(`/cards/${id}`, {
       method: 'DELETE',
       body: password ? { password } : undefined,
+      skipUnauthorizedRedirect: true,
     }),
 
   // ── GET /api/cards/trash ─────────────────────────────────────────────────

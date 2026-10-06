@@ -1,4 +1,4 @@
-export { apiClient, getToken, setToken, clearToken, isAuthenticated, getApiBaseUrl, ApiError } from './client';
+export { apiClient, getToken, setToken, clearToken, isAuthenticated, isTokenExpired, getApiBaseUrl, ApiError } from './client';
 export type { RequestOptions } from './client';
 export { authApi } from './authApi';
 export { cardsApi } from './cardsApi';

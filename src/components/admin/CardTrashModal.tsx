@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { cardsApi } from '../../services';
 import { ApiTrashCard, fmtDate } from '../../types';
 import {
-  Trash2, RotateCcw, RefreshCw, X, AlertCircle, Check, CreditCard,
+  Trash2, RotateCcw, RefreshCw, X, AlertCircle, Check,
 } from 'lucide-react';
+
 
 interface CardTrashModalProps {
   onClose: () => void;

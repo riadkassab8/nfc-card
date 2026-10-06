@@ -249,7 +249,7 @@ export const AdminCustomersPage: React.FC = () => {
               boxShadow: 'var(--shadow-blue)',
             }}
           >
-            <Plus size={18} /> + إضافة عميل جديد
+            <Plus size={18} />  إضافة عميل جديد
           </button>
         </div>
       </div>

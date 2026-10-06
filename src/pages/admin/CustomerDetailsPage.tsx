@@ -4,9 +4,10 @@ import { customersApi } from '../../services';
 import { ApiCustomerDetailResponse, fmtDate } from '../../types';
 import { AssignCardsModal } from '../../components/admin/AssignCardsModal';
 import { CustomerModal } from '../../components/admin/CustomerModal';
+import { CustomerHistorySection } from '../../components/admin/CustomerHistorySection';
 import {
   User, Phone, Mail, MapPin, CreditCard,
-  Unlink, Plus, ArrowRight, RefreshCw, AlertTriangle, Edit2
+  Unlink, Plus, ArrowRight, RefreshCw, AlertTriangle, Edit2, History
 } from 'lucide-react';
 
 
@@ -39,6 +40,10 @@ export const CustomerDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Tabs & Views
+  const [activeTab, setActiveTab] = useState<'cards' | 'history'>('cards');
+  const [historyCount, setHistoryCount] = useState<number | null>(null);
+
   // Modals & Actions
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
@@ -55,6 +60,14 @@ export const CustomerDetailsPage: React.FC = () => {
     try {
       const res = await customersApi.getCustomerById(id);
       setData(res);
+      // Fetch history count silently
+      customersApi
+        .getCustomerHistory(id)
+        .then((h) => {
+          const items = Array.isArray(h) ? h : (h as any)?.data || [];
+          setHistoryCount(items.length);
+        })
+        .catch(() => {});
     } catch (err: any) {
       setError(err?.message || 'فشل تحميل بيانات العميل');
     } finally {
@@ -244,7 +257,40 @@ export const CustomerDetailsPage: React.FC = () => {
           <ArrowRight size={16} /> العودة لقائمة العملاء
         </button>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setActiveTab(activeTab === 'history' ? 'cards' : 'history')}
+            className="btn-outline"
+            style={{
+              padding: '8px 16px',
+              borderRadius: '10px',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              borderColor: activeTab === 'history' ? 'var(--clr-primary-500)' : undefined,
+              backgroundColor: activeTab === 'history' ? 'var(--clr-primary-50)' : undefined,
+              color: activeTab === 'history' ? 'var(--clr-primary-700)' : undefined,
+            }}
+          >
+            <History size={15} />
+            <span>{activeTab === 'history' ? 'عرض البطاقات' : 'سجل العمليات'}</span>
+            {historyCount !== null && (
+              <span
+                style={{
+                  backgroundColor: activeTab === 'history' ? 'var(--clr-primary-600)' : 'var(--bg-subtle)',
+                  color: activeTab === 'history' ? '#fff' : 'var(--txt-secondary)',
+                  borderRadius: '12px',
+                  padding: '1px 7px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                }}
+              >
+                {historyCount}
+              </span>
+            )}
+          </button>
           <button
             onClick={() => setEditCustomerOpen(true)}
             className="btn-outline"
@@ -431,6 +477,45 @@ export const CustomerDetailsPage: React.FC = () => {
                 {summary?.inactive_cards ?? cards.filter((c) => c.status === 'inactive').length}
               </div>
             </div>
+
+            <div
+              onClick={() => setActiveTab('history')}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '12px',
+                backgroundColor: activeTab === 'history' ? 'var(--clr-primary-100)' : 'var(--bg-subtle)',
+                border: `1px solid ${activeTab === 'history' ? 'var(--clr-primary-300)' : 'var(--bdr-light)'}`,
+                textAlign: 'center',
+                minWidth: '100px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              title="اضغط للانتقال لسجل الحركات"
+            >
+              <div
+                style={{
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  color: activeTab === 'history' ? 'var(--clr-primary-700)' : 'var(--txt-secondary)',
+                  marginBottom: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                }}
+              >
+                <History size={12} /> سجل الحركات
+              </div>
+              <div
+                style={{
+                  fontSize: '20px',
+                  fontWeight: 900,
+                  color: activeTab === 'history' ? 'var(--clr-primary-800)' : 'var(--clr-primary-600)',
+                }}
+              >
+                {historyCount !== null ? historyCount : '—'}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -467,16 +552,88 @@ export const CustomerDetailsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Cards Table Section */}
+      {/* Navigation Tabs */}
       <div
         style={{
-          backgroundColor: '#fff',
-          borderRadius: '20px',
-          border: '1px solid var(--bdr-light)',
-          overflow: 'hidden',
-          boxShadow: 'var(--shadow-xs)',
+          display: 'flex',
+          gap: '8px',
+          borderBottom: '2px solid var(--bdr-light)',
+          paddingBottom: '0',
+          marginTop: '4px',
         }}
       >
+        <button
+          type="button"
+          onClick={() => setActiveTab('cards')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 20px',
+            border: 'none',
+            borderBottom: activeTab === 'cards' ? '3px solid var(--clr-primary-600)' : '3px solid transparent',
+            marginBottom: '-2px',
+            backgroundColor: 'transparent',
+            color: activeTab === 'cards' ? 'var(--clr-primary-700)' : 'var(--txt-secondary)',
+            fontWeight: activeTab === 'cards' ? 800 : 600,
+            fontSize: '14.5px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <CreditCard size={18} />
+          <span>البطاقات المربوطة ({cards.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('history')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 20px',
+            border: 'none',
+            borderBottom: activeTab === 'history' ? '3px solid var(--clr-primary-600)' : '3px solid transparent',
+            marginBottom: '-2px',
+            backgroundColor: 'transparent',
+            color: activeTab === 'history' ? 'var(--clr-primary-700)' : 'var(--txt-secondary)',
+            fontWeight: activeTab === 'history' ? 800 : 600,
+            fontSize: '14.5px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <History size={18} />
+          <span>سجل العمليات (Activity Log)</span>
+          {historyCount !== null && (
+            <span
+              style={{
+                backgroundColor: activeTab === 'history' ? 'var(--clr-primary-100)' : 'var(--bg-subtle)',
+                color: activeTab === 'history' ? 'var(--clr-primary-800)' : 'var(--txt-muted)',
+                borderRadius: '12px',
+                padding: '2px 8px',
+                fontSize: '12px',
+                fontWeight: 800,
+              }}
+            >
+              {historyCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeTab === 'cards' ? (
+        /* Cards Table Section */
+        <div
+          style={{
+            backgroundColor: '#fff',
+            borderRadius: '20px',
+            border: '1px solid var(--bdr-light)',
+            overflow: 'hidden',
+            boxShadow: 'var(--shadow-xs)',
+          }}
+        >
         <div
           style={{
             padding: '18px 24px',
@@ -668,6 +825,13 @@ export const CustomerDetailsPage: React.FC = () => {
           </div>
         )}
       </div>
+      ) : (
+        <CustomerHistorySection
+          customerId={customer._id}
+          customerName={customer.name}
+          onCountUpdate={(cnt) => setHistoryCount(cnt)}
+        />
+      )}
     </div>
   );
 };
