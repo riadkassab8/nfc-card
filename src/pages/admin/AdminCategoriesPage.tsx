@@ -139,9 +139,25 @@ export const AdminCategoriesPage: React.FC = () => {
 
   const fetch = useCallback(async () => {
     setLoading(true); setError(null);
-    try { setCats((await categoriesApi.getCategories({ limit: 100 })).data ?? []); }
-    catch (e: any) { setError(e?.message || 'فشل التحميل'); }
-    finally { setLoading(false); }
+    try {
+      const firstPage = await categoriesApi.getCategories({ page: 1, limit: 100 });
+      let allCats = firstPage.data ?? [];
+      if (firstPage.totalPages && firstPage.totalPages > 1) {
+        const promises = [];
+        for (let p = 2; p <= firstPage.totalPages; p++) {
+          promises.push(categoriesApi.getCategories({ page: p, limit: 100 }));
+        }
+        const restPages = await Promise.all(promises);
+        restPages.forEach((pRes) => {
+          allCats = allCats.concat(pRes.data ?? []);
+        });
+      }
+      setCats(allCats);
+    } catch (e: any) {
+      setError(e?.message || 'فشل التحميل');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetch(); }, [fetch]);
@@ -310,7 +326,7 @@ export const AdminCategoriesPage: React.FC = () => {
             cursor: 'pointer', outline: 'none', height: '40px',
           }}
         >
-          <option value="all">كل الحالات</option>
+          <option value="all">كل الحالات (عرض الكل)</option>
           <option value="active">مفعّل فقط</option>
           <option value="inactive">معطّل فقط</option>
         </select>
