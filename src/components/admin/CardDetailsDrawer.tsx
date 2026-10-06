@@ -450,6 +450,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   const [copied, setCopied]         = useState<string | null>(null);
   const [linkedCustomer, setLinkedCustomer] = useState<ApiCustomer | null>(null);
   const [custLoading, setCustLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   /* reset on card change */
   useEffect(() => {
@@ -574,8 +575,6 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
     } catch (e: any) { onToast(e?.message || 'فشل', 'error'); }
     finally { setRenewing(false); }
   };
-
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const downloadQrPng = async () => {
     try {

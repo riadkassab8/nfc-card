@@ -182,4 +182,25 @@ export const cardsApi = {
       responseType: 'blob',
       params: days !== undefined ? { days } : undefined,
     }),
+
+  // ── POST /api/upload or /api/cards/upload-logo ────────────────────────────
+  uploadLogo: async (file: File): Promise<{ url: string; [key: string]: any }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('logo', file);
+    try {
+      return await apiClient<{ url: string }>('/upload', {
+        method: 'POST',
+        body: formData,
+      });
+    } catch (err: any) {
+      if (err?.statusCode === 404) {
+        return await apiClient<{ url: string }>('/cards/upload-logo', {
+          method: 'POST',
+          body: formData,
+        });
+      }
+      throw err;
+    }
+  },
 };

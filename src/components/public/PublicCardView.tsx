@@ -1,9 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ApiCard } from '../../types';
 import { ProfileHero } from './ProfileHero';
 import { PublicCardFooter } from './PublicCardFooter';
 import { cardsApi } from '../../services';
-import { Globe, UserPlus, Eye } from 'lucide-react';
+import { Globe, UserPlus, Eye, Copy, Check } from 'lucide-react';
 import { gsap } from 'gsap';
 import {
   WhatsAppIcon,
@@ -14,11 +14,20 @@ import {
   PhoneIcon,
   EmailIcon,
   GlobeIcon,
+  InstaPayIcon,
+  VodafoneCashIcon,
 } from './BrandIcons';
 
 export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
   const biz = card.business_data;
+
+  const copyToClipboard = (text: string, msg: string) => {
+    navigator.clipboard.writeText(text);
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 2500);
+  };
   
   // Extract links
   const links: any[] = [];
@@ -48,10 +57,33 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
     links.push({ id: 'ws', platform: 'website', title: 'Website', url: biz.website, icon: <GlobeIcon size={32} />, brandColor: '#3B82F6' });
   }
   if (biz?.instapay?.trim()) {
-    links.push({ id: 'ip', platform: 'instapay', title: 'InstaPay', url: biz.instapay, icon: <GlobeIcon size={32} />, brandColor: '#49258E' });
+    const val = biz.instapay.trim();
+    const isUrl = /^https?:\/\//i.test(val);
+    links.push({
+      id: 'ip',
+      platform: 'instapay',
+      title: 'الدفع عبر إنستاباي (InstaPay)',
+      subtitle: val,
+      url: isUrl ? val : `https://instapay.eg`,
+      icon: <InstaPayIcon size={32} />,
+      brandColor: '#49258E',
+      copyValue: val,
+      copyMessage: `تم نسخ معرّف إنستاباي (${val}) بنجاح ✓`,
+    });
   }
   if (biz?.vodafone_cash?.trim()) {
-    links.push({ id: 'vc', platform: 'vodafone_cash', title: 'Vodafone Cash', url: `tel:${biz.vodafone_cash}`, icon: <PhoneIcon size={32} />, brandColor: '#E60000' });
+    const val = biz.vodafone_cash.trim();
+    links.push({
+      id: 'vc',
+      platform: 'vodafone_cash',
+      title: 'فودافون كاش (Vodafone Cash)',
+      subtitle: val,
+      url: `tel:${val}`,
+      icon: <VodafoneCashIcon size={32} />,
+      brandColor: '#E60000',
+      copyValue: val,
+      copyMessage: `تم نسخ رقم محفظة فودافون كاش (${val}) بنجاح ✓`,
+    });
   }
 
   useEffect(() => {
@@ -122,15 +154,61 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
             rel="noopener noreferrer"
             className="nfc-tile gsap-tile"
             style={{ '--brand-color': link.brandColor } as React.CSSProperties}
+            onClick={(e) => {
+              if (link.copyValue && (link.platform === 'vodafone_cash' || (link.platform === 'instapay' && !link.url.startsWith('http')))) {
+                e.preventDefault();
+                copyToClipboard(link.copyValue, link.copyMessage);
+              }
+            }}
           >
             <div className="nfc-tile-icon">{React.cloneElement(link.icon as React.ReactElement, { size: 48 })}</div>
             <div className="nfc-tile-content">
               <span className="nfc-tile-label">{link.title}</span>
+              {link.subtitle && (
+                <span
+                  style={{
+                    fontSize: '0.8rem',
+                    color: 'var(--text-secondary)',
+                    display: 'block',
+                    direction: 'ltr',
+                    textAlign: 'right',
+                    marginTop: '2px',
+                    fontWeight: 600,
+                  }}
+                >
+                  {link.subtitle}
+                </span>
+              )}
             </div>
-            <div className="nfc-tile-arrow">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
+            <div className="nfc-tile-arrow" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {link.copyValue && (
+                <button
+                  type="button"
+                  title="نسخ"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    copyToClipboard(link.copyValue, link.copyMessage);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: '4px',
+                    cursor: 'pointer',
+                    color: 'inherit',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Copy size={16} />
+                </button>
+              )}
+              {(!link.copyValue || link.url.startsWith('http')) && (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              )}
             </div>
           </a>
         ))}
@@ -442,6 +520,35 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           </div>
         </div>
       </div>
+
+      {/* Floating Copy Feedback Toast */}
+      {toastMsg && (
+        <div
+          dir="rtl"
+          style={{
+            position: 'fixed',
+            bottom: '28px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: '#0f172a',
+            color: '#ffffff',
+            padding: '12px 24px',
+            borderRadius: '50px',
+            fontSize: '13.5px',
+            fontWeight: 800,
+            boxShadow: '0 12px 30px rgba(0,0,0,0.3)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            animation: 'fadeIn 180ms ease both',
+            fontFamily: 'Tajawal, sans-serif',
+          }}
+        >
+          <Check size={16} style={{ color: '#22c55e' }} />
+          <span>{toastMsg}</span>
+        </div>
+      )}
     </>
   );
 };

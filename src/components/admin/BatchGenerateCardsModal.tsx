@@ -119,7 +119,7 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
                     <label className="form-label">التصنيف <span style={{ color: 'var(--clr-error)' }}>*</span></label>
                     <select value={bCat} onChange={e => setBCat(e.target.value)} className="form-input">
                       <option value="">— اختر تصنيفاً —</option>
-                      {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                      {categories.filter(c => c.is_active).map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                     </select>
                   </div>
 

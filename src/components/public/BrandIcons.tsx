@@ -90,3 +90,23 @@ export const VerifiedCheckIcon: React.FC<IconProps> = ({ size = 20, className, s
     />
   </svg>
 );
+
+export const InstaPayIcon: React.FC<IconProps> = ({ size = 24, className, style }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={style}>
+    <path fill="#49258E" d="M12,0 C21.6,0 24,2.4 24,12 C24,21.6 21.6,24 12,24 C2.4,24 0,21.6 0,12 C0,2.4 2.4,0 12,0 Z" />
+    <path
+      fill="#FFFFFF"
+      transform="translate(4,4) scale(0.66)"
+      d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4zm-1 6h2v6h-2V8zm1 10c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"
+    />
+  </svg>
+);
+
+export const VodafoneCashIcon: React.FC<IconProps> = ({ size = 24, className, style }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={style}>
+    <path fill="#E60000" d="M12,0 C21.6,0 24,2.4 24,12 C24,21.6 21.6,24 12,24 C2.4,24 0,21.6 0,12 C0,2.4 2.4,0 12,0 Z" />
+    <circle cx="12" cy="12" r="7" fill="#FFFFFF" />
+    <path fill="#E60000" d="M12 8c-2.21 0-4 1.79-4 4 0 1.2.53 2.27 1.37 3h2.15C10.6 14.53 10 13.34 10 12c0-1.1.9-2 2-2s2 .9 2 2c0 .73-.32 1.38-.82 1.83l1.45 1.45C15.42 14.47 16 13.31 16 12c0-2.21-1.79-4-4-4z" />
+  </svg>
+);
+
