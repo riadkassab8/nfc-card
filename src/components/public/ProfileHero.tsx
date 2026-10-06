@@ -38,7 +38,14 @@ export const ProfileHero: React.FC<{ card: ApiCard }> = ({ card }) => {
           <img
             src={biz.logo}
             alt={bizName}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              padding: '6px',
+              borderRadius: '24px',
+              imageRendering: 'crisp-edges',
+            }}
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
               if (e.currentTarget.nextElementSibling) {

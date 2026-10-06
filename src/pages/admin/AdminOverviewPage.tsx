@@ -1335,7 +1335,7 @@ export const AdminOverviewPage: React.FC = () => {
       />
 
       {/* Visual Analytics Widgets Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: '16px' }}>
         {/* Donut Chart: Card Distribution */}
         <SystemHealthDonut
           active={active}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { customersApi, cardsApi } from '../../services';
+import { customersApi } from '../../services';
 import { ApiCustomer, ApiCreateCustomerDto, ApiUpdateCustomerDto, ApiCard } from '../../types';
 import { X, Save, RefreshCw, User, Phone, CreditCard, Plus } from 'lucide-react';
 import { SelectCardsModal } from './SelectCardsModal';

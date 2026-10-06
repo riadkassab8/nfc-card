@@ -8,11 +8,17 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { cardsApi } from '../services';
 import { ApiCard, BusinessData } from '../types';
+import { AlertCircle, RefreshCw, Building2, ExternalLink } from 'lucide-react';
 import {
-  Building2, Phone, Mail, Globe, MapPin, MessageCircle,
-  Instagram, Facebook, Video, AlertCircle, RefreshCw,
-  ExternalLink,
-} from 'lucide-react';
+  WhatsAppIcon,
+  InstagramIcon,
+  FacebookIcon,
+  TikTokIcon,
+  GoogleMapsIcon,
+  PhoneIcon,
+  EmailIcon,
+  GlobeIcon,
+} from '../components/public/BrandIcons';
 
 type State = 'loading' | 'ok' | 'not_found' | 'error';
 
@@ -27,14 +33,14 @@ interface SocialLink {
 }
 
 const SOCIAL_LINKS: SocialLink[] = [
-  { key: 'phone',       label: 'اتصل بنا',      icon: <Phone size={20} />,          color: '#16a34a', bg: '#f0fdf4', isLink: false },
-  { key: 'whatsapp',    label: 'واتساب',         icon: <MessageCircle size={20} />,  color: '#25d366', bg: '#f0fdf4' },
-  { key: 'instagram',   label: 'انستجرام',       icon: <Instagram size={20} />,      color: '#e1306c', bg: '#fef2f2' },
-  { key: 'facebook',    label: 'فيسبوك',         icon: <Facebook size={20} />,       color: '#1877f2', bg: '#eff6ff' },
-  { key: 'tiktok',      label: 'تيك توك',        icon: <Video size={20} />,          color: '#000000', bg: '#f8fafc' },
-  { key: 'google_maps', label: 'الموقع على الخريطة', icon: <MapPin size={20} />,     color: '#ea4335', bg: '#fef2f2' },
-  { key: 'website',     label: 'الموقع الإلكتروني', icon: <Globe size={20} />,       color: '#3b82f6', bg: '#eff6ff' },
-  { key: 'email',       label: 'البريد الإلكتروني', icon: <Mail size={20} />,        color: '#6366f1', bg: '#eef2ff' },
+  { key: 'phone',       label: 'اتصل بنا',            icon: <PhoneIcon size={24} />,       color: '#2563EB', bg: '#eff6ff' },
+  { key: 'whatsapp',    label: 'واتساب',               icon: <WhatsAppIcon size={24} />,    color: '#25D366', bg: '#f0fdf4' },
+  { key: 'instagram',   label: 'انستجرام',             icon: <InstagramIcon size={24} />,   color: '#E1306C', bg: '#fef2f2' },
+  { key: 'facebook',    label: 'فيسبوك',               icon: <FacebookIcon size={24} />,    color: '#1877F2', bg: '#eff6ff' },
+  { key: 'tiktok',      label: 'تيك توك',              icon: <TikTokIcon size={24} />,      color: '#000000', bg: '#f8fafc' },
+  { key: 'google_maps', label: 'الموقع على الخريطة',   icon: <GoogleMapsIcon size={24} />,  color: '#EA4335', bg: '#fef2f2' },
+  { key: 'website',     label: 'الموقع الإلكتروني',   icon: <GlobeIcon size={24} />,       color: '#3B82F6', bg: '#eff6ff' },
+  { key: 'email',       label: 'البريد الإلكتروني',   icon: <EmailIcon size={24} />,       color: '#6366F1', bg: '#eef2ff' },
 ];
 
 export const BusinessProfilePage: React.FC = () => {

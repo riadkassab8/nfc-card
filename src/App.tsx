@@ -5,20 +5,20 @@ import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/admin/ProtectedRoute';
 import { AdminShell } from './components/admin/AdminShell';
 
-import { LoginPage }               from './pages/LoginPage';
-import { ForgotPasswordPage }       from './pages/ForgotPasswordPage';
-import { ResetPasswordPage }        from './pages/ResetPasswordPage';
-import { AdminOverviewPage }        from './pages/admin/AdminOverviewPage';
-import { AdminCustomersPage }       from './pages/admin/AdminCustomersPage';
-import { CustomerDetailsPage }      from './pages/admin/CustomerDetailsPage';
-import { AdminInventoryPage }       from './pages/admin/AdminInventoryPage';
-import { AdminAddCardPage }         from './pages/admin/AdminAddCardPage';
-import { AdminCategoriesPage }      from './pages/admin/AdminCategoriesPage';
-import { AdminScanPage }            from './pages/admin/AdminScanPage';
-import { AdminAnalyticsPage }       from './pages/admin/AdminAnalyticsPage';
-import { AdminSettingsPage }        from './pages/admin/AdminSettingsPage';
-import { PublicCardLandingPage }    from './pages/PublicCardLandingPage';
-import { SocialPage }               from './pages/SocialPage';
+import { LoginPage } from './pages/LoginPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
+import { AdminCustomersPage } from './pages/admin/AdminCustomersPage';
+import { CustomerDetailsPage } from './pages/admin/CustomerDetailsPage';
+import { AdminInventoryPage } from './pages/admin/AdminInventoryPage';
+import { AdminAddCardPage } from './pages/admin/AdminAddCardPage';
+import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
+import { AdminScanPage } from './pages/admin/AdminScanPage';
+import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
+import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+import { PublicCardLandingPage } from './pages/PublicCardLandingPage';
+import { SocialPage } from './pages/SocialPage';
 
 export const App: React.FC = () => (
   <AuthProvider>
@@ -32,8 +32,8 @@ export const App: React.FC = () => (
         <Route path="/admin/reset-password" element={<Navigate to="/reset-password" replace />} />
 
         {/* ── Public card routes (no auth) ── */}
-        <Route path="/social/:publicCode"  element={<SocialPage />} />
-        <Route path="/r/:publicCode"       element={<PublicCardLandingPage />} />
+        <Route path="/social/:publicCode" element={<SocialPage />} />
+        <Route path="/r/:publicCode" element={<PublicCardLandingPage />} />
 
         {/* ── Admin routes (protected) ── */}
         <Route

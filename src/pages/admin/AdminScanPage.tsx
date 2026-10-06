@@ -702,7 +702,7 @@ export const AdminScanPage: React.FC = () => {
             </div>
 
             <form onSubmit={save} style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginTop: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '16px' }}>
                 {(() => {
                   const currentCatObj = card?.category_id 
                     ? categories.find(c => c._id === (typeof card.category_id === 'string' ? card.category_id : (card.category_id as ApiCategory)._id)) 

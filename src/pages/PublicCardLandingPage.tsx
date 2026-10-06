@@ -20,12 +20,12 @@ export const PublicCardLandingPage: React.FC = () => {
   const navigate = useNavigate();
   const code = cardId ?? publicCode ?? '';
 
-  const [card, setCard]   = useState<ApiCard | null>(null);
+  const [card, setCard] = useState<ApiCard | null>(null);
   const [state, setState] = useState<State>('loading');
 
   const load = async () => {
     if (!code.trim()) { setState('not_found'); return; }
-    
+
     // Strip query params from URL bar
     if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
 
@@ -37,19 +37,19 @@ export const PublicCardLandingPage: React.FC = () => {
       const biz: BusinessData | null = res.business_data;
       if (!biz) {
         const cardProxy: ApiCard = {
-          _id:                    res.card_code,
-          card_code:              res.card_code,
-          custom_slug:            res.custom_slug || null,
-          card_type:              res.card_type,
-          requires_subscription:  res.requires_subscription ?? true,
-          business_data:          null,
-          current_redirect_url:   '',
-          status:                 'active',
+          _id: res.card_code,
+          card_code: res.card_code,
+          custom_slug: res.custom_slug || null,
+          card_type: res.card_type,
+          requires_subscription: res.requires_subscription ?? true,
+          business_data: null,
+          current_redirect_url: '',
+          status: 'active',
           subscription_start_date: null,
-          subscription_end_date:   null,
-          redirect_rules:          [],
-          createdAt:               '',
-          updatedAt:               '',
+          subscription_end_date: null,
+          redirect_rules: [],
+          createdAt: '',
+          updatedAt: '',
         };
         setCard(cardProxy);
         setState('ok');
@@ -57,16 +57,16 @@ export const PublicCardLandingPage: React.FC = () => {
       }
 
       const links: string[] = [];
-      if (biz.whatsapp?.trim())       links.push(biz.whatsapp.trim());
-      if (biz.instagram?.trim())      links.push(biz.instagram.trim());
-      if (biz.facebook?.trim())       links.push(biz.facebook.trim());
-      if (biz.tiktok?.trim())         links.push(biz.tiktok.trim());
-      if (biz.google_maps?.trim())    links.push(biz.google_maps.trim());
-      if (biz.phone?.trim())          links.push(`tel:${biz.phone.trim()}`);
-      if (biz.email?.trim())          links.push(`mailto:${biz.email.trim()}`);
-      if (biz.website?.trim())        links.push(biz.website.trim());
-      if (biz.instapay?.trim())       links.push(biz.instapay.trim());
-      if (biz.vodafone_cash?.trim())  links.push(`tel:${biz.vodafone_cash.trim()}`);
+      if (biz.whatsapp?.trim()) links.push(biz.whatsapp.trim());
+      if (biz.instagram?.trim()) links.push(biz.instagram.trim());
+      if (biz.facebook?.trim()) links.push(biz.facebook.trim());
+      if (biz.tiktok?.trim()) links.push(biz.tiktok.trim());
+      if (biz.google_maps?.trim()) links.push(biz.google_maps.trim());
+      if (biz.phone?.trim()) links.push(`tel:${biz.phone.trim()}`);
+      if (biz.email?.trim()) links.push(`mailto:${biz.email.trim()}`);
+      if (biz.website?.trim()) links.push(biz.website.trim());
+      if (biz.instapay?.trim()) links.push(biz.instapay.trim());
+      if (biz.vodafone_cash?.trim()) links.push(`tel:${biz.vodafone_cash.trim()}`);
 
       if (links.length === 1) {
         window.location.replace(links[0]);
@@ -74,20 +74,20 @@ export const PublicCardLandingPage: React.FC = () => {
       }
 
       const cardProxy: ApiCard = {
-        _id:                    res.card_code,
-        card_code:              res.card_code,
-        custom_slug:            res.custom_slug || null,
-        card_type:              res.card_type,
-        requires_subscription:  res.requires_subscription ?? true,
-        business_data:          biz,
-        visit_count:            res.visit_count,
-        current_redirect_url:   '',
-        status:                 'active',
+        _id: res.card_code,
+        card_code: res.card_code,
+        custom_slug: res.custom_slug || null,
+        card_type: res.card_type,
+        requires_subscription: res.requires_subscription ?? true,
+        business_data: biz,
+        visit_count: res.visit_count,
+        current_redirect_url: '',
+        status: 'active',
         subscription_start_date: null,
-        subscription_end_date:   null,
-        redirect_rules:          [],
-        createdAt:               '',
-        updatedAt:               '',
+        subscription_end_date: null,
+        redirect_rules: [],
+        createdAt: '',
+        updatedAt: '',
       };
 
       setCard(cardProxy);

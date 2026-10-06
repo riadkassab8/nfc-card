@@ -301,7 +301,7 @@ const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToa
           </div>
 
           {/* Rule fields */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: '10px' }}>
 
             {/* Device */}
             <div className="form-group" style={{ margin: 0 }}>
@@ -614,12 +614,15 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
         dir="rtl"
         style={{
           position: 'fixed', top: 0, right: 0, bottom: 0,
-          width: 'min(520px, 100vw)',
+          width: 'min(520px, 100%)',
+          maxWidth: '100vw',
           backgroundColor: 'var(--bg-white)', zIndex: 301,
           display: 'flex', flexDirection: 'column',
           boxShadow: 'var(--shadow-xl)',
           fontFamily: 'var(--font)',
           animation: 'drawerInLtr 250ms var(--ease-out) both',
+          boxSizing: 'border-box',
+          overflowX: 'hidden',
         }}
       >
         {/* Header */}
@@ -777,7 +780,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
 
               {/* Fields grid */}
               <div style={{
-                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px',
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: '14px',
                 backgroundColor: 'var(--bg-subtle)', padding: '16px',
                 borderRadius: 'var(--r-lg)', border: '1px solid var(--bdr-light)',
               }}>
@@ -833,10 +836,10 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
               </div>
 
               {/* Static URL */}
-              <div style={{ backgroundColor: 'var(--clr-primary-50)', borderRadius: 'var(--r-lg)', padding: '13px 16px', border: '1px solid var(--clr-primary-200)' }}>
+              <div style={{ backgroundColor: 'var(--clr-primary-50)', borderRadius: 'var(--r-lg)', padding: '13px 16px', border: '1px solid var(--clr-primary-200)', overflow: 'hidden' }}>
                 <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--clr-primary-700)', marginBottom: '6px' }}>الرابط الثابت (NFC / QR)</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-800)', flex: 1, wordBreak: 'break-all' }}>{staticUrl}</code>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                  <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-800)', flex: 1, minWidth: 0, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{staticUrl}</code>
                   <button onClick={() => copyText(staticUrl, 'static')} style={iconBtnStyle}>
                     {copied === 'static' ? <Check size={12} style={{ color: 'var(--clr-success)' }} /> : <Copy size={12} />}
                   </button>
@@ -847,17 +850,17 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
               </div>
 
               {/* Social Page */}
-              <div style={{ backgroundColor: '#f0fdf4', borderRadius: 'var(--r-lg)', padding: '13px 16px', border: '1px solid #bbf7d0' }}>
+              <div style={{ backgroundColor: '#f0fdf4', borderRadius: 'var(--r-lg)', padding: '13px 16px', border: '1px solid #bbf7d0', overflow: 'hidden' }}>
                 <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: '#15803d', marginBottom: '6px' }}>
                   صفحة البروفايل العامة (Social Profile Page)
                   {card.custom_slug && <span style={{ fontSize: '11px', color: '#16a34a', marginInlineStart: '6px' }}>(رابط مخصص)</span>}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <code style={{ fontSize: 'var(--fs-xs)', color: '#166534', flex: 1, wordBreak: 'break-all' }}>{`${domainOrigin}/social/${card.custom_slug || card.card_code}`}</code>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                  <code style={{ fontSize: 'var(--fs-xs)', color: '#166534', flex: 1, minWidth: 0, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{`${domainOrigin}/social/${card.custom_slug || card.card_code}`}</code>
                   <button onClick={() => copyText(`${domainOrigin}/social/${card.custom_slug || card.card_code}`, 'socialPreview')} style={iconBtnStyle}>
                     {copied === 'socialPreview' ? <Check size={12} style={{ color: 'var(--clr-success)' }} /> : <Copy size={12} />}
                   </button>
-                  <a href={`/social/${card.custom_slug || card.card_code}`} target="_blank" rel="noopener noreferrer" style={{ ...iconBtnStyle, textDecoration: 'none', color: '#fff', backgroundColor: '#16a34a', padding: '4px 10px', borderRadius: 'var(--r-md)', fontSize: 'var(--fs-xs)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                  <a href={`/social/${card.custom_slug || card.card_code}`} target="_blank" rel="noopener noreferrer" style={{ ...iconBtnStyle, textDecoration: 'none', color: '#fff', backgroundColor: '#16a34a', padding: '4px 10px', borderRadius: 'var(--r-md)', fontSize: 'var(--fs-xs)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700, flexShrink: 0 }}>
                     <ExternalLink size={12} /> فتح
                   </a>
                 </div>
@@ -869,7 +872,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                   <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--txt-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
                     بيانات النشاط التجاري
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: '10px' }}>
                     {(Object.entries(card.business_data) as [keyof BusinessData, string | null | undefined][])
                       .filter(([, v]) => v)
                       .map(([k, v]) => (
@@ -911,9 +914,9 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
               <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--txt-secondary)', lineHeight: 1.7 }}>
                 غيّر رابط التوجيه الأساسي. لو عندك <strong>Redirect Rules</strong> مفعّلة — بيأخذ أولوية عليه.
               </p>
-              <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '11px 14px', border: '1px solid var(--bdr-light)' }}>
+              <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '11px 14px', border: '1px solid var(--bdr-light)', overflow: 'hidden', minWidth: 0 }}>
                 <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '4px' }}>الرابط الحالي</div>
-                <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-700)', wordBreak: 'break-all' }}>
+                <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-700)', wordBreak: 'break-all', overflowWrap: 'anywhere', display: 'block', maxWidth: '100%' }}>
                   {card.current_redirect_url ? card.current_redirect_url.replace(/https?:\/\/[^\/]+\/social\//, 'https://smart-card-qr-api.koyeb.app/r/').replace(/https?:\/\/smartcard-app\.com/g, 'https://smart-card-qr-api.koyeb.app') : ''}
                 </code>
               </div>
@@ -924,6 +927,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                   value={newUrl}
                   onChange={e => setNewUrl(e.target.value)}
                   placeholder="https://..."
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
               </div>
               <button
@@ -953,7 +957,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                       <QrCode size={56} style={{ color: 'var(--bdr-medium)' }} />
                     </div>}
 
-              <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-700)', wordBreak: 'break-all', textAlign: 'center', maxWidth: '320px' }}>
+              <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-700)', wordBreak: 'break-all', overflowWrap: 'anywhere', textAlign: 'center', maxWidth: '320px' }}>
                 {staticUrl}
               </code>
 
@@ -966,10 +970,10 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                 </button>
               </div>
 
-              <div style={{ width: '100%', backgroundColor: 'var(--clr-primary-50)', borderRadius: 'var(--r-md)', padding: '12px 14px', border: '1px solid var(--clr-primary-200)' }}>
+              <div style={{ width: '100%', backgroundColor: 'var(--clr-primary-50)', borderRadius: 'var(--r-md)', padding: '12px 14px', border: '1px solid var(--clr-primary-200)', overflow: 'hidden' }}>
                 <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--clr-primary-700)', marginBottom: '5px' }}>الرابط الثابت</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-800)', flex: 1, wordBreak: 'break-all' }}>{staticUrl}</code>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                  <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-800)', flex: 1, minWidth: 0, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{staticUrl}</code>
                   <button onClick={() => copyText(staticUrl, 'qr-st')} style={iconBtnStyle}>
                     {copied === 'qr-st' ? <Check size={12} style={{ color: 'var(--clr-success)' }} /> : <Copy size={12} />}
                   </button>

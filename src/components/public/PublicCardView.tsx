@@ -2,8 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ApiCard } from '../../types';
 import { ProfileHero } from './ProfileHero';
 import { PublicCardFooter } from './PublicCardFooter';
-import { cardsApi } from '../../services';
-import { Globe, UserPlus, Eye, Copy, Check } from 'lucide-react';
+import { Globe, UserPlus, Eye, Check } from 'lucide-react';
 import { gsap } from 'gsap';
 import {
   WhatsAppIcon,
@@ -242,29 +241,76 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   // Extract links
   const links: any[] = [];
   
-  if (biz?.whatsapp?.trim()) {
-    links.push({ id: 'wa', platform: 'whatsapp', title: 'WhatsApp', subtitle: 'تواصل معنا مباشرة', url: biz.whatsapp, icon: <WhatsAppIcon size={36} />, brandColor: '#25D366' });
+  const waUrl = biz?.whatsapp?.trim() || 'https://wa.me/201098277229';
+  const igUrl = biz?.instagram?.trim() || 'https://www.instagram.com/nasma.brand';
+  const fbUrl = biz?.facebook?.trim() || 'https://www.facebook.com/nasma.brand.official';
+  const ttUrl = biz?.tiktok?.trim() || 'https://www.tiktok.com/@nasma.brand';
+  const phRaw = biz?.phone?.trim() || '01098277229';
+  const phUrl = phRaw.startsWith('tel:') ? phRaw : `tel:${phRaw}`;
+
+  if (biz?.whatsapp?.trim() || !biz) {
+    links.push({
+      id: 'wa',
+      platform: 'whatsapp',
+      title: 'WhatsApp',
+      subtitle: 'تواصل معنا مباشرة',
+      url: waUrl,
+      icon: <WhatsAppIcon size={60} />,
+      brandColor: '#25D366'
+    });
   }
-  if (biz?.instagram?.trim()) {
-    links.push({ id: 'ig', platform: 'instagram', title: 'Instagram', subtitle: 'شاهد يومياتنا', url: biz.instagram, icon: <InstagramIcon size={36} />, brandColor: '#E1306C' });
+  if (biz?.instagram?.trim() || !biz) {
+    links.push({
+      id: 'ig',
+      platform: 'instagram',
+      title: 'Instagram',
+      subtitle: 'شاهد يومياتنا',
+      url: igUrl,
+      icon: <InstagramIcon size={60} />,
+      brandColor: '#E1306C'
+    });
   }
-  if (biz?.facebook?.trim()) {
-    links.push({ id: 'fb', platform: 'facebook', title: 'Facebook', subtitle: 'تابع آخر الأخبار', url: biz.facebook, icon: <FacebookIcon size={36} />, brandColor: '#1877F2' });
+  if (biz?.facebook?.trim() || !biz) {
+    links.push({
+      id: 'fb',
+      platform: 'facebook',
+      title: 'Facebook',
+      subtitle: 'تابع آخر الأخبار',
+      url: fbUrl,
+      icon: <FacebookIcon size={60} />,
+      brandColor: '#1877F2'
+    });
   }
-  if (biz?.tiktok?.trim()) {
-    links.push({ id: 'tt', platform: 'tiktok', title: 'TikTok', subtitle: 'اكتشف المزيد', url: biz.tiktok, icon: <TikTokIcon size={36} />, brandColor: '#000000' });
+  if (biz?.tiktok?.trim() || !biz) {
+    links.push({
+      id: 'tt',
+      platform: 'tiktok',
+      title: 'TikTok',
+      subtitle: 'اكتشف المزيد',
+      url: ttUrl,
+      icon: <TikTokIcon size={60} />,
+      brandColor: '#000000'
+    });
   }
   if (biz?.google_maps?.trim()) {
-    links.push({ id: 'gm', platform: 'google_maps', title: 'Google Review', subtitle: 'موقعنا على الخريطة', url: biz.google_maps, icon: <GoogleMapsIcon size={36} />, brandColor: '#EA4335' });
+    links.push({ id: 'gm', platform: 'google_maps', title: 'Google Review', subtitle: 'موقعنا على الخريطة', url: biz.google_maps, icon: <GoogleMapsIcon size={60} />, brandColor: '#EA4335' });
   }
-  if (biz?.phone?.trim()) {
-    links.push({ id: 'ph', platform: 'phone', title: 'Call', subtitle: 'يسعدنا استقبال مكالمتك', url: `tel:${biz.phone}`, icon: <PhoneIcon size={36} />, brandColor: '#10B981' });
+  if (biz?.phone?.trim() || !biz) {
+    links.push({
+      id: 'ph',
+      platform: 'phone',
+      title: 'Call',
+      subtitle: 'يسعدنا استقبال مكالمتك',
+      url: phUrl,
+      icon: <PhoneIcon size={60} />,
+      brandColor: '#2563EB'
+    });
   }
   if (biz?.email?.trim()) {
-    links.push({ id: 'em', platform: 'email', title: 'Email', subtitle: 'راسلنا عبر البريد', url: `mailto:${biz.email}`, icon: <EmailIcon size={36} />, brandColor: '#6366F1' });
+    links.push({ id: 'em', platform: 'email', title: 'Email', subtitle: 'راسلنا عبر البريد', url: `mailto:${biz.email}`, icon: <EmailIcon size={60} />, brandColor: '#6366F1' });
   }
   if (biz?.website?.trim()) {
-    links.push({ id: 'ws', platform: 'website', title: 'Website', subtitle: 'تصفح موقعنا', url: biz.website, icon: <GlobeIcon size={36} />, brandColor: '#3B82F6' });
+    links.push({ id: 'ws', platform: 'website', title: 'Website', subtitle: 'تصفح موقعنا', url: biz.website, icon: <GlobeIcon size={60} />, brandColor: '#3B82F6' });
   }
   if (biz?.instapay?.trim()) {
     const val = biz.instapay.trim();
@@ -275,7 +321,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
       title: 'InstaPay',
       subtitle: 'للدفع والتحويل',
       url: isUrl ? val : `https://instapay.eg`,
-      icon: <InstaPayIcon size={36} />,
+      icon: <InstaPayIcon size={60} />,
       brandColor: '#49258E',
       copyValue: val,
       copyMessage: `تم نسخ معرّف إنستاباي (${val}) بنجاح ✓`,
@@ -289,7 +335,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
       title: 'Vodafone Cash',
       subtitle: 'حول بسهولة وأمان',
       url: `tel:${val}`,
-      icon: <VodafoneCashIcon size={36} />,
+      icon: <VodafoneCashIcon size={60} />,
       brandColor: '#E60000',
       copyValue: val,
       copyMessage: `تم نسخ رقم محفظة فودافون كاش (${val}) بنجاح ✓`,
@@ -421,8 +467,8 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
 
         .nfc-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 20px;
+          grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+          gap: 18px;
           width: 100%;
           max-width: 900px;
           margin-top: 32px;
@@ -431,10 +477,46 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           perspective: 1000px;
         }
 
-        /* Override to 3 columns on larger screens explicitly to match design */
+        /* Desktop: 3 columns */
         @media (min-width: 800px) {
           .nfc-grid {
             grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+          }
+        }
+
+        /* Mobile phones: 2 columns grid for sleek tile layout */
+        @media (max-width: 600px) {
+          .nfc-page {
+            padding: 24px 12px;
+          }
+          .nfc-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 0 4px;
+            margin-top: 24px;
+          }
+          .nfc-tile {
+            padding: 20px 10px;
+            border-radius: 20px;
+            gap: 12px;
+          }
+          .nfc-tile-label {
+            font-size: 0.88rem !important;
+          }
+          .nfc-tile-subtitle {
+            font-size: 0.72rem !important;
+          }
+        }
+
+        /* Ultra small phones (< 360px): 1 column */
+        @media (max-width: 360px) {
+          .nfc-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+          .nfc-tile {
+            padding: 18px 12px;
           }
         }
 
@@ -443,12 +525,12 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           background-color: var(--surface);
           border: 1px solid var(--border-light);
           border-radius: var(--radius-card);
-          padding: 32px 16px;
+          padding: 30px 16px;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 16px;
+          gap: 14px;
           text-decoration: none;
           color: var(--text-primary);
           box-shadow: var(--shadow-subtle);

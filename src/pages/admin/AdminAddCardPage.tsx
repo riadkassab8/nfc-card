@@ -649,7 +649,7 @@ export const AdminAddCardPage: React.FC = () => {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))',
               gap: '18px',
             }}
           >
@@ -1099,7 +1099,7 @@ export const AdminAddCardPage: React.FC = () => {
                 1. البيانات الأساسية والشعار
               </h3>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: '18px' }}>
                 {/* Business Name */}
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
@@ -1360,7 +1360,7 @@ export const AdminAddCardPage: React.FC = () => {
                 2. قنوات الاتصال والموقع
               </h3>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: '16px' }}>
                 {CONTACT_FIELDS.map((f) => (
                   <div key={f.key} className="form-group" style={f.gridFull ? { gridColumn: '1 / -1' } : undefined}>
                     <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
@@ -1398,7 +1398,7 @@ export const AdminAddCardPage: React.FC = () => {
                 3. حسابات التواصل الاجتماعي (Social Media)
               </h3>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: '16px' }}>
                 {SOCIAL_FIELDS.map((f) => (
                   <div key={f.key} className="form-group">
                     <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
@@ -1435,7 +1435,7 @@ export const AdminAddCardPage: React.FC = () => {
                 4. طرق الدفع والتحويل المالي السريع
               </h3>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: '16px' }}>
                 {PAYMENT_FIELDS.map((f) => (
                   <div key={f.key} className="form-group">
                     <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>

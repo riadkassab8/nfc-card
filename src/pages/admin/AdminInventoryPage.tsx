@@ -368,7 +368,7 @@ export const AdminInventoryPage: React.FC = () => {
     const toChange = cards.filter(c => selected.has(c._id) && c.status !== target);
     await Promise.allSettled(toChange.map(c => cardsApi.toggleCard(c._id)));
     showToast(`تم تحديث ${toChange.length} بطاقة`);
-    setSelected(new Set()); fetchCards(page, limit);
+    fetchCards(page, limit);
     loadGlobalStats();
   };
 
@@ -705,22 +705,29 @@ export const AdminInventoryPage: React.FC = () => {
               <span>ربط بعميل (Assign Cards)</span>
             </button>
 
-            {[
-              { label: 'تفعيل', action: () => bulkToggle('active'), bg: 'var(--clr-success-bg)', color: 'var(--clr-success)' },
-              { label: 'تعطيل', action: () => bulkToggle('inactive'), bg: 'var(--clr-warning-bg)', color: 'var(--clr-warning)' },
-              { label: 'حذف', action: bulkDelete, bg: 'var(--clr-error-bg)', color: 'var(--clr-error)' },
-              { label: 'إلغاء التحديد', action: () => setSelected(new Set()), bg: 'var(--bg-hover)', color: 'var(--txt-secondary)' },
-            ].map(b => (
-              <button key={b.label} onClick={b.action} style={{
-                display: 'inline-flex', alignItems: 'center', gap: '5px',
-                padding: '6px 13px', borderRadius: 'var(--r-sm)', border: 'none',
-                backgroundColor: b.bg, color: b.color,
-                fontFamily: 'var(--font)', fontWeight: 700, fontSize: 'var(--fs-xs)',
-                cursor: 'pointer',
-              }}>
-                {b.label}
-              </button>
-            ))}
+            {(() => {
+              const selCards = cards.filter(c => selected.has(c._id));
+              const hasInactive = selCards.some(c => c.status !== 'active');
+              const toggleBtn = hasInactive
+                ? { label: 'تفعيل', action: () => bulkToggle('active'), bg: 'var(--clr-success-bg)', color: 'var(--clr-success)' }
+                : { label: 'تعطيل', action: () => bulkToggle('inactive'), bg: 'var(--clr-warning-bg)', color: 'var(--clr-warning)' };
+
+              return [
+                toggleBtn,
+                { label: 'حذف', action: bulkDelete, bg: 'var(--clr-error-bg)', color: 'var(--clr-error)' },
+                { label: 'إلغاء التحديد', action: () => setSelected(new Set()), bg: 'var(--bg-hover)', color: 'var(--txt-secondary)' },
+              ].map(b => (
+                <button key={b.label} onClick={b.action} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  padding: '6px 13px', borderRadius: 'var(--r-sm)', border: 'none',
+                  backgroundColor: b.bg, color: b.color,
+                  fontFamily: 'var(--font)', fontWeight: 700, fontSize: 'var(--fs-xs)',
+                  cursor: 'pointer', transition: 'all 0.2s ease',
+                }}>
+                  {b.label}
+                </button>
+              ));
+            })()}
           </div>
         </div>
       )}

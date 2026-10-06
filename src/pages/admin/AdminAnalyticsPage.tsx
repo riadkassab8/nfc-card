@@ -178,7 +178,7 @@ const GlobalTab: React.FC<{ days: number }> = ({ days }) => {
       </div>
 
       {/* Charts Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '16px' }}>
         <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid var(--bdr-light)', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
           <h3 style={{ margin: '0 0 14px', fontSize: '15px', fontWeight: 800, color: 'var(--txt-heading)' }}>المسح اليومي</h3>
           {loading ? <div className="shimmer" style={{ height: '90px', borderRadius: 'var(--r-md)' }} /> : <DayChart data={data?.scans_by_day ?? []} />}
@@ -267,7 +267,7 @@ const CardTab: React.FC<{ days: number }> = ({ days }) => {
 
       {/* Card picker */}
       <div style={{
-        width: '270px', flexShrink: 0,
+        width: 'min(270px, 100%)', flexShrink: 0, flexGrow: 1,
         backgroundColor: '#ffffff', borderRadius: '16px',
         border: '1px solid var(--bdr-light)', padding: '16px',
         display: 'flex', flexDirection: 'column', gap: '12px',
@@ -367,7 +367,7 @@ const CardTab: React.FC<{ days: number }> = ({ days }) => {
             </div>
 
             {/* Charts row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '14px' }}>
               <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid var(--bdr-light)', padding: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                 <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)' }}>المسح اليومي</h3>
                 {loading ? <div className="shimmer" style={{ height: '80px', borderRadius: 'var(--r-md)' }} /> : <DayChart data={data?.scans_by_day ?? []} />}
