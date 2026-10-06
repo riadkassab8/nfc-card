@@ -7,35 +7,36 @@ interface IconProps {
 }
 
 export const WhatsAppIcon: React.FC<IconProps> = ({ size = 24, className, style }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={style}>
-    <path fill="#25D366" d="M12,0 C21.6,0 24,2.4 24,12 C24,21.6 21.6,24 12,24 C2.4,24 0,21.6 0,12 C0,2.4 2.4,0 12,0 Z" />
-    <path fill="#FFF" transform="translate(4,4) scale(0.66)" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/>
-  </svg>
+  <img
+    src="https://img.icons8.com/?size=100&id=uZWiLUyryScN&format=png&color=000000"
+    alt="WhatsApp"
+    width={size}
+    height={size}
+    className={className}
+    style={{ borderRadius: '22%', objectFit: 'cover', ...style }}
+  />
 );
 
 export const InstagramIcon: React.FC<IconProps> = ({ size = 24, className, style }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={style}>
-    <defs>
-      <linearGradient id="ig-squircle" x1="2" y1="22" x2="22" y2="2" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#FEDA75"/>
-        <stop offset="0.3" stopColor="#FA7E1E"/>
-        <stop offset="0.6" stopColor="#D62976"/>
-        <stop offset="0.8" stopColor="#962FBF"/>
-        <stop offset="1" stopColor="#4F5BD5"/>
-      </linearGradient>
-    </defs>
-    <path fill="url(#ig-squircle)" d="M12,0 C21.6,0 24,2.4 24,12 C24,21.6 21.6,24 12,24 C2.4,24 0,21.6 0,12 C0,2.4 2.4,0 12,0 Z" />
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" stroke="#fff" strokeWidth="2" fill="none" />
-    <rect x="6.5" y="6.5" width="11" height="11" rx="3" ry="3" stroke="#fff" strokeWidth="2" fill="none" />
-    <circle cx="17.5" cy="6.5" r="1.2" fill="#fff" />
-  </svg>
+  <img
+    src="https://img.icons8.com/?size=100&id=Xy10Jcu1L2Su&format=png&color=000000"
+    alt="Instagram"
+    width={size}
+    height={size}
+    className={className}
+    style={{ borderRadius: '22%', objectFit: 'cover', ...style }}
+  />
 );
 
 export const FacebookIcon: React.FC<IconProps> = ({ size = 24, className, style }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={style}>
-    <path fill="#1877F2" d="M12,0 C21.6,0 24,2.4 24,12 C24,21.6 21.6,24 12,24 C2.4,24 0,21.6 0,12 C0,2.4 2.4,0 12,0 Z" />
-    <path fill="#FFF" transform="translate(3,3) scale(0.75)" d="M15.54 12.07l.53-3.5h-3.32V6.31c0-.96.45-1.89 1.96-1.89h1.5V1.45s-1.37-.24-2.68-.24c-2.73 0-4.54 1.67-4.54 4.7v2.71H7.08v3.49h3.04V24a12.03 12.03 0 003.8 0v-8.44h2.62z"/>
-  </svg>
+  <img
+    src="https://img.icons8.com/?size=100&id=uLWV5A9vXIPu&format=png&color=000000"
+    alt="Facebook"
+    width={size}
+    height={size}
+    className={className}
+    style={{ objectFit: 'cover', ...style }}
+  />
 );
 
 export const TikTokIcon: React.FC<IconProps> = ({ size = 24, className, style }) => (
@@ -92,21 +93,24 @@ export const VerifiedCheckIcon: React.FC<IconProps> = ({ size = 20, className, s
 );
 
 export const InstaPayIcon: React.FC<IconProps> = ({ size = 24, className, style }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={style}>
-    <path fill="#49258E" d="M12,0 C21.6,0 24,2.4 24,12 C24,21.6 21.6,24 12,24 C2.4,24 0,21.6 0,12 C0,2.4 2.4,0 12,0 Z" />
-    <path
-      fill="#FFFFFF"
-      transform="translate(4,4) scale(0.66)"
-      d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4zm-1 6h2v6h-2V8zm1 10c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"
-    />
-  </svg>
+  <img
+    src="https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/73/c5/82/73c58271-c6b5-9474-6d2d-cc3a1dafddd4/AppIcon-0-1x_U007emarketing-0-10-0-sRGB-0-85-220-0.png/1200x630wa.png"
+    alt="InstaPay"
+    width={size}
+    height={size}
+    className={className}
+    style={{ borderRadius: '22%', objectFit: 'cover', ...style }}
+  />
 );
 
 export const VodafoneCashIcon: React.FC<IconProps> = ({ size = 24, className, style }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={style}>
-    <path fill="#E60000" d="M12,0 C21.6,0 24,2.4 24,12 C24,21.6 21.6,24 12,24 C2.4,24 0,21.6 0,12 C0,2.4 2.4,0 12,0 Z" />
-    <circle cx="12" cy="12" r="7" fill="#FFFFFF" />
-    <path fill="#E60000" d="M12 8c-2.21 0-4 1.79-4 4 0 1.2.53 2.27 1.37 3h2.15C10.6 14.53 10 13.34 10 12c0-1.1.9-2 2-2s2 .9 2 2c0 .73-.32 1.38-.82 1.83l1.45 1.45C15.42 14.47 16 13.31 16 12c0-2.21-1.79-4-4-4z" />
-  </svg>
+  <img
+    src="https://tse1.mm.bing.net/th/id/OIP.E83-pgp8_VP-WnFKW1Jq7gHaEK?r=0&rs=1&pid=ImgDetMain&o=7&rm=3"
+    alt="Vodafone Cash"
+    width={size}
+    height={size}
+    className={className}
+    style={{ borderRadius: '22%', objectFit: 'cover', ...style }}
+  />
 );
 

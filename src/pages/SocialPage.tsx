@@ -4,7 +4,7 @@
    Falls back to single-link auto-redirect when only one link is present.
    ========================================================================== */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { cardsApi } from '../services';
 import { ApiSocialPageResponse, BusinessData } from '../types';
@@ -17,9 +17,14 @@ export const SocialPage: React.FC = () => {
   const { publicCode } = useParams<{ publicCode: string }>();
   const [social, setSocial] = useState<ApiSocialPageResponse | null>(null);
   const [state, setState]   = useState<State>('loading');
+  const fetchedRef = useRef(false);
 
   const load = async () => {
     if (!publicCode?.trim()) { setState('not_found'); return; }
+    
+    // Prevent double fetch in React Strict Mode to avoid double counting
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
     
     // Always fetch fresh data from API to ensure visit tracking
     setState('loading');
@@ -58,7 +63,10 @@ export const SocialPage: React.FC = () => {
     }
   };
 
-  useEffect(() => { load(); }, [publicCode]);
+  useEffect(() => { 
+    fetchedRef.current = false;
+    load(); 
+  }, [publicCode]);
 
   // Pass a card-shaped object to the existing PublicCardView component
   if (state === 'ok' && social) {

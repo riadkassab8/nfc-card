@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { cardsApi, categoriesApi } from '../../services';
+import { cardsApi, categoriesApi, customersApi } from '../../services';
 import {
   ApiCard,
   ApiCategory,
@@ -10,13 +10,15 @@ import {
   BusinessData,
   getCategoryId,
   CUSTOM_SLUG_REGEX,
+  ApiCustomer,
 } from '../../types';
+import { SelectCustomerModal } from '../../components/admin/SelectCustomerModal';
 import Swal from 'sweetalert2';
 import {
   ArrowRight, CreditCard, Plus, Building2, Globe, Phone, Mail,
   Instagram, Facebook, MapPin, MessageCircle, Video, Link as LinkIcon,
   Image, FileText, RefreshCw, Smartphone, Check, Sparkles, AlertCircle,
-  HelpCircle, ExternalLink, UploadCloud, Trash2
+  HelpCircle, ExternalLink, UploadCloud, Trash2, User
 } from 'lucide-react';
 
 /* ── Field definitions ─────────────────────────────────────────── */
@@ -42,11 +44,11 @@ const CONTACT_FIELDS: BizFieldDef[] = [
   },
   {
     key: 'whatsapp',
-    label: 'رابط أو رقم واتساب',
-    placeholder: '01000000000 أو https://wa.me/20100000000',
-    type: 'text',
+    label: 'رابط واتساب',
+    placeholder: 'https://wa.me/20100000000',
+    type: 'url',
     icon: <MessageCircle size={16} />,
-    hint: 'يفتح محادثة واتساب مباشرة عند الضغط عليه',
+    hint: 'يفتح محادثة واتساب مباشرة عند الضغط عليه (يجب أن يكون رابطاً)',
   },
   {
     key: 'email',
@@ -138,6 +140,11 @@ export const AdminAddCardPage: React.FC = () => {
   const [requiresSubscription, setRequiresSubscription] = useState<boolean>(
     editCard ? (editCard.requires_subscription ?? true) : true
   );
+
+  /* Customer link state */
+  const [selectedCustomer, setSelectedCustomer] = useState<ApiCustomer | null>(null);
+  const [initialCustomer, setInitialCustomer] = useState<ApiCustomer | null>(null);
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
 
   /* Business data state - all 13 fields */
   const [bizData, setBizData] = useState<Record<string, string>>({
@@ -250,6 +257,11 @@ export const AdminAddCardPage: React.FC = () => {
             instapay: fullCard.business_data?.instapay || '',
             vodafone_cash: fullCard.business_data?.vodafone_cash || '',
           });
+
+          if (fullCard.customer && typeof fullCard.customer === 'object') {
+            setSelectedCustomer(fullCard.customer);
+            setInitialCustomer(fullCard.customer);
+          }
         })
         .catch(console.error);
     }
@@ -351,6 +363,18 @@ export const AdminAddCardPage: React.FC = () => {
     const business: BusinessData = {};
     let hasBiz = false;
     if (isBusinessProfileCategory) {
+      // Validate WhatsApp is a link if provided
+      const waVal = bizData.whatsapp?.trim();
+      if (waVal && !/^https?:\/\//i.test(waVal)) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'رابط واتساب غير صالح',
+          text: 'يجب أن تقوم بإدخال رابط واتساب صحيح يبدأ بـ https:// (مثل: https://wa.me/201000000000) وليس مجرد رقم.',
+          confirmButtonColor: '#3b82f6',
+        });
+        return;
+      }
+
       for (const [k, v] of Object.entries(bizData)) {
         if (typeof v === 'string' && v.trim()) {
           (business as any)[k] = v.trim();
@@ -391,6 +415,17 @@ export const AdminAddCardPage: React.FC = () => {
         updateDto.business_data = isBusinessProfileCategory ? (hasBiz ? business : null) : null;
 
         const updated = await cardsApi.updateCard(editCard._id, updateDto);
+
+        // Handle customer assignment change
+        if (selectedCustomer?._id !== initialCustomer?._id) {
+          if (initialCustomer) {
+            await customersApi.unassignCard(initialCustomer._id, updated._id).catch(console.error);
+          }
+          if (selectedCustomer) {
+            await customersApi.assignCards(selectedCustomer._id, { card_ids: [updated._id] }).catch(console.error);
+          }
+        }
+
         await Swal.fire({
           icon: 'success',
           title: 'تم تعديل البطاقة بنجاح!',
@@ -410,6 +445,12 @@ export const AdminAddCardPage: React.FC = () => {
         if (isBusinessProfileCategory && hasBiz) createDto.business_data = business;
 
         const created = await cardsApi.createCard(createDto);
+
+        // Assign to customer if selected
+        if (selectedCustomer) {
+          await customersApi.assignCards(selectedCustomer._id, { card_ids: [created._id] }).catch(console.error);
+        }
+
         await Swal.fire({
           icon: 'success',
           title: 'تم إنشاء البطاقة بنجاح! 🎉',
@@ -445,6 +486,7 @@ export const AdminAddCardPage: React.FC = () => {
               tiktok: '', google_maps: '', website: '', instapay: '',
               vodafone_cash: '',
             });
+            setSelectedCustomer(null);
             loadData();
           }
         });
@@ -544,6 +586,18 @@ export const AdminAddCardPage: React.FC = () => {
           </a>
         )}
       </div>
+
+      {/* Customer Selection Modal */}
+      {customerModalOpen && (
+        <SelectCustomerModal
+          onClose={() => setCustomerModalOpen(false)}
+          onSelect={(c) => {
+            setSelectedCustomer(c);
+            setCustomerModalOpen(false);
+          }}
+          selectedCustomerId={selectedCustomer?._id}
+        />
+      )}
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
 
@@ -745,6 +799,62 @@ export const AdminAddCardPage: React.FC = () => {
                   );
                 })}
               </div>
+            </div>
+
+            {/* Customer Link Section */}
+            <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
+              <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <User size={15} style={{ color: 'var(--clr-primary-500)' }} />
+                  ربط الكارت بعميل (Customer)
+                </span>
+              </label>
+              
+              {selectedCustomer ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--clr-primary-200)', backgroundColor: 'var(--clr-primary-50)' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: 'var(--clr-primary-800)', fontSize: '14px' }}>
+                      {selectedCustomer.name}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--clr-primary-600)', marginTop: '2px' }}>
+                      {selectedCustomer.phone}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button type="button" onClick={() => setCustomerModalOpen(true)} className="btn-outline" style={{ padding: '6px 12px', fontSize: '12px', height: '32px' }}>
+                      تغيير العميل
+                    </button>
+                    <button type="button" onClick={() => setSelectedCustomer(null)} style={{ background: '#fff', border: '1px solid var(--clr-error-bdr)', color: 'var(--clr-error)', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>
+                      إلغاء الربط
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setCustomerModalOpen(true)}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '10px',
+                    border: '1px dashed var(--clr-primary-300)',
+                    backgroundColor: 'var(--bg-subtle)',
+                    color: 'var(--clr-primary-600)',
+                    fontWeight: 700,
+                    fontSize: '13.5px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--clr-primary-50)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-subtle)')}
+                >
+                  <Plus size={16} /> اختيار العميل لربط الكارت به
+                </button>
+              )}
             </div>
 
             {/* Subscription Type */}

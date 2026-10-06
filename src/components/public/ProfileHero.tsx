@@ -64,6 +64,10 @@ export const ProfileHero: React.FC<{ card: ApiCard }> = ({ card }) => {
         </div>
       </div>
 
+      <div style={{ color: '#A68250', fontSize: '1rem', fontWeight: 600, marginBottom: '8px' }}>
+        أهلاً بكم في
+      </div>
+
       <h1 style={{
         fontSize: 'clamp(2rem, 4vw, 2.5rem)',
         fontWeight: 800,
@@ -87,14 +91,6 @@ export const ProfileHero: React.FC<{ card: ApiCard }> = ({ card }) => {
           {biz.description}
         </p>
       )}
-
-      <div style={{
-        width: '40px',
-        height: '3px',
-        backgroundColor: 'rgba(0,0,0,0.06)',
-        borderRadius: '2px',
-        marginTop: '32px'
-      }} />
     </header>
   );
 };
