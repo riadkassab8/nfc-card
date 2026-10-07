@@ -123,6 +123,46 @@ export const cardsApi = {
   restoreCard: (id: string): Promise<{ message: string }> =>
     apiClient<{ message: string }>(`/cards/${id}/restore`, { method: 'POST' }),
 
+  // ── DELETE /api/cards/trash/empty (Empty Trash) ─────────────────────────
+  emptyTrash: async (password: string): Promise<{ message: string; deleted_count?: number }> => {
+    try {
+      return await apiClient<{ message: string; deleted_count?: number }>('/cards/trash/empty', {
+        method: 'DELETE',
+        body: { password },
+        skipUnauthorizedRedirect: true,
+      });
+    } catch (err: any) {
+      if (err?.statusCode === 404 || err?.statusCode === 405) {
+        return await apiClient<{ message: string; deleted_count?: number }>('/cards/trash', {
+          method: 'DELETE',
+          body: { password },
+          skipUnauthorizedRedirect: true,
+        });
+      }
+      throw err;
+    }
+  },
+
+  // ── DELETE /api/cards/:id/permanent (Permanent / Hard Delete) ────────────
+  deleteTrashCardPermanently: async (id: string, password: string): Promise<{ message: string; card_id?: string; card_code?: string }> => {
+    try {
+      return await apiClient<{ message: string; card_id?: string; card_code?: string }>(`/cards/${id}/permanent`, {
+        method: 'DELETE',
+        body: { password },
+        skipUnauthorizedRedirect: true,
+      });
+    } catch (err: any) {
+      if (err?.statusCode === 404 || err?.statusCode === 405) {
+        return await apiClient<{ message: string; card_id?: string; card_code?: string }>(`/cards/trash/${id}`, {
+          method: 'DELETE',
+          body: { password },
+          skipUnauthorizedRedirect: true,
+        });
+      }
+      throw err;
+    }
+  },
+
   // ── GET /api/cards/backup (JSON Backup) ──────────────────────────────────
   getBackupUrl: (): string => `${getApiBaseUrl()}/cards/backup`,
 

@@ -360,11 +360,91 @@ No body needed.
 
 #### `DELETE /api/cards/:id`
 
-Permanently delete a card. A **full snapshot is saved to history before deletion** so the card data is never truly lost.
+🛡️ **نقل الكارت إلى سلة المهملات (Soft Delete)**  
+يتطلب تأكيد بكلمة مرور الأدمن الحالي، ويمنع الحذف في حال كان الكارت مربوطاً بعميل.
+
+**Request Body:**
+```json
+{
+  "password": "admin_password"
+}
+```
 
 **Success Response — `200 OK`:**
 ```json
-{ "message": "Card \"CARD-0001\" deleted successfully" }
+{
+  "message": "تم نقل الكارت \"CARD-0001\" إلى سلة المهملات بنجاح. يمكنك استرجاعه في أي وقت.",
+  "card_id": "64f1a2b3c4d5e6f7a8b9c0d2"
+}
+```
+
+---
+
+#### `GET /api/cards/trash`
+
+🗑️ **عرض جميع الكروت الموجودة في سلة المهملات**
+
+**Success Response — `200 OK`:** Returns array of soft-deleted card objects sorted by `deleted_at` descending.
+
+---
+
+#### `POST /api/cards/:id/restore`
+
+♻️ **استرجاع الكارت من سلة المهملات**
+
+**Success Response — `200 OK`:**
+```json
+{
+  "message": "تم استرجاع الكارت \"CARD-0001\" من سلة المهملات بنجاح!",
+  "card": { /* full card object */ }
+}
+```
+
+---
+
+#### `DELETE /api/cards/:id/permanent` (أو `DELETE /api/cards/trash/:id`)
+
+💥 **حذف كارت نهائياً من قاعدة البيانات (Permanent / Hard Delete)**  
+يحذف سجل الكارت تماماً ولا يمكن استرجاعه، ويحرر كود الكارت والـ NFC UID.  
+يتطلب تأكيد بكلمة مرور الأدمن الحالي، ويمنع الحذف إذا كان الكارت مربوطاً بعميل.
+
+**Request Body:**
+```json
+{
+  "password": "admin_password"
+}
+```
+
+**Success Response — `200 OK`:**
+```json
+{
+  "message": "تم حذف الكارت \"CARD-0001\" نهائياً من قاعدة البيانات وبشكل لا يمكن استرجاعه.",
+  "card_id": "64f1a2b3c4d5e6f7a8b9c0d2",
+  "card_code": "CARD-0001"
+}
+```
+
+---
+
+#### `DELETE /api/cards/trash/empty`
+
+🧹 **تفريغ سلة المهملات بالكامل (حذف نهائي)**  
+يحذف جميع الكروت الموجودة حالياً داخل سلة المهملات نهائياً من قاعدة البيانات دفعة واحدة.  
+يتطلب تأكيد بكلمة مرور الأدمن الحالي.
+
+**Request Body:**
+```json
+{
+  "password": "admin_password"
+}
+```
+
+**Success Response — `200 OK`:**
+```json
+{
+  "message": "تم تفريغ سلة المهملات وحذف 5 كارت نهائياً من قاعدة البيانات.",
+  "deleted_count": 5
+}
 ```
 
 ---
@@ -986,4 +1066,107 @@ Use ?page=1&limit=10 and render a pagination control from totalPages.
   "message": "تم إرسال البريد بنجاح إلى 15 عميل."
 }
 ```
+
+---
+
+## 4. نظام تقسيم العملاء على الشركاء (Partners / Account Managers)
+
+تم دعم ميزة تحديد وفلترة الشريك المسؤول عن كل عميل وإحصائيات كل شريك:
+
+### 4.1 جلب قائمة أسماء الشركاء (للـ Dropdown)
+يُستخدم لملء قائمة الاختيار (Select Menu) في الفلتر وعند إضافة عميل جديد:
+* **المسار:** `GET /api/customers/partners/list`
+* **Headers:** `Authorization: Bearer <TOKEN>`
+* **Response (200 OK):**
+```json
+[
+  "عام",
+  "عبدالله",
+  "أحمد",
+  "شريك 3"
+]
+```
+
+### 4.2 فلترة العملاء حسب الشريك
+في جدول العملاء، عند اختيار شريك من القائمة المنسدلة:
+* **المسار:** `GET /api/customers?partner=عبدالله&page=1&limit=10`
+* **Headers:** `Authorization: Bearer <TOKEN>`
+* **Response (200 OK):** يعيد فقط العملاء التابعين لـ "عبدالله" مع حساب عدد كروتهم وPagination.
+*(إذا لم يتم إرسال `partner`، يعيد جميع العملاء كالمعتاد)*.
+
+### 4.3 إحصائيات ومقارنة الشركاء (Dashboard Cards)
+لعرض بطاقات إحصائية أو جدول مقارنة في لوحة التحكم:
+* **المسار:** `GET /api/customers/partners/stats`
+* **Headers:** `Authorization: Bearer <TOKEN>`
+* **Response (200 OK):**
+```json
+{
+  "total_partners": 3,
+  "total_customers": 45,
+  "total_cards": 98,
+  "partners": ["عام", "عبدالله", "أحمد"],
+  "stats": [
+    {
+      "partner": "عبدالله",
+      "customers_count": 25,
+      "cards_count": 55,
+      "active_cards": 50,
+      "expired_cards": 5
+    },
+    {
+      "partner": "أحمد",
+      "customers_count": 18,
+      "cards_count": 40,
+      "active_cards": 38,
+      "expired_cards": 2
+    },
+    {
+      "partner": "عام",
+      "customers_count": 2,
+      "cards_count": 3,
+      "active_cards": 3,
+      "expired_cards": 0
+    }
+  ]
+}
+```
+
+### 4.4 إضافة عميل جديد مع تحديد الشريك
+* **المسار:** `POST /api/customers`
+* **Headers:** `Authorization: Bearer <TOKEN>`
+* **Request Body (JSON):**
+```json
+{
+  "name": "شركة الأمل",
+  "phone": "01012345678",
+  "email": "info@alamal.com",
+  "city": "القاهرة",
+  "partner": "عبدالله",
+  "notes": "اتفاق سنوي"
+}
+```
+*(حقل `partner` اختياري، افتراضياً: `"عام"`)*.
+
+### 4.5 نقل / تغيير الشريك المسؤول عن عميل
+زر سريع بجوار العميل لنقل إدارته لشريك آخر:
+* **المسار:** `PUT /api/customers/:id/partner`
+* **Headers:** `Authorization: Bearer <TOKEN>`
+* **Request Body (JSON):**
+```json
+{
+  "partner": "أحمد"
+}
+```
+* **Response (200 OK):**
+```json
+{
+  "message": "تم تعيين العميل للشريك \"أحمد\" بنجاح.",
+  "customer": {
+    "id": "...",
+    "name": "شركة الأمل",
+    "partner": "أحمد"
+  }
+}
+```
+
 

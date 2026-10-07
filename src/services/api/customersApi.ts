@@ -18,6 +18,7 @@ import {
   SendCustomerEmailResponse,
   BroadcastEmailDto,
   BroadcastEmailResponse,
+  ApiPartnerStatsResponse,
 } from '../../types';
 
 
@@ -26,10 +27,26 @@ export const customersApi = {
   getCustomers: (params?: CustomerQueryParams): Promise<ApiCustomersPaginatedResponse> =>
     apiClient<ApiCustomersPaginatedResponse>('/customers', {
       params: {
-        page:   params?.page  ?? 1,
-        limit:  params?.limit ?? 10,
-        search: params?.search,
+        page:    params?.page    ?? 1,
+        limit:   params?.limit   ?? 10,
+        search:  params?.search,
+        partner: params?.partner,
       },
+    }),
+
+  // ── GET /api/customers/partners/list ──────────────────────────────────────
+  getPartnersList: (): Promise<string[]> =>
+    apiClient<string[]>('/customers/partners/list'),
+
+  // ── GET /api/customers/partners/stats ─────────────────────────────────────
+  getPartnerStats: (): Promise<ApiPartnerStatsResponse> =>
+    apiClient<ApiPartnerStatsResponse>('/customers/partners/stats'),
+
+  // ── PUT /api/customers/:id/partner ────────────────────────────────────────
+  changePartner: (id: string, partner: string): Promise<{ message?: string; customer?: ApiCustomer }> =>
+    apiClient<{ message?: string; customer?: ApiCustomer }>(`/customers/${id}/partner`, {
+      method: 'PUT',
+      body: { partner },
     }),
 
   // ── GET /api/customers/:id ───────────────────────────────────────────────

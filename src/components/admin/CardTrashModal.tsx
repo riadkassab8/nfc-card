@@ -3,24 +3,39 @@ import { cardsApi } from '../../services';
 import { ApiTrashCard, fmtDate } from '../../types';
 import {
   Trash2, RotateCcw, RefreshCw, X, AlertCircle, Check,
+  AlertTriangle, Lock
 } from 'lucide-react';
-
 
 interface CardTrashModalProps {
   onClose: () => void;
   onCardRestored: () => void;
+  onTrashCountChanged?: (count: number) => void;
   onToast: (msg: string, type?: 'success' | 'error') => void;
 }
 
 export const CardTrashModal: React.FC<CardTrashModalProps> = ({
   onClose,
   onCardRestored,
+  onTrashCountChanged,
   onToast,
 }) => {
   const [trashList, setTrashList] = useState<ApiTrashCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Confirm Empty All Trash Modal
+  const [confirmEmptyOpen, setConfirmEmptyOpen] = useState(false);
+  const [emptyPassword, setEmptyPassword] = useState('');
+  const [emptying, setEmptying] = useState(false);
+  const [emptyError, setEmptyError] = useState<string | null>(null);
+
+  // Confirm Single Item Permanent Delete Modal
+  const [targetSingleDelete, setTargetSingleDelete] = useState<ApiTrashCard | null>(null);
+  const [singlePassword, setSinglePassword] = useState('');
+  const [singleDeleting, setSingleDeleting] = useState(false);
+  const [singleError, setSingleError] = useState<string | null>(null);
 
   const fetchTrash = async () => {
     setLoading(true);
@@ -40,6 +55,12 @@ export const CardTrashModal: React.FC<CardTrashModalProps> = ({
     fetchTrash();
   }, []);
 
+  useEffect(() => {
+    if (!loading) {
+      onTrashCountChanged?.(trashList.length);
+    }
+  }, [trashList.length, loading]);
+
   const handleRestore = async (card: ApiTrashCard) => {
     setRestoringId(card._id);
     try {
@@ -55,249 +76,653 @@ export const CardTrashModal: React.FC<CardTrashModalProps> = ({
     }
   };
 
+  const handleEmptyTrash = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emptyPassword.trim()) {
+      setEmptyError('يرجى إدخال كلمة مرور الأدمن لتأكيد تفريغ السلة نهائياً.');
+      return;
+    }
+    setEmptying(true);
+    setEmptyError(null);
+    try {
+      const res = await cardsApi.emptyTrash(emptyPassword.trim());
+      const msg = res.message || 'تم تفريغ سلة المهملات وحذف الكروت نهائياً من قاعدة البيانات.';
+      onToast(msg, 'success');
+      setTrashList([]);
+      setConfirmEmptyOpen(false);
+      setEmptyPassword('');
+    } catch (err: any) {
+      if (err?.statusCode === 401) {
+        setEmptyError('كلمة مرور الأدمن غير صحيحة، تم إلغاء العملية للحماية.');
+      } else {
+        setEmptyError(err?.message || 'فشل تفريغ سلة المهملات. تحقق من كلمة المرور وحاول مجدداً.');
+      }
+    } finally {
+      setEmptying(false);
+    }
+  };
+
+  const handleSinglePermanentDelete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetSingleDelete) return;
+    if (!singlePassword.trim()) {
+      setSingleError('يرجى إدخال كلمة مرور الأدمن لتأكيد الحذف النهائي.');
+      return;
+    }
+    setSingleDeleting(true);
+    setSingleError(null);
+    try {
+      const res = await cardsApi.deleteTrashCardPermanently(
+        targetSingleDelete._id,
+        singlePassword.trim()
+      );
+      const msg = res.message || `تم حذف الكارت "${targetSingleDelete.card_code}" نهائياً من قاعدة البيانات وبشكل لا يمكن استرجاعه.`;
+      onToast(msg, 'success');
+      setTrashList((prev) => prev.filter((c) => c._id !== targetSingleDelete._id));
+      setTargetSingleDelete(null);
+      setSinglePassword('');
+    } catch (err: any) {
+      if (err?.statusCode === 401) {
+        setSingleError('كلمة مرور الأدمن غير صحيحة، تم إلغاء العملية للحماية.');
+      } else if (err?.statusCode === 400) {
+        setSingleError(err?.message || 'لا يمكن حذف الكارت لأنه مربوط بعميل.');
+      } else {
+        setSingleError(err?.message || 'فشل حذف الكارت نهائياً.');
+      }
+    } finally {
+      setSingleDeleting(false);
+    }
+  };
+
   return (
-    <div className="modal-overlay" style={{ zIndex: 1200 }}>
-      <div
-        className="modal-panel"
-        dir="rtl"
-        style={{
-          maxWidth: '680px',
-          width: '100%',
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          borderRadius: 'var(--r-2xl)',
-          overflow: 'hidden',
-          backgroundColor: '#fff',
-          boxShadow: 'var(--shadow-xl)',
-          animation: 'modalIn 220ms var(--ease-out) both',
-        }}
-      >
-        {/* Header */}
+    <>
+      {/* ── Main Modal ── */}
+      <div className="modal-overlay" style={{ zIndex: 1200 }}>
         <div
+          className="modal-panel"
+          dir="rtl"
           style={{
-            padding: '18px 24px',
-            borderBottom: '1px solid var(--bdr-light)',
+            maxWidth: '720px',
+            width: '100%',
+            maxHeight: '90vh',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: 'var(--bg-subtle)',
+            flexDirection: 'column',
+            borderRadius: 'var(--r-2xl)',
+            overflow: 'hidden',
+            backgroundColor: '#fff',
+            boxShadow: 'var(--shadow-xl)',
+            animation: 'modalIn 220ms var(--ease-out) both',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                backgroundColor: 'var(--clr-error-bg)',
-                color: 'var(--clr-error)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Trash2 size={20} />
-            </div>
-            <div>
-              <h2 className="modal-title" style={{ fontSize: 'var(--fs-md)', fontWeight: 800, margin: 0 }}>
-                سلة مهملات البطاقات (Cards Trash)
-              </h2>
-              <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)' }}>
-                البطاقات المنقولة للمهملات مع إمكانية استرجاعها فوراً للعمل
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            type="button"
+          {/* Header */}
+          <div
             style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--txt-muted)',
-              padding: '6px',
-              borderRadius: '8px',
+              padding: '18px 24px',
+              borderBottom: '1px solid var(--bdr-light)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'var(--bg-subtle)',
             }}
           >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div style={{ padding: '20px 24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {error && (
-            <div
-              style={{
-                padding: '12px 16px',
-                borderRadius: 'var(--r-md)',
-                backgroundColor: 'var(--clr-error-bg)',
-                border: '1px solid var(--clr-error-bdr)',
-                color: 'var(--clr-error)',
-                fontWeight: 600,
-                fontSize: 'var(--fs-sm)',
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          {loading ? (
-            <div style={{ padding: '50px', textAlign: 'center', color: 'var(--txt-muted)' }}>
-              <RefreshCw size={24} className="spin" style={{ margin: '0 auto 12px', display: 'block' }} />
-              <span>جاري تحميل البطاقات المحذوفة...</span>
-            </div>
-          ) : trashList.length === 0 ? (
-            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--txt-muted)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div
                 style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '16px',
-                  backgroundColor: 'var(--bg-subtle)',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  backgroundColor: 'var(--clr-error-bg)',
+                  color: 'var(--clr-error)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: '0 auto 14px',
-                  color: 'var(--clr-success)',
                 }}
               >
-                <Check size={28} />
+                <Trash2 size={20} />
               </div>
-              <p style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 6px', color: 'var(--txt-heading)' }}>
-                سلة مهملات البطاقات فارغة!
-              </p>
-              <p style={{ fontSize: '13px', margin: 0, color: 'var(--txt-muted)' }}>
-                لا توجد أي بطاقات محذوفة في سلة المهملات حالياً.
-              </p>
+              <div>
+                <h2 className="modal-title" style={{ fontSize: 'var(--fs-md)', fontWeight: 800, margin: 0 }}>
+                  سلة مهملات البطاقات (Cards Trash)
+                </h2>
+                <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)' }}>
+                  البطاقات المحذوفة مع إمكانية استرجاعها أو حذفها نهائياً
+                </p>
+              </div>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ fontSize: '12.5px', color: 'var(--txt-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <AlertCircle size={14} style={{ color: 'var(--clr-primary-500)' }} />
-                <span>
-                  يوجد <strong>{trashList.length}</strong> بطاقات في سلة المهملات
-                </span>
-              </div>
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {trashList.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmptyError(null);
+                    setEmptyPassword('');
+                    setConfirmEmptyOpen(true);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '7px 14px',
+                    borderRadius: '10px',
+                    backgroundColor: 'var(--clr-error-bg)',
+                    color: 'var(--clr-error)',
+                    border: '1px solid var(--clr-error-bdr)',
+                    cursor: 'pointer',
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    fontFamily: 'var(--font)',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="حذف جميع محتويات سلة المهملات نهائياً"
+                >
+                  <Trash2 size={14} />
+                  <span>تفريغ سلة المهملات</span>
+                </button>
+              )}
+
+              <button
+                onClick={onClose}
+                type="button"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--txt-muted)',
+                  padding: '6px',
+                  borderRadius: '8px',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: '20px 24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {error && (
               <div
                 style={{
-                  border: '1px solid var(--bdr-light)',
-                  borderRadius: '14px',
-                  overflow: 'hidden',
-                  backgroundColor: '#fff',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--r-md)',
+                  backgroundColor: 'var(--clr-error-bg)',
+                  border: '1px solid var(--clr-error-bdr)',
+                  color: 'var(--clr-error)',
+                  fontWeight: 600,
+                  fontSize: 'var(--fs-sm)',
                 }}
               >
-                <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--bdr-light)' }}>
-                      <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 800 }}>كود البطاقة</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 800 }}>نوع الكارت</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 800 }}>تاريخ الحذف</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: 800 }}>الإجراء</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {trashList.map((c) => {
-                      const deletedAt = c.deleted_at || c.deletedAt || c.updatedAt;
-                      const isRestoring = restoringId === c._id;
-
-                      return (
-                        <tr
-                          key={c._id}
-                          style={{
-                            borderBottom: '1px solid var(--bdr-light)',
-                            transition: 'background-color 150ms ease',
-                          }}
-                        >
-                          <td style={{ padding: '12px 16px' }}>
-                            <div style={{ fontWeight: 800, fontSize: '13.5px', fontFamily: 'monospace', color: 'var(--txt-heading)' }}>
-                              {c.card_code}
-                            </div>
-                            {c.custom_slug && (
-                              <div style={{ fontSize: '11.5px', color: 'var(--clr-primary-700)', fontFamily: 'monospace' }}>
-                                /{c.custom_slug}
-                              </div>
-                            )}
-                          </td>
-
-                          <td style={{ padding: '12px 16px' }}>
-                            <span
-                              style={{
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                padding: '3px 8px',
-                                borderRadius: '6px',
-                                backgroundColor: 'var(--bg-subtle)',
-                                color: 'var(--txt-secondary)',
-                                border: '1px solid var(--bdr-light)',
-                              }}
-                            >
-                              {c.card_type}
-                            </span>
-                          </td>
-
-                          <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--clr-error)' }}>
-                            {deletedAt ? fmtDate(deletedAt) : 'محذوف'}
-                          </td>
-
-                          <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                            <button
-                              onClick={() => handleRestore(c)}
-                              disabled={isRestoring}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                padding: '6px 14px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--clr-success-bdr)',
-                                backgroundColor: 'var(--clr-success-bg)',
-                                color: 'var(--clr-success)',
-                                cursor: isRestoring ? 'not-allowed' : 'pointer',
-                                fontSize: '12.5px',
-                                fontWeight: 800,
-                                fontFamily: 'var(--font)',
-                                transition: 'all 0.15s ease',
-                              }}
-                              title="استرجاع البطاقة للعمل"
-                            >
-                              {isRestoring ? (
-                                <>
-                                  <RefreshCw size={13} className="spin" /> جاري الاسترجاع...
-                                </>
-                              ) : (
-                                <>
-                                  <RotateCcw size={13} /> استرجاع
-                                </>
-                              )}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                {error}
               </div>
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* Footer */}
-        <div
-          style={{
-            padding: '14px 24px',
-            borderTop: '1px solid var(--bdr-light)',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            backgroundColor: 'var(--bg-subtle)',
-          }}
-        >
-          <button onClick={onClose} className="btn-outline" style={{ padding: '8px 20px', borderRadius: '10px' }}>
-            إغلاق
-          </button>
+            {loading ? (
+              <div style={{ padding: '50px', textAlign: 'center', color: 'var(--txt-muted)' }}>
+                <RefreshCw size={24} className="spin" style={{ margin: '0 auto 12px', display: 'block' }} />
+                <span>جاري تحميل البطاقات المحذوفة...</span>
+              </div>
+            ) : trashList.length === 0 ? (
+              <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--txt-muted)' }}>
+                <div
+                  style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '16px',
+                    backgroundColor: 'var(--bg-subtle)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 14px',
+                    color: 'var(--clr-success)',
+                  }}
+                >
+                  <Check size={28} />
+                </div>
+                <p style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 6px', color: 'var(--txt-heading)' }}>
+                  سلة مهملات البطاقات فارغة!
+                </p>
+                <p style={{ fontSize: '13px', margin: 0, color: 'var(--txt-muted)' }}>
+                  لا توجد أي بطاقات محذوفة في سلة المهملات حالياً.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ fontSize: '12.5px', color: 'var(--txt-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertCircle size={14} style={{ color: 'var(--clr-primary-500)' }} />
+                    <span>
+                      يوجد <strong>{trashList.length}</strong> بطاقات في سلة المهملات
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmptyError(null);
+                      setEmptyPassword('');
+                      setConfirmEmptyOpen(true);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--clr-error)',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      textDecoration: 'underline',
+                      padding: 0,
+                    }}
+                  >
+                    حذف الكل نهائياً
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    border: '1px solid var(--bdr-light)',
+                    borderRadius: '14px',
+                    overflow: 'hidden',
+                    backgroundColor: '#fff',
+                  }}
+                >
+                  <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--bdr-light)' }}>
+                        <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 800 }}>كود البطاقة</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 800 }}>نوع الكارت</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 800 }}>تاريخ الحذف</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: 800 }}>الإجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trashList.map((c) => {
+                        const deletedAt = c.deleted_at || c.deletedAt || c.updatedAt;
+                        const isRestoring = restoringId === c._id;
+                        const isDeleting = deletingId === c._id;
+
+                        return (
+                          <tr
+                            key={c._id}
+                            style={{
+                              borderBottom: '1px solid var(--bdr-light)',
+                              transition: 'background-color 150ms ease',
+                            }}
+                          >
+                            <td style={{ padding: '12px 16px' }}>
+                              <div style={{ fontWeight: 800, fontSize: '13.5px', fontFamily: 'monospace', color: 'var(--txt-heading)' }}>
+                                {c.card_code}
+                              </div>
+                              {c.custom_slug && (
+                                <div style={{ fontSize: '11.5px', color: 'var(--clr-primary-700)', fontFamily: 'monospace' }}>
+                                  /{c.custom_slug}
+                                </div>
+                              )}
+                            </td>
+
+                            <td style={{ padding: '12px 16px' }}>
+                              <span
+                                style={{
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  backgroundColor: 'var(--bg-subtle)',
+                                  color: 'var(--txt-secondary)',
+                                  border: '1px solid var(--bdr-light)',
+                                }}
+                              >
+                                {c.card_type}
+                              </span>
+                            </td>
+
+                            <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--clr-error)' }}>
+                              {deletedAt ? fmtDate(deletedAt) : 'محذوف'}
+                            </td>
+
+                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                              <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                                <button
+                                  onClick={() => handleRestore(c)}
+                                  disabled={isRestoring || isDeleting}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    padding: '6px 12px',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--clr-success-bdr)',
+                                    backgroundColor: 'var(--clr-success-bg)',
+                                    color: 'var(--clr-success)',
+                                    cursor: isRestoring ? 'not-allowed' : 'pointer',
+                                    fontSize: '12px',
+                                    fontWeight: 800,
+                                    fontFamily: 'var(--font)',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                  title="استرجاع البطاقة للعمل"
+                                >
+                                  {isRestoring ? (
+                                    <>
+                                      <RefreshCw size={12} className="spin" /> استرجاع...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <RotateCcw size={12} /> استرجاع
+                                    </>
+                                  )}
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    setSingleError(null);
+                                    setSinglePassword('');
+                                    setTargetSingleDelete(c);
+                                  }}
+                                  disabled={isRestoring || isDeleting}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '6px 10px',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--clr-error-bdr)',
+                                    backgroundColor: 'var(--clr-error-bg)',
+                                    color: 'var(--clr-error)',
+                                    cursor: isDeleting ? 'not-allowed' : 'pointer',
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    fontFamily: 'var(--font)',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                  title="حذف هذه البطاقة نهائياً"
+                                >
+                                  <Trash2 size={12} />
+                                  <span>حذف نهائي</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div
+            style={{
+              padding: '14px 24px',
+              borderTop: '1px solid var(--bdr-light)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--bg-subtle)',
+            }}
+          >
+            <div>
+              <span style={{ fontSize: '13px', color: 'var(--txt-muted)', fontWeight: 600 }}>
+                إجمالي الكروت بالسلة: <strong style={{ color: 'var(--txt-heading)' }}>{trashList.length}</strong>
+              </span>
+            </div>
+
+            <button onClick={onClose} className="btn-outline" style={{ padding: '8px 20px', borderRadius: '10px' }}>
+              إغلاق
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* ── Confirm Empty All Trash Dialog ── */}
+      {confirmEmptyOpen && (
+        <div className="modal-overlay" style={{ zIndex: 1300 }}>
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 'var(--r-2xl)',
+              padding: '28px',
+              maxWidth: '460px',
+              width: '100%',
+              boxShadow: 'var(--shadow-xl)',
+              fontFamily: 'var(--font)',
+              animation: 'modalIn 220ms var(--ease-out) both',
+              direction: 'rtl',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '20px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  backgroundColor: 'var(--clr-error-bg)',
+                  color: 'var(--clr-error)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  border: '1px solid var(--clr-error-bdr)',
+                }}
+              >
+                <Trash2 size={22} />
+              </div>
+              <div>
+                <h3 style={{ margin: '0 0 6px', fontSize: '17px', fontWeight: 800, color: 'var(--clr-error)' }}>
+                  تأكيد تفريغ سلة المهملات بالكامل
+                </h3>
+                <p style={{ fontSize: '13.5px', color: 'var(--txt-secondary)', margin: 0, lineHeight: 1.6 }}>
+                  أنت على وشك حذف <strong>{trashList.length} بطاقات</strong> من سلة المهملات نهائياً.
+                  <br />
+                  <span style={{ color: 'var(--clr-error)', fontWeight: 700 }}>
+                    ⚠️ تحذير: هذا الإجراء نهائي ولا يمكن التراجع عنه أو استرجاع البطاقات بعد الحذف.
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {emptyError && (
+              <div
+                style={{
+                  marginBottom: '16px',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--r-md)',
+                  backgroundColor: 'var(--clr-error-bg)',
+                  border: '1px solid var(--clr-error-bdr)',
+                  color: 'var(--clr-error)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                }}
+              >
+                {emptyError}
+              </div>
+            )}
+
+            <form onSubmit={handleEmptyTrash}>
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Lock size={14} style={{ color: 'var(--txt-muted)' }} />
+                  <span>كلمة مرور الأدمن لتأكيد العملية <span style={{ color: 'var(--clr-error)' }}>*</span></span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  className="form-input"
+                  value={emptyPassword}
+                  onChange={(e) => setEmptyPassword(e.target.value)}
+                  placeholder="أدخل كلمة مرور الأدمن الحالية..."
+                  style={{ width: '100%', height: '40px', borderRadius: '10px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setConfirmEmptyOpen(false)}
+                  className="btn-outline"
+                  disabled={emptying}
+                  style={{ padding: '8px 18px', borderRadius: '10px' }}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  disabled={emptying}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '8px 22px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: 'var(--clr-error)',
+                    color: '#fff',
+                    cursor: emptying ? 'not-allowed' : 'pointer',
+                    fontWeight: 700,
+                    fontSize: '13.5px',
+                    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+                  }}
+                >
+                  {emptying ? (
+                    <>
+                      <RefreshCw size={14} className="spin" /> جاري الحذف...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} /> تأكيد تفريغ السلة
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm Single Card Permanent Delete Dialog ── */}
+      {targetSingleDelete && (
+        <div className="modal-overlay" style={{ zIndex: 1300 }}>
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 'var(--r-2xl)',
+              padding: '28px',
+              maxWidth: '440px',
+              width: '100%',
+              boxShadow: 'var(--shadow-xl)',
+              fontFamily: 'var(--font)',
+              animation: 'modalIn 220ms var(--ease-out) both',
+              direction: 'rtl',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '20px' }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  backgroundColor: 'var(--clr-error-bg)',
+                  color: 'var(--clr-error)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  border: '1px solid var(--clr-error-bdr)',
+                }}
+              >
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 800, color: 'var(--clr-error)' }}>
+                  حذف البطاقة نهائياً
+                </h3>
+                <p style={{ fontSize: '13.5px', color: 'var(--txt-secondary)', margin: 0, lineHeight: 1.6 }}>
+                  هل أنت متأكد من حذف الكارت <strong>{targetSingleDelete.card_code}</strong> نهائياً من سلة المهملات؟
+                  <br />
+                  <span style={{ fontSize: '12.5px', color: 'var(--txt-muted)' }}>
+                    لن تتمكن من استرجاع هذا الكارت مرة أخرى.
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {singleError && (
+              <div
+                style={{
+                  marginBottom: '16px',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--r-md)',
+                  backgroundColor: 'var(--clr-error-bg)',
+                  border: '1px solid var(--clr-error-bdr)',
+                  color: 'var(--clr-error)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                }}
+              >
+                {singleError}
+              </div>
+            )}
+
+            <form onSubmit={handleSinglePermanentDelete}>
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Lock size={14} style={{ color: 'var(--txt-muted)' }} />
+                  <span>كلمة مرور الأدمن لتأكيد الحذف <span style={{ color: 'var(--clr-error)' }}>*</span></span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  className="form-input"
+                  value={singlePassword}
+                  onChange={(e) => setSinglePassword(e.target.value)}
+                  placeholder="أدخل كلمة مرور الأدمن الحالية..."
+                  style={{ width: '100%', height: '40px', borderRadius: '10px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setTargetSingleDelete(null)}
+                  className="btn-outline"
+                  disabled={singleDeleting}
+                  style={{ padding: '8px 18px', borderRadius: '10px' }}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  disabled={singleDeleting}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '8px 20px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: 'var(--clr-error)',
+                    color: '#fff',
+                    cursor: singleDeleting ? 'not-allowed' : 'pointer',
+                    fontWeight: 700,
+                    fontSize: '13.5px',
+                  }}
+                >
+                  {singleDeleting ? (
+                    <>
+                      <RefreshCw size={14} className="spin" /> جاري الحذف...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} /> حذف نهائي
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

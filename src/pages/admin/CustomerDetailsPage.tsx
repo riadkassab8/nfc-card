@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { customersApi } from '../../services';
-import { ApiCustomerDetailResponse, fmtDate } from '../../types';
+import { customersApi, cardsApi, categoriesApi } from '../../services';
+import { ApiCustomerDetailResponse, fmtDate, ApiCard, ApiCategory } from '../../types';
 import { AssignCardsModal } from '../../components/admin/AssignCardsModal';
 import { CustomerModal } from '../../components/admin/CustomerModal';
 import { CustomerHistorySection } from '../../components/admin/CustomerHistorySection';
 import { SendCustomerEmailModal } from '../../components/admin/SendCustomerEmailModal';
+import { ChangePartnerModal } from '../../components/admin/ChangePartnerModal';
+import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import {
   User, Phone, Mail, MapPin, CreditCard,
-  Unlink, Plus, ArrowRight, RefreshCw, AlertTriangle, Edit2, History
+  Unlink, Plus, ArrowRight, RefreshCw, AlertTriangle, Edit2, History,
+  UserCheck, ArrowRightLeft, Eye,
 } from 'lucide-react';
 
 
@@ -48,12 +51,37 @@ export const CustomerDetailsPage: React.FC = () => {
   // Modals & Actions
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
+  const [changePartnerOpen, setChangePartnerOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [unassignTarget, setUnassignTarget] = useState<{ id: string; code: string } | null>(null);
   const [unassignLoading, setUnassignLoading] = useState(false);
+  const [drawerCard, setDrawerCard] = useState<ApiCard | null>(null);
+  const [loadingCardId, setLoadingCardId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
 
   const showToast = (msg: string, type: ToastType = 'success') => setToast({ msg, type });
+
+  useEffect(() => {
+    categoriesApi
+      .getCategories()
+      .then((res) => {
+        setCategories(res.data || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleOpenCardDetails = async (cardId: string) => {
+    setLoadingCardId(cardId);
+    try {
+      const fullCard = await cardsApi.getCardById(cardId);
+      setDrawerCard(fullCard);
+    } catch (err: any) {
+      showToast(err?.message || 'فشل تحميل بيانات وتفاصيل البطاقة', 'error');
+    } finally {
+      setLoadingCardId(null);
+    }
+  };
 
   const fetchDetails = async () => {
     if (!id) return;
@@ -226,6 +254,18 @@ export const CustomerDetailsPage: React.FC = () => {
         />
       )}
 
+      {/* Change Partner Modal */}
+      {changePartnerOpen && (
+        <ChangePartnerModal
+          customer={customer}
+          onClose={() => setChangePartnerOpen(false)}
+          onSuccess={() => {
+            fetchDetails();
+          }}
+          onToast={showToast}
+        />
+      )}
+
       {/* Send Customer Email Modal */}
       {emailModalOpen && (
         <SendCustomerEmailModal
@@ -247,6 +287,24 @@ export const CustomerDetailsPage: React.FC = () => {
           existingCardIds={existingCardIds}
           onClose={() => setAssignModalOpen(false)}
           onSuccess={() => {
+            fetchDetails();
+          }}
+          onToast={showToast}
+        />
+      )}
+
+      {/* Card Details Drawer */}
+      {drawerCard && (
+        <CardDetailsDrawer
+          card={drawerCard}
+          categories={categories}
+          onClose={() => setDrawerCard(null)}
+          onUpdated={(updated) => {
+            setDrawerCard(updated);
+            fetchDetails();
+          }}
+          onDeleted={() => {
+            setDrawerCard(null);
             fetchDetails();
           }}
           onToast={showToast}
@@ -330,6 +388,26 @@ export const CustomerDetailsPage: React.FC = () => {
             title={customer.email ? `إرسال بريد إلكتروني إلى ${customer.email}` : 'العميل ليس لديه بريد مسجل'}
           >
             <Mail size={15} /> إرسال بريد إلكتروني
+          </button>
+
+          <button
+            onClick={() => setChangePartnerOpen(true)}
+            className="btn-outline"
+            style={{
+              padding: '8px 16px',
+              borderRadius: '10px',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#eff6ff',
+              borderColor: '#bfdbfe',
+              color: '#1d4ed8',
+            }}
+            title="نقل إدارة العميل لشريك مسؤول آخر"
+          >
+            <ArrowRightLeft size={15} /> نقل / تغيير الشريك
           </button>
 
           <button
@@ -475,6 +553,41 @@ export const CustomerDetailsPage: React.FC = () => {
                     <MapPin size={13} style={{ color: 'var(--txt-muted)' }} /> {customer.city}
                   </span>
                 )}
+                {/* Partner badge */}
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '13px',
+                    color: '#1d4ed8',
+                    backgroundColor: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    padding: '3px 10px',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                  }}
+                >
+                  <UserCheck size={13} />
+                  <span>الشريك: {customer.partner || 'عام'}</span>
+                  <button
+                    type="button"
+                    onClick={() => setChangePartnerOpen(true)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '2px',
+                      color: '#2563eb',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      marginRight: '2px',
+                    }}
+                    title="نقل العميل لشريك آخر"
+                  >
+                    <ArrowRightLeft size={12} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -775,9 +888,11 @@ export const CustomerDetailsPage: React.FC = () => {
                   return (
                     <tr
                       key={card._id}
+                      onClick={() => handleOpenCardDetails(card._id)}
                       style={{
                         borderBottom: '1px solid var(--bdr-light)',
                         transition: 'background-color 150ms ease',
+                        cursor: 'pointer',
                       }}
                       onMouseEnter={(e) => {
                         (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bg-hover)';
@@ -785,11 +900,26 @@ export const CustomerDetailsPage: React.FC = () => {
                       onMouseLeave={(e) => {
                         (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
                       }}
+                      title="انقر لعرض وتعديل تفاصيل البطاقة الكاملة"
                     >
                       <td style={{ padding: '12px 18px' }}>
-                        <span style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: '14px', color: 'var(--txt-heading)' }}>
-                          {card.card_code}
-                        </span>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                          <span
+                            style={{
+                              fontWeight: 800,
+                              fontFamily: 'monospace',
+                              fontSize: '14px',
+                              color: 'var(--clr-primary-700)',
+                              textDecoration: 'underline',
+                              textUnderlineOffset: '3px',
+                            }}
+                          >
+                            {card.card_code}
+                          </span>
+                          {loadingCardId === card._id && (
+                            <RefreshCw size={13} className="spin" style={{ color: 'var(--clr-primary-600)' }} />
+                          )}
+                        </div>
                       </td>
 
                       <td style={{ padding: '12px 18px' }}>
@@ -863,29 +993,59 @@ export const CustomerDetailsPage: React.FC = () => {
                         )}
                       </td>
 
-                      <td style={{ padding: '12px 18px', textAlign: 'center' }}>
-                        <button
-                          onClick={() => setUnassignTarget({ id: card._id, code: card.card_code })}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '6px 12px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--clr-warning-bdr)',
-                            backgroundColor: 'var(--clr-warning-bg)',
-                            color: 'var(--clr-warning)',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            fontFamily: 'var(--font)',
-                            transition: 'all 0.15s ease',
-                          }}
-                          title="فك ارتباط الكارت من العميل ليعود حراً"
-                        >
-                          <Unlink size={13} />
-                          <span>فك الارتباط</span>
-                        </button>
+                      <td style={{ padding: '12px 18px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => handleOpenCardDetails(card._id)}
+                            disabled={loadingCardId === card._id}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--clr-primary-200)',
+                              backgroundColor: 'var(--clr-primary-50)',
+                              color: 'var(--clr-primary-700)',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              fontFamily: 'var(--font)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="عرض تفاصيل البطاقة وتعديل روابطها وقواعدها"
+                          >
+                            {loadingCardId === card._id ? (
+                              <RefreshCw size={13} className="spin" />
+                            ) : (
+                              <Eye size={13} />
+                            )}
+                            <span>التفاصيل</span>
+                          </button>
+
+                          <button
+                            onClick={() => setUnassignTarget({ id: card._id, code: card.card_code })}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--clr-warning-bdr)',
+                              backgroundColor: 'var(--clr-warning-bg)',
+                              color: 'var(--clr-warning)',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              fontFamily: 'var(--font)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="فك ارتباط الكارت من العميل ليعود حراً"
+                          >
+                            <Unlink size={13} />
+                            <span>فك الارتباط</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

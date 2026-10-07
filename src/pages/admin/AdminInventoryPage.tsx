@@ -9,6 +9,7 @@ import { CardDetailsDrawer } from '../../components/admin/CardDetailsDrawer';
 import { BatchGenerateCardsModal } from '../../components/admin/BatchGenerateCardsModal';
 import { BulkAssignCustomerModal } from '../../components/admin/BulkAssignCustomerModal';
 import { DeleteCardModal } from '../../components/admin/DeleteCardModal';
+import { BulkDeleteCardsModal } from '../../components/admin/BulkDeleteCardsModal';
 import { CardTrashModal } from '../../components/admin/CardTrashModal';
 import {
   Plus, Search, RefreshCw, CreditCard, CheckCircle2, XCircle,
@@ -189,10 +190,22 @@ export const AdminInventoryPage: React.FC = () => {
   const [cloneTarget, setCloneTarget] = useState<ApiCard | null>(null);
 
   const [assignCustomerTarget, setAssignCustomerTarget] = useState<{ ids: string[]; codes: string[] } | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [trashModalOpen, setTrashModalOpen] = useState(false);
+  const [trashCount, setTrashCount] = useState(0);
   const [downloadingBackup, setDownloadingBackup] = useState(false);
   const [dropdownState, setDropdownState] = useState<{ id: string; top: number; left: number } | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
+
+  const loadTrashCount = async () => {
+    try {
+      const res = await cardsApi.getTrash();
+      const items = Array.isArray(res) ? res : res?.data || [];
+      setTrashCount(items.length);
+    } catch {
+      // silently handle
+    }
+  };
 
 
 
@@ -316,6 +329,7 @@ export const AdminInventoryPage: React.FC = () => {
   useEffect(() => {
     categoriesApi.getCategories({ limit: 100 }).then(res => setCategories(res.data ?? [])).catch(() => { });
     loadGlobalStats();
+    loadTrashCount();
   }, []);
 
   useEffect(() => {
@@ -397,11 +411,9 @@ export const AdminInventoryPage: React.FC = () => {
     loadGlobalStats();
   };
 
-  const bulkDelete = async () => {
-    await Promise.allSettled([...selected].map(id => cardsApi.deleteCard(id)));
-    showToast(`تم حذف ${selected.size} بطاقة`);
-    setSelected(new Set()); fetchCards(page, limit);
-    loadGlobalStats();
+  const bulkDelete = () => {
+    if (selected.size === 0) return;
+    setBulkDeleteOpen(true);
   };
 
   /* ── select styles ── */
@@ -425,6 +437,22 @@ export const AdminInventoryPage: React.FC = () => {
             setDrawerCard(null);
             fetchCards(page, limit);
             loadGlobalStats();
+            loadTrashCount();
+          }}
+          onToast={showToast}
+        />
+      )}
+
+      {bulkDeleteOpen && (
+        <BulkDeleteCardsModal
+          cards={cards.filter((c) => selected.has(c._id))}
+          onClose={() => setBulkDeleteOpen(false)}
+          onSuccess={() => {
+            setBulkDeleteOpen(false);
+            setSelected(new Set());
+            fetchCards(page, limit);
+            loadGlobalStats();
+            loadTrashCount();
           }}
           onToast={showToast}
         />
@@ -432,11 +460,16 @@ export const AdminInventoryPage: React.FC = () => {
 
       {trashModalOpen && (
         <CardTrashModal
-          onClose={() => setTrashModalOpen(false)}
+          onClose={() => {
+            setTrashModalOpen(false);
+            loadTrashCount();
+          }}
           onCardRestored={() => {
             fetchCards(page, limit);
             loadGlobalStats();
+            loadTrashCount();
           }}
+          onTrashCountChanged={setTrashCount}
           onToast={showToast}
         />
       )}
@@ -521,7 +554,7 @@ export const AdminInventoryPage: React.FC = () => {
               fontWeight: 700,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '7px',
+              gap: '8px',
               backgroundColor: 'rgba(239, 68, 68, 0.15)',
               color: '#fca5a5',
               border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -532,6 +565,26 @@ export const AdminInventoryPage: React.FC = () => {
           >
             <Trash2 size={16} />
             <span>سلة المهملات</span>
+            {trashCount > 0 && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '20px',
+                  height: '20px',
+                  padding: '0 6px',
+                  borderRadius: '10px',
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
+                }}
+              >
+                {trashCount}
+              </span>
+            )}
           </button>
 
           <button

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { customersApi } from '../../services';
 import { ApiCustomer, ApiCreateCustomerDto, ApiUpdateCustomerDto, ApiCard } from '../../types';
-import { X, Save, RefreshCw, User, Phone, CreditCard, Plus } from 'lucide-react';
+import { X, Save, RefreshCw, User, Phone, CreditCard, Plus, UserCheck } from 'lucide-react';
 import { SelectCardsModal } from './SelectCardsModal';
 
 
@@ -26,6 +26,8 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
   const [city, setCity] = useState(customer?.city || '');
   const [address, setAddress] = useState(customer?.address || '');
   const [notes, setNotes] = useState(customer?.notes || '');
+  const [partner, setPartner] = useState(customer?.partner || 'عام');
+  const [partnersList, setPartnersList] = useState<string[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +36,16 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
   const [selectedCards, setSelectedCards] = useState<ApiCard[]>([]);
   const [initialCardIds, setInitialCardIds] = useState<Set<string>>(new Set());
   const [loadingCards, setLoadingCards] = useState(isEdit);
+
+  React.useEffect(() => {
+    customersApi.getPartnersList()
+      .then((list) => {
+        if (Array.isArray(list)) {
+          setPartnersList(list);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   React.useEffect(() => {
     if (isEdit && customer) {
@@ -80,6 +92,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
           city: city.trim() || undefined,
           address: address.trim() || undefined,
           notes: notes.trim() || undefined,
+          partner: partner.trim() || 'عام',
         };
         const updated = await customersApi.updateCustomer(customer._id, dto);
         
@@ -110,6 +123,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
           city: city.trim() || undefined,
           address: address.trim() || undefined,
           notes: notes.trim() || undefined,
+          partner: partner.trim() || 'عام',
         };
         const created = await customersApi.createCustomer(dto);
 
@@ -314,6 +328,36 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                 placeholder="مثال: مدينة نصر - عيادة النور - الدور الثالث"
                 style={{ width: '100%', height: '42px', borderRadius: '10px' }}
               />
+            </div>
+
+            {/* Partner */}
+            <div className="form-group">
+              <label className="form-label" style={{ fontWeight: 700, fontSize: 'var(--fs-sm)', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <UserCheck size={15} style={{ color: 'var(--clr-primary-600)' }} />
+                  الشريك المسؤول (Account Manager / Partner)
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--txt-muted)', fontWeight: 500 }}>
+                  افتراضياً: عام
+                </span>
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  list="partners-suggestions"
+                  className="form-input"
+                  value={partner}
+                  onChange={(e) => setPartner(e.target.value)}
+                  placeholder="اختر أو اكتب اسم الشريك (مثال: عبدالله / أحمد / عام)"
+                  style={{ width: '100%', height: '42px', borderRadius: '10px' }}
+                />
+                <datalist id="partners-suggestions">
+                  {partnersList.map((p) => (
+                    <option key={p} value={p} />
+                  ))}
+                  {!partnersList.includes('عام') && <option value="عام" />}
+                </datalist>
+              </div>
             </div>
 
             {/* Notes */}

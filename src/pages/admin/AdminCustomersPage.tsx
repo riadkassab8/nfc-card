@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { customersApi } from '../../services';
-import { ApiCustomer, fmtDate } from '../../types';
+import { ApiCustomer, fmtDate, ApiPartnerStatsResponse } from '../../types';
 import { CustomerModal } from '../../components/admin/CustomerModal';
 import { DeleteCustomerModal } from '../../components/admin/DeleteCustomerModal';
 import { CustomerTrashModal } from '../../components/admin/CustomerTrashModal';
 import { SendCustomerEmailModal } from '../../components/admin/SendCustomerEmailModal';
 import { BroadcastEmailModal } from '../../components/admin/BroadcastEmailModal';
+import { ChangePartnerModal } from '../../components/admin/ChangePartnerModal';
 import {
   Users, Plus, Search, RefreshCw, Eye, Edit2,
   Trash2, Phone, CreditCard, AlertTriangle,
   ChevronLeft, ChevronRight, Download, Mail, Megaphone,
+  UserCheck, ArrowRightLeft, BarChart3, Filter, CheckCircle2, Clock,
 } from 'lucide-react';
 
 
@@ -50,6 +52,13 @@ export const AdminCustomersPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
+
+  // Partner filter & stats
+  const [selectedPartner, setSelectedPartner] = useState<string>('');
+  const [partnersList, setPartnersList] = useState<string[]>([]);
+  const [partnerStats, setPartnerStats] = useState<ApiPartnerStatsResponse | null>(null);
+  const [showStats, setShowStats] = useState<boolean>(true);
+  const [changePartnerTarget, setChangePartnerTarget] = useState<ApiCustomer | null>(null);
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -106,6 +115,19 @@ export const AdminCustomersPage: React.FC = () => {
   };
 
 
+  const fetchPartnersData = async () => {
+    try {
+      const [listRes, statsRes] = await Promise.all([
+        customersApi.getPartnersList().catch(() => []),
+        customersApi.getPartnerStats().catch(() => null),
+      ]);
+      if (Array.isArray(listRes)) setPartnersList(listRes);
+      if (statsRes) setPartnerStats(statsRes);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const fetchCustomers = async (pg: number, currentLimit: number) => {
     setLoading(true);
     setError(null);
@@ -114,6 +136,7 @@ export const AdminCustomersPage: React.FC = () => {
         page: pg,
         limit: currentLimit,
         search: appliedSearch.trim() || undefined,
+        partner: selectedPartner || undefined,
       });
       setCustomers(res.data || []);
       setTotal(res.total || 0);
@@ -128,7 +151,11 @@ export const AdminCustomersPage: React.FC = () => {
   useEffect(() => {
     setSelectedIds(new Set());
     fetchCustomers(page, limit);
-  }, [page, limit, appliedSearch]);
+  }, [page, limit, appliedSearch, selectedPartner]);
+
+  useEffect(() => {
+    fetchPartnersData();
+  }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
@@ -191,6 +218,20 @@ export const AdminCustomersPage: React.FC = () => {
           }}
           onSuccess={() => {
             fetchCustomers(page, limit);
+            fetchPartnersData();
+          }}
+          onToast={showToast}
+        />
+      )}
+
+      {/* Change Partner Modal */}
+      {changePartnerTarget && (
+        <ChangePartnerModal
+          customer={changePartnerTarget}
+          onClose={() => setChangePartnerTarget(null)}
+          onSuccess={() => {
+            fetchCustomers(page, limit);
+            fetchPartnersData();
           }}
           onToast={showToast}
         />
@@ -306,6 +347,28 @@ export const AdminCustomersPage: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setShowStats((prev) => !prev)}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '12px',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              backgroundColor: showStats ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.1)',
+              color: '#bfdbfe',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+            }}
+            title="عرض أو إخفاء إحصائيات ومقارنة أداء الشركاء"
+          >
+            <BarChart3 size={16} />
+            <span>{showStats ? 'إخفاء الإحصائيات' : 'إحصائيات الشركاء'}</span>
+          </button>
+
+          <button
             onClick={() => setCreateModalOpen(true)}
             className="btn-primary"
             style={{
@@ -323,6 +386,154 @@ export const AdminCustomersPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Partner Stats / Performance Comparison Cards */}
+      {showStats && partnerStats && (
+        <div
+          style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '20px',
+            border: '1px solid var(--bdr-light)',
+            padding: '22px 24px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}
+        >
+          {/* Stats Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  backgroundColor: '#eff6ff',
+                  color: '#2563eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <BarChart3 size={20} />
+              </div>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                  إحصائيات ومقارنة أداء الشركاء (Partners Dashboard)
+                </h2>
+                <p style={{ margin: '2px 0 0', fontSize: '12.5px', color: 'var(--txt-muted)' }}>
+                  مقارنة أعداد العملاء والكروت الذكية لكل شريك مع إمكانية الفلترة السريعة
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Summary Badges */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--bg-subtle)', padding: '5px 12px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, color: 'var(--txt-body)' }}>
+                <span style={{ color: 'var(--txt-muted)' }}>إجمالي الشركاء:</span>
+                <span style={{ color: '#2563eb', fontWeight: 800 }}>{partnerStats.total_partners}</span>
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--bg-subtle)', padding: '5px 12px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, color: 'var(--txt-body)' }}>
+                <span style={{ color: 'var(--txt-muted)' }}>إجمالي العملاء:</span>
+                <span style={{ color: '#059669', fontWeight: 800 }}>{partnerStats.total_customers}</span>
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--bg-subtle)', padding: '5px 12px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, color: 'var(--txt-body)' }}>
+                <span style={{ color: 'var(--txt-muted)' }}>إجمالي الكروت:</span>
+                <span style={{ color: '#7c3aed', fontWeight: 800 }}>{partnerStats.total_cards}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Partner Comparison Cards Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gap: '14px',
+            }}
+          >
+            {partnerStats.stats.map((s) => {
+              const isSelected = selectedPartner === s.partner;
+              return (
+                <div
+                  key={s.partner}
+                  onClick={() => {
+                    setSelectedPartner(isSelected ? '' : s.partner);
+                    setPage(1);
+                  }}
+                  style={{
+                    padding: '16px',
+                    borderRadius: '16px',
+                    backgroundColor: isSelected ? '#f0f7ff' : '#f8fafc',
+                    border: `1.5px solid ${isSelected ? '#3b82f6' : 'var(--bdr-light)'}`,
+                    cursor: 'pointer',
+                    transition: 'all 180ms ease',
+                    boxShadow: isSelected ? '0 4px 14px rgba(59, 130, 246, 0.15)' : 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                  title={isSelected ? 'انقر لإلغاء الفلترة' : `انقر لفلترة عملاء الشريك "${s.partner}"`}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          backgroundColor: isSelected ? '#2563eb' : '#e2e8f0',
+                          color: isSelected ? '#ffffff' : '#475569',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: '13px',
+                        }}
+                      >
+                        {s.partner.charAt(0)}
+                      </div>
+                      <span style={{ fontWeight: 800, fontSize: '14.5px', color: 'var(--txt-heading)' }}>
+                        {s.partner}
+                      </span>
+                    </div>
+                    {isSelected ? (
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#2563eb', backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: '12px' }}>
+                        فلتر نشط ✓
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '11px', color: 'var(--txt-muted)', textDecoration: 'underline' }}>
+                        انقر للفلترة
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div style={{ backgroundColor: '#ffffff', padding: '8px 10px', borderRadius: '10px', border: '1px solid var(--bdr-light)' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--txt-muted)', marginBottom: '2px' }}>عدد العملاء</div>
+                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>{s.customers_count}</div>
+                    </div>
+                    <div style={{ backgroundColor: '#ffffff', padding: '8px 10px', borderRadius: '10px', border: '1px solid var(--bdr-light)' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--txt-muted)', marginBottom: '2px' }}>عدد الكروت</div>
+                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>{s.cards_count}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', paddingTop: '4px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#16a34a', fontWeight: 700 }}>
+                      <CheckCircle2 size={13} /> {s.active_cards} نشط
+                    </span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: s.expired_cards > 0 ? '#ef4444' : 'var(--txt-muted)', fontWeight: 700 }}>
+                      <Clock size={13} /> {s.expired_cards} منتهي
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
 
       {/* Multi-selection Bar */}
@@ -436,9 +647,56 @@ export const AdminCustomersPage: React.FC = () => {
           </button>
         </div>
 
+        {/* Partner Filter */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <select
+            value={selectedPartner}
+            onChange={(e) => {
+              setSelectedPartner(e.target.value);
+              setPage(1);
+            }}
+            className="form-input"
+            style={{
+              height: '40px',
+              borderRadius: '10px',
+              paddingRight: '12px',
+              paddingLeft: '28px',
+              fontSize: '13px',
+              fontWeight: 600,
+              backgroundColor: selectedPartner ? '#eff6ff' : '#fff',
+              borderColor: selectedPartner ? '#93c5fd' : 'var(--bdr-light)',
+              color: selectedPartner ? '#1d4ed8' : 'var(--txt-body)',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="">جميع الشركاء (الكل)</option>
+            {partnersList.map((p) => (
+              <option key={p} value={p}>
+                الشريك: {p}
+              </option>
+            ))}
+          </select>
+          {selectedPartner && (
+            <button
+              onClick={() => {
+                setSelectedPartner('');
+                setPage(1);
+              }}
+              className="btn-outline"
+              style={{ height: '40px', padding: '0 10px', borderRadius: '10px', fontSize: '12px', color: 'var(--txt-muted)' }}
+              title="إلغاء فلتر الشريك وعرض الجميع"
+            >
+              ✕ مسح
+            </button>
+          )}
+        </div>
+
         <button
           className="btn-outline"
-          onClick={() => fetchCustomers(page, limit)}
+          onClick={() => {
+            fetchCustomers(page, limit);
+            fetchPartnersData();
+          }}
           style={{ padding: '0 16px', height: '40px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
           <RefreshCw size={14} /> تحديث
@@ -498,6 +756,7 @@ export const AdminCustomersPage: React.FC = () => {
                     />
                   </th>
                   <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '12.5px', fontWeight: 800 }}>اسم العميل / النشاط</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '12.5px', fontWeight: 800 }}>الشريك المسؤول</th>
                   <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '12.5px', fontWeight: 800 }}>الهاتف والتواصل</th>
                   <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '12.5px', fontWeight: 800 }}>المحافظة / العنوان</th>
                   <th style={{ padding: '14px 20px', textAlign: 'center', fontSize: '12.5px', fontWeight: 800 }}>عدد الكروت</th>
@@ -565,6 +824,48 @@ export const AdminCustomersPage: React.FC = () => {
                             </div>
                           )}
                         </div>
+                      </div>
+                    </td>
+
+                    {/* Partner */}
+                    <td style={{ padding: '14px 20px' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 10px',
+                            borderRadius: '8px',
+                            backgroundColor: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1px solid #bfdbfe',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          <UserCheck size={12} />
+                          {c.partner || 'عام'}
+                        </span>
+                        <button
+                          onClick={() => setChangePartnerTarget(c)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            color: '#64748b',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            borderRadius: '4px',
+                            transition: 'color 150ms ease',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
+                          title="نقل العميل لشريك آخر"
+                        >
+                          <ArrowRightLeft size={13} />
+                        </button>
                       </div>
                     </td>
 
@@ -686,6 +987,26 @@ export const AdminCustomersPage: React.FC = () => {
                         >
                           <Mail size={13} />
                           <span>إرسال بريد</span>
+                        </button>
+
+                        <button
+                          onClick={() => setChangePartnerTarget(c)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            border: '1px solid #bfdbfe',
+                            backgroundColor: '#eff6ff',
+                            color: '#1d4ed8',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                          title="نقل / تغيير الشريك المسؤول"
+                        >
+                          <ArrowRightLeft size={14} />
                         </button>
 
                         <button

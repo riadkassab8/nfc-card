@@ -454,6 +454,7 @@ export interface ApiCustomer {
   city?: string;
   address?: string;
   notes?: string;
+  partner?: string;
   total_cards?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -463,6 +464,7 @@ export interface CustomerQueryParams {
   page?: number;
   limit?: number;
   search?: string;
+  partner?: string;
 }
 
 export interface ApiCustomersPaginatedResponse {
@@ -503,6 +505,7 @@ export interface ApiCreateCustomerDto {
   city?: string;
   address?: string;
   notes?: string;
+  partner?: string;
 }
 
 export interface ApiUpdateCustomerDto {
@@ -512,6 +515,27 @@ export interface ApiUpdateCustomerDto {
   city?: string;
   address?: string;
   notes?: string;
+  partner?: string;
+}
+
+export interface ApiChangeCustomerPartnerDto {
+  partner: string;
+}
+
+export interface PartnerStatItem {
+  partner: string;
+  customers_count: number;
+  cards_count: number;
+  active_cards: number;
+  expired_cards: number;
+}
+
+export interface ApiPartnerStatsResponse {
+  total_partners: number;
+  total_customers: number;
+  total_cards: number;
+  partners: string[];
+  stats: PartnerStatItem[];
 }
 
 export interface ApiAssignCardsDto {
