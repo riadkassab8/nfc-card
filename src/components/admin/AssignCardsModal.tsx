@@ -38,8 +38,11 @@ export const AssignCardsModal: React.FC<AssignCardsModalProps> = ({
       // Fetch up to 100 cards to pick from
       const res = await cardsApi.getCards({ limit: 100 });
       const cardsList = res.data || [];
-      // Filter out cards that are already assigned to this customer if applicable
-      const filtered = cardsList.filter((c) => !existingCardIds.includes(c._id));
+      // إخفاء الكروت المربوطة مسبقاً بأي عميل آخر (أو نفس العميل)
+      const filtered = cardsList.filter((c) => {
+        const isAssigned = !!(c.customer_id || c.customer);
+        return !isAssigned && !existingCardIds.includes(c._id);
+      });
       setAvailableCards(filtered);
     } catch (err: any) {
       setError(err?.message || 'فشل تحميل قائمة الكروت');
