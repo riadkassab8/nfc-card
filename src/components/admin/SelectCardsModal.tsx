@@ -25,8 +25,12 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
       setLoading(true);
       try {
         const res = await cardsApi.getCards({ limit: 1000, search: search.trim() || undefined });
-        // Optionally filter out cards that already belong to a customer, but maybe they want to re-assign.
-        setCards(res.data || []);
+        const allCards = res.data || [];
+        // إخفاء الكروت المربوطة بعملاء آخرين (إظهار الكروت غير المربوطة أو الكروت المربوطة بالعميل الحالي فقط)
+        const filteredCards = allCards.filter(
+          (c) => !c.customer_id || initialSelectedCards.some((selected) => selected._id === c._id)
+        );
+        setCards(filteredCards);
       } catch (e) {
         console.error(e);
       } finally {
