@@ -7,7 +7,7 @@ interface ChangePartnerModalProps {
   customer: ApiCustomer;
   onClose: () => void;
   onSuccess: (updatedCustomer?: ApiCustomer) => void;
-  onToast: (msg: string, type?: 'success' | 'error') => void;
+  onToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 export const ChangePartnerModal: React.FC<ChangePartnerModalProps> = ({
@@ -18,7 +18,7 @@ export const ChangePartnerModal: React.FC<ChangePartnerModalProps> = ({
 }) => {
   const [partner, setPartner] = useState(customer.partner || 'عام');
   const [partnersList, setPartnersList] = useState<string[]>([]);
-  const [loadingPartners, setLoadingPartners] = useState(true);
+  const [, setLoadingPartners] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

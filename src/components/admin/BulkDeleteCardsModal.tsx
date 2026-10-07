@@ -7,7 +7,7 @@ interface BulkDeleteCardsModalProps {
   cards: ApiCard[];
   onClose: () => void;
   onSuccess: () => void;
-  onToast: (msg: string, type?: 'success' | 'error') => void;
+  onToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 export const BulkDeleteCardsModal: React.FC<BulkDeleteCardsModalProps> = ({

@@ -3,7 +3,7 @@ import { cardsApi } from '../../services';
 import { ApiTrashCard, fmtDate } from '../../types';
 import {
   Trash2, RotateCcw, RefreshCw, X, AlertCircle, Check,
-  AlertTriangle, Lock
+  Lock
 } from 'lucide-react';
 
 interface CardTrashModalProps {
@@ -22,7 +22,7 @@ export const CardTrashModal: React.FC<CardTrashModalProps> = ({
   const [trashList, setTrashList] = useState<ApiTrashCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Confirm Empty All Trash Modal

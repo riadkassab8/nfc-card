@@ -12,7 +12,7 @@ import {
   Users, Plus, Search, RefreshCw, Eye, Edit2,
   Trash2, Phone, CreditCard, AlertTriangle,
   ChevronLeft, ChevronRight, Download, Mail, Megaphone,
-  UserCheck, ArrowRightLeft, BarChart3, Filter, CheckCircle2, Clock,
+  UserCheck, ArrowRightLeft, BarChart3, CheckCircle2, Clock,
 } from 'lucide-react';
 
 
