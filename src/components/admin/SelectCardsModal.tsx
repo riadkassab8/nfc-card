@@ -28,7 +28,7 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
         const allCards = res.data || [];
         // إخفاء الكروت المربوطة بعملاء آخرين (إظهار الكروت غير المربوطة أو الكروت المربوطة بالعميل الحالي فقط)
         const filteredCards = allCards.filter(
-          (c) => !c.customer_id || initialSelectedCards.some((selected) => selected._id === c._id)
+          (c) => !(c.customer_id || c.customer) || initialSelectedCards.some((selected) => selected._id === c._id)
         );
         setCards(filteredCards);
       } catch (e) {
