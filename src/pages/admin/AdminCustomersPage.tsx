@@ -53,11 +53,14 @@ export const AdminCustomersPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
 
+  // Tabs & Views
+  const [activeTab, setActiveTab] = useState<'customers' | 'partners'>('customers');
+
   // Partner filter & stats
   const [selectedPartner, setSelectedPartner] = useState<string>('');
   const [partnersList, setPartnersList] = useState<string[]>([]);
   const [partnerStats, setPartnerStats] = useState<ApiPartnerStatsResponse | null>(null);
-  const [showStats, setShowStats] = useState<boolean>(true);
+  const [loadingStats, setLoadingStats] = useState<boolean>(false);
   const [changePartnerTarget, setChangePartnerTarget] = useState<ApiCustomer | null>(null);
 
   // Modals
@@ -116,6 +119,7 @@ export const AdminCustomersPage: React.FC = () => {
 
 
   const fetchPartnersData = async () => {
+    setLoadingStats(true);
     try {
       const [listRes, statsRes] = await Promise.all([
         customersApi.getPartnersList().catch(() => []),
@@ -125,6 +129,8 @@ export const AdminCustomersPage: React.FC = () => {
       if (statsRes) setPartnerStats(statsRes);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoadingStats(false);
     }
   };
 
@@ -347,28 +353,6 @@ export const AdminCustomersPage: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setShowStats((prev) => !prev)}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '12px',
-              fontSize: '13.5px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              backgroundColor: showStats ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.1)',
-              color: '#bfdbfe',
-              border: '1px solid rgba(59, 130, 246, 0.4)',
-              cursor: 'pointer',
-              transition: 'all 150ms ease',
-            }}
-            title="عرض أو إخفاء إحصائيات ومقارنة أداء الشركاء"
-          >
-            <BarChart3 size={16} />
-            <span>{showStats ? 'إخفاء الإحصائيات' : 'إحصائيات الشركاء'}</span>
-          </button>
-
-          <button
             onClick={() => setCreateModalOpen(true)}
             className="btn-primary"
             style={{
@@ -387,153 +371,92 @@ export const AdminCustomersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Partner Stats / Performance Comparison Cards */}
-      {showStats && partnerStats && (
-        <div
+      {/* Navigation Tabs */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '8px',
+          borderBottom: '2px solid var(--bdr-light)',
+          paddingBottom: '0',
+          marginTop: '2px',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setActiveTab('customers')}
           style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '20px',
-            border: '1px solid var(--bdr-light)',
-            padding: '22px 24px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 22px',
+            border: 'none',
+            borderBottom: activeTab === 'customers' ? '3px solid var(--clr-primary-600)' : '3px solid transparent',
+            marginBottom: '-2px',
+            backgroundColor: 'transparent',
+            color: activeTab === 'customers' ? 'var(--clr-primary-700)' : 'var(--txt-secondary)',
+            fontWeight: activeTab === 'customers' ? 800 : 600,
+            fontSize: '14.5px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
           }}
         >
-          {/* Stats Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  backgroundColor: '#eff6ff',
-                  color: '#2563eb',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <BarChart3 size={20} />
-              </div>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--txt-heading)' }}>
-                  إحصائيات ومقارنة أداء الشركاء (Partners Dashboard)
-                </h2>
-                <p style={{ margin: '2px 0 0', fontSize: '12.5px', color: 'var(--txt-muted)' }}>
-                  مقارنة أعداد العملاء والكروت الذكية لكل شريك مع إمكانية الفلترة السريعة
-                </p>
-              </div>
-            </div>
-
-            {/* Quick Summary Badges */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--bg-subtle)', padding: '5px 12px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, color: 'var(--txt-body)' }}>
-                <span style={{ color: 'var(--txt-muted)' }}>إجمالي الشركاء:</span>
-                <span style={{ color: '#2563eb', fontWeight: 800 }}>{partnerStats.total_partners}</span>
-              </div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--bg-subtle)', padding: '5px 12px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, color: 'var(--txt-body)' }}>
-                <span style={{ color: 'var(--txt-muted)' }}>إجمالي العملاء:</span>
-                <span style={{ color: '#059669', fontWeight: 800 }}>{partnerStats.total_customers}</span>
-              </div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--bg-subtle)', padding: '5px 12px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, color: 'var(--txt-body)' }}>
-                <span style={{ color: 'var(--txt-muted)' }}>إجمالي الكروت:</span>
-                <span style={{ color: '#7c3aed', fontWeight: 800 }}>{partnerStats.total_cards}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Partner Comparison Cards Grid */}
-          <div
+          <Users size={18} />
+          <span>قائمة العملاء والشركات</span>
+          <span
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-              gap: '14px',
+              backgroundColor: activeTab === 'customers' ? 'var(--clr-primary-100)' : 'var(--bg-subtle)',
+              color: activeTab === 'customers' ? 'var(--clr-primary-800)' : 'var(--txt-muted)',
+              borderRadius: '12px',
+              padding: '2px 8px',
+              fontSize: '12px',
+              fontWeight: 800,
             }}
           >
-            {partnerStats.stats.map((s) => {
-              const isSelected = selectedPartner === s.partner;
-              return (
-                <div
-                  key={s.partner}
-                  onClick={() => {
-                    setSelectedPartner(isSelected ? '' : s.partner);
-                    setPage(1);
-                  }}
-                  style={{
-                    padding: '16px',
-                    borderRadius: '16px',
-                    backgroundColor: isSelected ? '#f0f7ff' : '#f8fafc',
-                    border: `1.5px solid ${isSelected ? '#3b82f6' : 'var(--bdr-light)'}`,
-                    cursor: 'pointer',
-                    transition: 'all 180ms ease',
-                    boxShadow: isSelected ? '0 4px 14px rgba(59, 130, 246, 0.15)' : 'none',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                  }}
-                  title={isSelected ? 'انقر لإلغاء الفلترة' : `انقر لفلترة عملاء الشريك "${s.partner}"`}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '8px',
-                          backgroundColor: isSelected ? '#2563eb' : '#e2e8f0',
-                          color: isSelected ? '#ffffff' : '#475569',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 800,
-                          fontSize: '13px',
-                        }}
-                      >
-                        {s.partner.charAt(0)}
-                      </div>
-                      <span style={{ fontWeight: 800, fontSize: '14.5px', color: 'var(--txt-heading)' }}>
-                        {s.partner}
-                      </span>
-                    </div>
-                    {isSelected ? (
-                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#2563eb', backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: '12px' }}>
-                        فلتر نشط ✓
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '11px', color: 'var(--txt-muted)', textDecoration: 'underline' }}>
-                        انقر للفلترة
-                      </span>
-                    )}
-                  </div>
+            {total}
+          </span>
+        </button>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <div style={{ backgroundColor: '#ffffff', padding: '8px 10px', borderRadius: '10px', border: '1px solid var(--bdr-light)' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--txt-muted)', marginBottom: '2px' }}>عدد العملاء</div>
-                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>{s.customers_count}</div>
-                    </div>
-                    <div style={{ backgroundColor: '#ffffff', padding: '8px 10px', borderRadius: '10px', border: '1px solid var(--bdr-light)' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--txt-muted)', marginBottom: '2px' }}>عدد الكروت</div>
-                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>{s.cards_count}</div>
-                    </div>
-                  </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('partners')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 22px',
+            border: 'none',
+            borderBottom: activeTab === 'partners' ? '3px solid var(--clr-primary-600)' : '3px solid transparent',
+            marginBottom: '-2px',
+            backgroundColor: 'transparent',
+            color: activeTab === 'partners' ? 'var(--clr-primary-700)' : 'var(--txt-secondary)',
+            fontWeight: activeTab === 'partners' ? 800 : 600,
+            fontSize: '14.5px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <BarChart3 size={18} />
+          <span>إحصائيات ومقارنة أداء الشركاء (Partners Dashboard)</span>
+          {partnerStats && (
+            <span
+              style={{
+                backgroundColor: activeTab === 'partners' ? '#eff6ff' : 'var(--bg-subtle)',
+                color: activeTab === 'partners' ? '#1d4ed8' : 'var(--txt-muted)',
+                borderRadius: '12px',
+                padding: '2px 8px',
+                fontSize: '12px',
+                fontWeight: 800,
+                border: activeTab === 'partners' ? '1px solid #bfdbfe' : undefined,
+              }}
+            >
+              {partnerStats.total_partners}
+            </span>
+          )}
+        </button>
+      </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', paddingTop: '4px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#16a34a', fontWeight: 700 }}>
-                      <CheckCircle2 size={13} /> {s.active_cards} نشط
-                    </span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: s.expired_cards > 0 ? '#ef4444' : 'var(--txt-muted)', fontWeight: 700 }}>
-                      <Clock size={13} /> {s.expired_cards} منتهي
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {activeTab === 'customers' ? (
+        <>
 
 
       {/* Multi-selection Bar */}
@@ -1149,7 +1072,426 @@ export const AdminCustomersPage: React.FC = () => {
           </div>
         )}
       </div>
+    </>
+  ) : (
+    /* Partners Dashboard Tab (تاب إحصائيات ومقارنة أداء الشركاء) */
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* Tab Controls Bar */}
+      <div
+        style={{
+          backgroundColor: '#fff',
+          borderRadius: '16px',
+          border: '1px solid var(--bdr-light)',
+          padding: '18px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          boxShadow: 'var(--shadow-xs)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              backgroundColor: '#eff6ff',
+              color: '#2563eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <BarChart3 size={22} />
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+              لوحة إحصائيات ومقارنة أداء الشركاء (Partners Dashboard)
+            </h2>
+            <p style={{ margin: '3px 0 0', fontSize: '13px', color: 'var(--txt-muted)' }}>
+              مقارنة شاملة لتوزيع العملاء والبطاقات الذكية، ونسب النشاط بين الشركاء ومديري الحسابات
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={fetchPartnersData}
+          disabled={loadingStats}
+          className="btn-outline"
+          style={{
+            padding: '8px 18px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+          }}
+        >
+          <RefreshCw size={14} className={loadingStats ? 'spin' : ''} />
+          <span>{loadingStats ? 'جاري التحديث...' : 'تحديث الإحصائيات'}</span>
+        </button>
+      </div>
+
+      {loadingStats && !partnerStats ? (
+        <div style={{ padding: '60px', textAlign: 'center', backgroundColor: '#fff', borderRadius: '16px', border: '1px solid var(--bdr-light)' }}>
+          <RefreshCw size={28} className="spin" style={{ margin: '0 auto 12px', display: 'block', color: 'var(--clr-primary-600)' }} />
+          <span style={{ color: 'var(--txt-muted)', fontSize: '14px' }}>جاري تحميل إحصائيات الشركاء...</span>
+        </div>
+      ) : !partnerStats ? (
+        <div style={{ padding: '60px', textAlign: 'center', backgroundColor: '#fff', borderRadius: '16px', border: '1px solid var(--bdr-light)' }}>
+          <AlertTriangle size={36} style={{ margin: '0 auto 12px', display: 'block', color: 'var(--clr-error)' }} />
+          <p style={{ fontWeight: 700, margin: '0 0 12px' }}>تعذر تحميل بيانات إحصائيات الشركاء</p>
+          <button onClick={fetchPartnersData} className="btn-primary" style={{ padding: '8px 20px', borderRadius: '10px' }}>
+            إعادة المحاولة
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Top Summary KPI Cards */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '14px',
+            }}
+          >
+            {/* Total Partners */}
+            <div
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: '16px',
+                border: '1px solid var(--bdr-light)',
+                padding: '20px 22px',
+                boxShadow: 'var(--shadow-xs)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+              }}
+            >
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '14px',
+                  backgroundColor: '#eff6ff',
+                  color: '#2563eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <UserCheck size={24} />
+              </div>
+              <div>
+                <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--txt-muted)', marginBottom: '3px' }}>
+                  إجمالي الشركاء
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 900, color: '#1e40af' }}>
+                  {partnerStats.total_partners}
+                </div>
+              </div>
+            </div>
+
+            {/* Total Customers */}
+            <div
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: '16px',
+                border: '1px solid var(--bdr-light)',
+                padding: '20px 22px',
+                boxShadow: 'var(--shadow-xs)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+              }}
+            >
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '14px',
+                  backgroundColor: '#ecfdf5',
+                  color: '#059669',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Users size={24} />
+              </div>
+              <div>
+                <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--txt-muted)', marginBottom: '3px' }}>
+                  إجمالي العملاء
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 900, color: '#065f46' }}>
+                  {partnerStats.total_customers}
+                </div>
+              </div>
+            </div>
+
+            {/* Total Cards */}
+            <div
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: '16px',
+                border: '1px solid var(--bdr-light)',
+                padding: '20px 22px',
+                boxShadow: 'var(--shadow-xs)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+              }}
+            >
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '14px',
+                  backgroundColor: '#f5f3ff',
+                  color: '#7c3aed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <CreditCard size={24} />
+              </div>
+              <div>
+                <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--txt-muted)', marginBottom: '3px' }}>
+                  إجمالي الكروت المربوطة
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 900, color: '#5b21b6' }}>
+                  {partnerStats.total_cards}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Partner Comparison Cards Grid */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                بطاقات الشركاء التفصيلية (Partners Cards)
+              </h3>
+              <span style={{ fontSize: '12.5px', color: 'var(--txt-muted)' }}>
+                انقر على "عرض عملاء الشريك" للانتقال التلقائي للجدول
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '16px',
+              }}
+            >
+              {partnerStats.stats.map((s) => {
+                const activeRatio = s.cards_count > 0 ? Math.round((s.active_cards / s.cards_count) * 100) : 0;
+                return (
+                  <div
+                    key={s.partner}
+                    style={{
+                      backgroundColor: '#ffffff',
+                      borderRadius: '18px',
+                      border: '1px solid var(--bdr-light)',
+                      padding: '20px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px',
+                      transition: 'all 180ms ease',
+                    }}
+                  >
+                    {/* Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '10px',
+                            backgroundColor: '#eff6ff',
+                            color: '#1d4ed8',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 800,
+                            fontSize: '15px',
+                          }}
+                        >
+                          {s.partner.charAt(0)}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '15.5px', color: 'var(--txt-heading)' }}>
+                            {s.partner}
+                          </div>
+                          <div style={{ fontSize: '11.5px', color: 'var(--txt-muted)' }}>
+                            شريك مسؤول / Account Manager
+                          </div>
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          backgroundColor: '#f1f5f9',
+                          color: '#475569',
+                          padding: '3px 8px',
+                          borderRadius: '8px',
+                        }}
+                      >
+                        {activeRatio}% تفعيل
+                      </span>
+                    </div>
+
+                    {/* Metrics Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '12px', border: '1px solid var(--bdr-light)' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--txt-muted)', marginBottom: '2px' }}>عدد العملاء</div>
+                        <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>{s.customers_count}</div>
+                      </div>
+                      <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '12px', border: '1px solid var(--bdr-light)' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--txt-muted)', marginBottom: '2px' }}>إجمالي الكروت</div>
+                        <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>{s.cards_count}</div>
+                      </div>
+                    </div>
+
+                    {/* Active / Expired pills */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', paddingTop: '4px', borderTop: '1px solid var(--bdr-light)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#16a34a', fontWeight: 700 }}>
+                        <CheckCircle2 size={13} /> {s.active_cards} كارت نشط
+                      </span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: s.expired_cards > 0 ? '#ef4444' : 'var(--txt-muted)', fontWeight: 700 }}>
+                        <Clock size={13} /> {s.expired_cards} منتهي
+                      </span>
+                    </div>
+
+                    {/* Action: Switch to customers tab filtered by this partner */}
+                    <button
+                      onClick={() => {
+                        setSelectedPartner(s.partner);
+                        setActiveTab('customers');
+                        setPage(1);
+                      }}
+                      className="btn-outline"
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        fontSize: '12.5px',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        backgroundColor: '#eff6ff',
+                        borderColor: '#bfdbfe',
+                        color: '#1d4ed8',
+                      }}
+                    >
+                      <span>عرض عملاء "{s.partner}" في الجدول</span>
+                      <ChevronLeft size={14} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Comparison Table */}
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '18px',
+              border: '1px solid var(--bdr-light)',
+              overflow: 'hidden',
+              boxShadow: 'var(--shadow-xs)',
+            }}
+          >
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--bdr-light)' }}>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                جدول المقارنة الشامل لأداء الشركاء
+              </h3>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--bdr-light)' }}>
+                    <th style={{ padding: '12px 18px', textAlign: 'right', fontSize: '12px', fontWeight: 800 }}>الشريك</th>
+                    <th style={{ padding: '12px 18px', textAlign: 'center', fontSize: '12px', fontWeight: 800 }}>عدد العملاء</th>
+                    <th style={{ padding: '12px 18px', textAlign: 'center', fontSize: '12px', fontWeight: 800 }}>إجمالي الكروت</th>
+                    <th style={{ padding: '12px 18px', textAlign: 'center', fontSize: '12px', fontWeight: 800 }}>كروت نشطة</th>
+                    <th style={{ padding: '12px 18px', textAlign: 'center', fontSize: '12px', fontWeight: 800 }}>كروت منتهية</th>
+                    <th style={{ padding: '12px 18px', textAlign: 'center', fontSize: '12px', fontWeight: 800 }}>نسبة التفعيل</th>
+                    <th style={{ padding: '12px 18px', textAlign: 'center', fontSize: '12px', fontWeight: 800 }}>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {partnerStats.stats.map((s) => {
+                    const ratio = s.cards_count > 0 ? Math.round((s.active_cards / s.cards_count) * 100) : 0;
+                    return (
+                      <tr key={s.partner} style={{ borderBottom: '1px solid var(--bdr-light)' }}>
+                        <td style={{ padding: '14px 18px' }}>
+                          <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--txt-heading)' }}>
+                            {s.partner}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 18px', textAlign: 'center', fontWeight: 700 }}>
+                          {s.customers_count}
+                        </td>
+                        <td style={{ padding: '14px 18px', textAlign: 'center', fontWeight: 700 }}>
+                          {s.cards_count}
+                        </td>
+                        <td style={{ padding: '14px 18px', textAlign: 'center', color: '#16a34a', fontWeight: 700 }}>
+                          {s.active_cards}
+                        </td>
+                        <td style={{ padding: '14px 18px', textAlign: 'center', color: s.expired_cards > 0 ? '#ef4444' : 'var(--txt-muted)', fontWeight: 700 }}>
+                          {s.expired_cards}
+                        </td>
+                        <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+                          <span style={{ fontWeight: 800, color: ratio > 75 ? '#16a34a' : '#2563eb' }}>
+                            {ratio}%
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+                          <button
+                            onClick={() => {
+                              setSelectedPartner(s.partner);
+                              setActiveTab('customers');
+                              setPage(1);
+                            }}
+                            className="btn-outline"
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              backgroundColor: '#eff6ff',
+                              borderColor: '#bfdbfe',
+                              color: '#1d4ed8',
+                            }}
+                          >
+                            استعراض العملاء
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
+  )}
+</div>
   );
 };
 
