@@ -9,6 +9,10 @@ const API_BASE = (
   'https://smart-card-qr-api.koyeb.app/api'
 ).replace(/\/$/, '');
 
+const CLIENT_SECRET =
+  (import.meta as any).env?.VITE_CLIENT_SECRET ||
+  'SmartCard_Secret_Key_2026_Secure!';
+
 const TOKEN_KEY = 'nfc_admin_token';
 
 // ── Token helpers ─────────────────────────────────────────────────────────
@@ -77,6 +81,7 @@ export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
   params?: Record<string, string | number | boolean | undefined | null>;
+  headers?: Record<string, string>;
   requiresAuth?: boolean;
   responseType?: 'json' | 'blob';
   skipUnauthorizedRedirect?: boolean;
@@ -92,6 +97,7 @@ export async function apiClient<T = unknown>(
     method = 'GET',
     body,
     params,
+    headers: customHeaders,
     requiresAuth = true,
     responseType = 'json',
     skipUnauthorizedRedirect = false,
@@ -108,7 +114,10 @@ export async function apiClient<T = unknown>(
 
   const url = `${API_BASE}${endpoint.startsWith('/') ? '' : '/'}${endpoint}${qs}`;
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'X-Client-Secret': CLIENT_SECRET,
+    ...(customHeaders || {}),
+  };
 
   if (body && !(body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
