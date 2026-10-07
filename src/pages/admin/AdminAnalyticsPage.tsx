@@ -267,7 +267,7 @@ const CardTab: React.FC<{ days: number }> = ({ days }) => {
 
       {/* Card picker */}
       <div style={{
-        width: 'min(270px, 100%)', flexShrink: 0, flexGrow: 1,
+        width: 'min(270px, 100%)', flexShrink: 0,
         backgroundColor: '#ffffff', borderRadius: '16px',
         border: '1px solid var(--bdr-light)', padding: '16px',
         display: 'flex', flexDirection: 'column', gap: '12px',
