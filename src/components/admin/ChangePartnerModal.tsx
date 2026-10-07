@@ -16,28 +16,17 @@ export const ChangePartnerModal: React.FC<ChangePartnerModalProps> = ({
   onSuccess,
   onToast,
 }) => {
-  const [partner, setPartner] = useState(customer.partner || 'عام');
-  const [partnersList, setPartnersList] = useState<string[]>([]);
-  const [, setLoadingPartners] = useState(true);
+  const [partner, setPartner] = useState(customer?.partner && customer.partner !== 'عام' ? customer.partner : 'Eng / Riad kassab');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    customersApi.getPartnersList()
-      .then((list) => {
-        if (Array.isArray(list)) {
-          setPartnersList(list);
-        }
-      })
-      .catch(console.error)
-      .finally(() => setLoadingPartners(false));
-  }, []);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetPartner = partner.trim() || 'عام';
+    const targetPartner = partner.trim() || 'Eng / Riad kassab';
 
-    if (targetPartner === (customer.partner || 'عام')) {
+    if (targetPartner === (customer.partner || 'Eng / Riad kassab')) {
       onToast('العميل مخصص بالفعل لهذا الشريك.', 'info');
       onClose();
       return;
@@ -170,47 +159,19 @@ export const ChangePartnerModal: React.FC<ChangePartnerModalProps> = ({
               اختر أو اكتب الشريك الجديد <span style={{ color: 'var(--clr-error)' }}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
-              <input
-                type="text"
-                list="partners-modal-list"
-                className="form-input"
-                value={partner}
-                onChange={(e) => setPartner(e.target.value)}
-                placeholder="مثال: عبدالله، أحمد، عام..."
-                required
-                style={{ width: '100%', height: '42px', borderRadius: '10px' }}
-              />
-              <datalist id="partners-modal-list">
-                {partnersList.map((p) => (
-                  <option key={p} value={p} />
-                ))}
-                {!partnersList.includes('عام') && <option value="عام" />}
-              </datalist>
+                <select
+                  className="form-input"
+                  value={partner}
+                  onChange={(e) => setPartner(e.target.value)}
+                  style={{ width: '100%', height: '42px', borderRadius: '10px' }}
+                >
+                  <option value="Eng / Riad kassab">Eng / Riad kassab</option>
+                  <option value="Eng / Abdullah rabeh">Eng / Abdullah rabeh</option>
+                  {customer?.partner && customer.partner !== 'Eng / Riad kassab' && customer.partner !== 'Eng / Abdullah rabeh' && customer.partner !== 'عام' && (
+                    <option value={customer.partner}>{customer.partner}</option>
+                  )}
+                </select>
             </div>
-            {partnersList.length > 0 && (
-              <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', alignSelf: 'center' }}>الشركاء المتاحون:</span>
-                {partnersList.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPartner(p)}
-                    style={{
-                      fontSize: '11.5px',
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      border: partner === p ? '1px solid #2563eb' : '1px solid var(--bdr-light)',
-                      backgroundColor: partner === p ? '#eff6ff' : 'var(--bg-subtle)',
-                      color: partner === p ? '#1d4ed8' : 'var(--txt-body)',
-                      cursor: 'pointer',
-                      fontWeight: partner === p ? 700 : 500,
-                    }}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
