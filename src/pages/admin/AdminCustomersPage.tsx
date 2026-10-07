@@ -570,35 +570,43 @@ export const AdminCustomersPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Partner Filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <select
-            value={selectedPartner}
-            onChange={(e) => {
-              setSelectedPartner(e.target.value);
-              setPage(1);
-            }}
-            className="form-input"
-            style={{
-              height: '40px',
-              borderRadius: '10px',
-              paddingRight: '12px',
-              paddingLeft: '28px',
-              fontSize: '13px',
-              fontWeight: 600,
-              backgroundColor: selectedPartner ? '#eff6ff' : '#fff',
-              borderColor: selectedPartner ? '#93c5fd' : 'var(--bdr-light)',
-              color: selectedPartner ? '#1d4ed8' : 'var(--txt-body)',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="">جميع الشركاء (الكل)</option>
-            {partnersList.map((p) => (
-              <option key={p} value={p}>
-                الشريك: {p}
-              </option>
-            ))}
-          </select>
+          <div style={{ position: 'relative' }}>
+            <select
+              value={selectedPartner}
+              onChange={(e) => {
+                setSelectedPartner(e.target.value);
+                setPage(1);
+              }}
+              className="form-input"
+              style={{
+                height: '40px',
+                borderRadius: '10px',
+                paddingRight: '12px',
+                paddingLeft: '32px',
+                fontSize: '13px',
+                fontWeight: 600,
+                backgroundColor: selectedPartner ? '#eff6ff' : '#fff',
+                borderColor: selectedPartner ? '#93c5fd' : 'var(--bdr-light)',
+                color: selectedPartner ? '#1d4ed8' : 'var(--txt-body)',
+                cursor: 'pointer',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                MozAppearance: 'none',
+                width: '100%',
+              }}
+            >
+              <option value="">جميع الشركاء (الكل)</option>
+              {partnersList.map((p) => (
+                <option key={p} value={p}>
+                  الشريك: {p}
+                </option>
+              ))}
+            </select>
+            <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: selectedPartner ? '#1d4ed8' : 'var(--txt-muted)', display: 'flex' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
           {selectedPartner && (
             <button
               onClick={() => {
