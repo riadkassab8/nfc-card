@@ -5,7 +5,7 @@
    ========================================================================== */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authApi } from '../services/api';
+import { authApi, TOKEN_KEY as TOKEN_STORAGE_KEY } from '../services/api';
 import { ApiAdmin } from '../types';
 
 interface AuthState {
@@ -102,14 +102,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     };
 
+    // Cross-tab sync — login/logout in another tab is reflected here
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key !== TOKEN_STORAGE_KEY) return;
+      if (!e.newValue) {
+        setStoredAdmin(null);
+        setPartial({ isAuthenticated: false, admin: null, loading: false });
+      } else {
+        setPartial({ isAuthenticated: true, admin: getStoredAdmin() });
+        verifySession();
+      }
+    };
+
+    // Token expiry check — the JWT exp is enforced client-side too
+    const expiryTimer = window.setInterval(() => {
+      setState((prev) => {
+        if (prev.isAuthenticated && !authApi.isAuthenticated()) {
+          setStoredAdmin(null);
+          return {
+            ...prev,
+            isAuthenticated: false,
+            admin: null,
+            loading: false,
+            error: 'انتهت جلسة الدخول. يرجى تسجيل الدخول مجدداً.',
+          };
+        }
+        return prev;
+      });
+    }, 30_000);
+
     window.addEventListener('api:unauthorized', handle401);
-    return () => window.removeEventListener('api:unauthorized', handle401);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('api:unauthorized', handle401);
+      window.removeEventListener('storage', handleStorage);
+      window.clearInterval(expiryTimer);
+    };
   }, [verifySession]);
 
   const login = async (username: string, password: string) => {
     setPartial({ loading: true, error: null });
     try {
       const res = await authApi.login(username, password);
+      if (!authApi.isAuthenticated()) {
+        throw new Error('لم يتم استلام رمز الدخول من السيرفر. حاول مجدداً.');
+      }
       // Token is stored by authApi.login; fetch full profile
       let admin = res.admin;
       if (!admin) {
@@ -123,6 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPartial({ isAuthenticated: true, admin, loading: false, error: null });
     } catch (err: any) {
       const msg = err?.message || 'اسم المستخدم أو كلمة المرور غير صحيحة';
+      authApi.logout();
       setStoredAdmin(null);
       setPartial({ isAuthenticated: false, admin: null, loading: false, error: msg });
       throw new Error(msg);

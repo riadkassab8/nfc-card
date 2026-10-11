@@ -13,7 +13,7 @@ const CLIENT_SECRET =
   (import.meta as any).env?.VITE_CLIENT_SECRET ||
   'SmartCard_Secret_Key_2026_Secure!';
 
-const TOKEN_KEY = 'nfc_admin_token';
+export const TOKEN_KEY = 'nfc_admin_token';
 
 // ── Token helpers ─────────────────────────────────────────────────────────
 

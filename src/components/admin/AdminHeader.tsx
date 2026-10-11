@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { Menu, LogOut, User } from 'lucide-react';
+import { Menu, LogOut, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export interface AdminHeaderProps {
@@ -8,183 +9,127 @@ export interface AdminHeaderProps {
   onOpenMobileMenu: () => void;
 }
 
+const greeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return 'صباح الخير';
+  if (h < 18) return 'مساء الخير';
+  return 'مساء النور';
+};
+
 export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMenu }) => {
   const { admin, logout } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
+
+  const displayName = admin?.name || admin?.username || 'admin';
+  const initial = displayName.trim().charAt(0).toUpperCase();
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 6);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => { setAvatarFailed(false); }, [admin?.avatar]);
+
+  useEffect(() => {
+    if (!confirmOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setConfirmOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [confirmOpen]);
 
   return (
     <>
-      <header style={{
-        height: '58px',
-        backgroundColor: 'var(--bg-white)',
-        borderBottom: '1px solid var(--bdr-light)',
-        padding: '0 22px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: 0,
-        zIndex: 80,
-        gap: '12px',
-        boxShadow: 'var(--shadow-xs)',
-      }}>
-
-        {/* Right side: hamburger + title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+      <header className={`admin-header${scrolled ? ' scrolled' : ''}`}>
+        {/* Start: hamburger + title */}
+        <div className="hdr-start">
           <button
             type="button"
             onClick={onOpenMobileMenu}
-            className="admin-hamburger"
+            className="hdr-icon-btn hdr-hamburger"
             aria-label="القائمة"
-            style={{
-              display: 'none',
-              width: '34px', height: '34px',
-              borderRadius: 'var(--r-sm)',
-              border: '1px solid var(--bdr-light)',
-              backgroundColor: 'var(--bg-subtle)',
-              cursor: 'pointer',
-              color: 'var(--txt-secondary)',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
           >
-            <Menu size={18} />
+            <Menu size={19} />
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
-            <h1 style={{
-              fontSize: 'var(--fs-base)',
-              fontWeight: 700,
-              color: 'var(--txt-heading)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              margin: 0,
-            }}>
-              {title}
-            </h1>
-            <span className="admin-header-badge" style={{
-              padding: '2px 9px',
-              borderRadius: 'var(--r-full)',
-              fontSize: 'var(--fs-xs)',
-              fontWeight: 700,
-              backgroundColor: 'var(--clr-primary-50)',
-              color: 'var(--clr-primary-700)',
-              border: '1px solid var(--clr-primary-200)',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}>
-              الإدارة
-            </span>
+          <div className="hdr-title-wrap">
+            <span className="hdr-crumb">{greeting()}، {displayName} 👋</span>
+            <h1 key={title} className="hdr-title">{title}</h1>
           </div>
         </div>
 
-        {/* Left side: user */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-          {/* User pill */}
-          <Link
-            to="/admin/profile"
-            className="admin-user-pill"
-            title="الملف الشخصي والإعدادات"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '5px 12px',
-              borderRadius: 'var(--r-md)',
-              border: '1px solid var(--bdr-light)',
-              backgroundColor: 'var(--bg-subtle)',
-              textDecoration: 'none',
-              cursor: 'pointer',
-              transition: 'all 150ms var(--ease)',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bg-hover)';
-              (e.currentTarget as HTMLElement).style.borderColor = 'var(--clr-primary-300)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bg-subtle)';
-              (e.currentTarget as HTMLElement).style.borderColor = 'var(--bdr-light)';
-            }}
-          >
-            <div
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--clr-primary-100)',
-                color: 'var(--clr-primary-700)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                overflow: 'hidden',
-              }}
-            >
-              {admin?.avatar ? (
-                <img
-                  src={admin.avatar}
-                  alt="avatar"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLElement).style.display = 'none';
-                  }}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+        {/* End: user + logout */}
+        <div className="hdr-end">
+          <Link to="/admin/profile" className="hdr-user" title="الملف الشخصي والإعدادات">
+            <div className="hdr-user-meta" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <span className="hdr-user-name">{displayName}</span>
+              <span className="hdr-user-role">مدير النظام</span>
+            </div>
+            <div className="hdr-avatar">
+              {admin?.avatar && !avatarFailed ? (
+                <img src={admin.avatar} alt="" onError={() => setAvatarFailed(true)} />
               ) : (
-                <User size={15} />
+                initial
               )}
             </div>
-            <span
-              style={{
-                fontSize: 'var(--fs-sm)',
-                fontWeight: 600,
-                color: 'var(--txt-body)',
-                maxWidth: '120px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {admin?.name || admin?.username || 'admin'}
-            </span>
           </Link>
 
-          {/* Logout */}
           <button
             type="button"
-            onClick={logout}
+            onClick={() => setConfirmOpen(true)}
             title="تسجيل الخروج"
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: '34px', height: '34px',
-              borderRadius: 'var(--r-sm)',
-              border: '1px solid var(--clr-error-bdr)',
-              backgroundColor: 'var(--clr-error-bg)',
-              color: 'var(--clr-error)',
-              cursor: 'pointer',
-              transition: 'all 150ms var(--ease)',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.backgroundColor = '#fee2e2';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--clr-error-bg)';
-            }}
+            aria-label="تسجيل الخروج"
+            className="hdr-icon-btn danger"
           >
-            <LogOut size={15} />
+            <LogOut size={17} />
           </button>
         </div>
       </header>
 
-      <style>{`
-        @media (max-width: 992px) {
-          .admin-hamburger { display: flex !important; }
-        }
-        @media (max-width: 560px) {
-          .admin-user-pill    { display: none !important; }
-          .admin-header-badge { display: none !important; }
-        }
-      `}</style>
+      {/* Logout confirmation — portalled because the header's backdrop-filter
+          would otherwise trap position:fixed children */}
+      {confirmOpen && createPortal(
+        <div className="modal-overlay" onClick={() => setConfirmOpen(false)} role="dialog" aria-modal="true">
+          <div className="modal-panel" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()} dir="rtl">
+            <div className="modal-header">
+              <h2 className="modal-title">تسجيل الخروج</h2>
+              <button type="button" className="modal-close" onClick={() => setConfirmOpen(false)} aria-label="إغلاق">
+                <X size={17} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{
+                width: 46, height: 46, borderRadius: 14, flexShrink: 0,
+                background: 'var(--clr-error-bg)', color: 'var(--clr-error)',
+                border: '1px solid var(--clr-error-bdr)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <LogOut size={20} />
+              </div>
+              <p style={{ color: 'var(--txt-secondary)', fontWeight: 500 }}>
+                هل أنت متأكد أنك تريد تسجيل الخروج من لوحة الإدارة؟
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn-outline" onClick={() => setConfirmOpen(false)} autoFocus>
+                إلغاء
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)', boxShadow: '0 6px 16px -6px rgba(220,38,38,0.6)' }}
+                onClick={() => { setConfirmOpen(false); logout(); }}
+              >
+                <LogOut size={16} /> تسجيل الخروج
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </>
   );
 };

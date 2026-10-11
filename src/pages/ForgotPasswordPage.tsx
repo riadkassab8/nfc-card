@@ -54,29 +54,13 @@ export const ForgotPasswordPage: React.FC = () => {
   };
 
   return (
-    <div
-      dir="rtl"
-      style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--bg-page)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        fontFamily: 'var(--font)',
-      }}
-    >
-      {/* Subtle background glow */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          pointerEvents: 'none',
-          zIndex: 0,
-          backgroundImage: `radial-gradient(circle at 30% 20%, var(--clr-primary-100) 0%, transparent 50%),
-                            radial-gradient(circle at 70% 80%, var(--clr-primary-50) 0%, transparent 50%)`,
-        }}
-      />
+    <div dir="rtl" className="auth-page">
+      <div className="auth-bg" aria-hidden>
+        <div className="auth-blob b1" />
+        <div className="auth-blob b2" />
+        <div className="auth-blob b3" />
+        <div className="auth-grid" />
+      </div>
 
       <div style={{ width: '100%', maxWidth: '440px', position: 'relative', zIndex: 1 }}>
 
@@ -86,8 +70,9 @@ export const ForgotPasswordPage: React.FC = () => {
             style={{
               width: '56px',
               height: '56px',
-              borderRadius: 'var(--r-xl)',
-              backgroundColor: result ? '#16a34a' : 'var(--clr-primary-500)',
+              borderRadius: '18px',
+              animation: 'scaleIn 500ms var(--ease-spring) both',
+              background: result ? 'linear-gradient(135deg,#22c55e,#16a34a)' : 'var(--grad-brand)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',

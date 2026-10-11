@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import { AuthProvider } from './context/AuthContext';
-import { ProtectedRoute } from './components/admin/ProtectedRoute';
+import { ProtectedRoute, GuestRoute, FallbackRoute } from './components/admin/ProtectedRoute';
 import { AdminShell } from './components/admin/AdminShell';
 
 import { LoginPage } from './pages/LoginPage';
@@ -26,8 +26,9 @@ export const App: React.FC = () => (
     <BrowserRouter>
       <Routes>
         {/* ── Auth (Public - no token required) ── */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/" element={<FallbackRoute />} />
+        <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+        <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/admin/forgot-password" element={<Navigate to="/forgot-password" replace />} />
         <Route path="/admin/reset-password" element={<Navigate to="/reset-password" replace />} />
@@ -148,8 +149,8 @@ export const App: React.FC = () => (
           }
         />
 
-        {/* Fallback — go to login for unauthenticated, admin guards handle redirect */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Fallback — dashboard when signed in, login otherwise */}
+        <Route path="*" element={<FallbackRoute />} />
       </Routes>
     </BrowserRouter>
   </AuthProvider>

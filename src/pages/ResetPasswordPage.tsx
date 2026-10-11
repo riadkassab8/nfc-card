@@ -29,20 +29,16 @@ export const ResetPasswordPage: React.FC = () => {
   useEffect(() => {
     if (!success) return;
     const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          navigate('/login', {
-            replace: true,
-            state: { successMessage: success },
-          });
-          return 0;
-        }
-        return prev - 1;
-      });
+      setCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
     return () => clearInterval(interval);
-  }, [success, navigate]);
+  }, [success]);
+
+  useEffect(() => {
+    if (success && countdown === 0) {
+      navigate('/login', { replace: true, state: { successMessage: success } });
+    }
+  }, [success, countdown, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,29 +78,13 @@ export const ResetPasswordPage: React.FC = () => {
   const passwordsMismatch = confirmPassword && newPassword !== confirmPassword;
 
   return (
-    <div
-      dir="rtl"
-      style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--bg-page)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        fontFamily: 'var(--font)',
-      }}
-    >
-      {/* Background glow */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          pointerEvents: 'none',
-          zIndex: 0,
-          backgroundImage: `radial-gradient(circle at 30% 20%, var(--clr-primary-100) 0%, transparent 50%),
-                            radial-gradient(circle at 70% 80%, var(--clr-primary-50) 0%, transparent 50%)`,
-        }}
-      />
+    <div dir="rtl" className="auth-page">
+      <div className="auth-bg" aria-hidden>
+        <div className="auth-blob b1" />
+        <div className="auth-blob b2" />
+        <div className="auth-blob b3" />
+        <div className="auth-grid" />
+      </div>
 
       <div style={{ width: '100%', maxWidth: '440px', position: 'relative', zIndex: 1 }}>
 
@@ -114,8 +94,9 @@ export const ResetPasswordPage: React.FC = () => {
             style={{
               width: '56px',
               height: '56px',
-              borderRadius: 'var(--r-xl)',
-              backgroundColor: success ? '#16a34a' : 'var(--clr-primary-500)',
+              borderRadius: '18px',
+              animation: 'scaleIn 500ms var(--ease-spring) both',
+              background: success ? 'linear-gradient(135deg,#22c55e,#16a34a)' : 'var(--grad-brand)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
