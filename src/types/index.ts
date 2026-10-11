@@ -107,8 +107,29 @@ export interface ApiUpdateCategoryDto {
 
 /**
  * All fields match the exact backend API field names.
- * See API docs: POST /api/cards, PUT /api/cards/:id
  */
+export interface ActiveShift {
+  label?: string;
+  cashier_name?: string;
+  hour_from?: number;
+  period_from?: 'am' | 'pm';
+  hour_to?: number;
+  period_to?: 'am' | 'pm';
+}
+
+export interface PaymentShift {
+  label: string;
+  cashier_name?: string;
+  hour_from?: number | null;
+  period_from?: 'am' | 'pm' | null;
+  hour_to?: number | null;
+  period_to?: 'am' | 'pm' | null;
+  instapay?: string;
+  vodafone_cash?: string;
+  priority?: number;
+  is_active?: boolean;
+}
+
 export interface BusinessData {
   business_name?: string | null;
   logo?: string | null;
@@ -123,6 +144,11 @@ export interface BusinessData {
   email?: string | null;
   instapay?: string | null;
   vodafone_cash?: string | null;
+  offers_url?: string | null;
+  maintenance_whatsapp?: string | null;
+  telegram_group?: string | null;
+  google_review_url?: string | null;
+  enable_review_gate?: boolean | null;
 }
 
 // ── Card Types ────────────────────────────────────────────────────────────
@@ -184,6 +210,9 @@ export interface ApiCard {
   customer_id?: ApiCustomer | string | null;
   customer?: ApiCustomer | null;
   business_data?: BusinessData | null;
+  template?: string;
+  payment_shifts?: PaymentShift[];
+  active_shift?: ActiveShift | null;
   visit_count?: number;
   createdAt: string;
   updatedAt: string;
@@ -216,6 +245,8 @@ export interface ApiCreateCardDto {
   current_redirect_url: string;
   category_id?: string;
   business_data?: BusinessData;
+  template?: string;
+  payment_shifts?: PaymentShift[];
   /** default: true on backend */
   requires_subscription?: boolean;
 }
@@ -228,6 +259,8 @@ export interface ApiUpdateCardDto {
   status?: CardStatus;
   category_id?: string;
   business_data?: BusinessData | null;
+  template?: string;
+  payment_shifts?: PaymentShift[];
   requires_subscription?: boolean;
 }
 
@@ -255,6 +288,8 @@ export interface ApiSocialPageResponse {
   card_code: string;
   custom_slug?: string | null;
   card_type: string;
+  template?: 'default' | 'mobile_shop' | string;
+  active_shift?: ActiveShift | null;
   visit_count?: number;
   requires_subscription?: boolean;
   business_data: BusinessData | null;

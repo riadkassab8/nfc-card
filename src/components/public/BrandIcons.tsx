@@ -270,3 +270,25 @@ export const VodafoneCashIcon: React.FC<IconProps> = (props) => (
     fallbackSvg={<VodafoneCashIconSvg {...props} />}
   />
 );
+
+/* ── Telegram SVG Fallback ── */
+const TelegramIconSvg: React.FC<IconProps> = ({ size = 48, className, style }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
+    <rect width="48" height="48" rx="14" fill="#229ED9" />
+    <path
+      d="M12 23.6l7.4 2.8 2.8 8.7c.3 1 .9 1.3 1.5 1.3.5 0 .9-.3 1.2-.6l4.1-4 8.2 6.1c1.5.8 2.6.4 3-1.4l5.4-25.5c.5-2.2-.8-3.1-2.2-2.6L7.8 21.6c-2.1.8-2.1 2 .4 2.8l3.8-.8zM34.5 15.2L18.7 24.8l-.8 2.6 16.6-12.2z"
+      fill="#FFFFFF"
+    />
+  </svg>
+);
+
+export const TelegramIcon: React.FC<IconProps> = (props) => (
+  <AppIconImage
+    src="/icons/telegram.png"
+    alt="Telegram"
+    size={props.size || 48}
+    className={props.className}
+    style={props.style}
+    fallbackSvg={<TelegramIconSvg {...props} />}
+  />
+);

@@ -8,6 +8,7 @@ import {
   CARD_TYPES,
   CardType,
   BusinessData,
+  PaymentShift,
   getCategoryId,
   CUSTOM_SLUG_REGEX,
   ApiCustomer,
@@ -18,7 +19,7 @@ import {
   ArrowRight, CreditCard, Plus, Building2, Globe, Phone, Mail,
   Instagram, Facebook, MapPin, MessageCircle, Video, Link as LinkIcon,
   Image, FileText, RefreshCw, Smartphone, Check, Sparkles, AlertCircle,
-  HelpCircle, ExternalLink, UploadCloud, Trash2, User
+  HelpCircle, ExternalLink, UploadCloud, Trash2, User, Clock, UserCheck, Store, Star
 } from 'lucide-react';
 
 /* ── Field definitions ─────────────────────────────────────────── */
@@ -120,6 +121,41 @@ const PAYMENT_FIELDS: BizFieldDef[] = [
   },
 ];
 
+const MOBILE_SHOP_FIELDS: BizFieldDef[] = [
+  {
+    key: 'maintenance_whatsapp',
+    label: 'رقم أو رابط واتساب الصيانة والاستفسارات',
+    placeholder: '01000000000 أو https://wa.me/20100000000',
+    type: 'text',
+    icon: <MessageCircle size={16} />,
+    hint: 'يفتح محادثة واتساب مخصصة لخدمات الصيانة وفحص الأجهزة',
+  },
+  {
+    key: 'offers_url',
+    label: 'رابط قناة العروض والأسعار (تليجرام أو ويب)',
+    placeholder: 'https://t.me/your_offers_channel',
+    type: 'url',
+    icon: <LinkIcon size={16} />,
+    hint: 'لتوجيه الزبائن لقناة العروض اليومية وأسعار الأجهزة والإكسسوارات',
+  },
+  {
+    key: 'telegram_group',
+    label: 'رابط جروب عملاء المحل (Telegram Group)',
+    placeholder: 'https://t.me/your_community_group',
+    type: 'url',
+    icon: <MessageCircle size={16} />,
+    hint: 'للانضمام لمجتمع عملاء المحل وتبادل الأجهزة والاستفسارات',
+  },
+  {
+    key: 'google_review_url',
+    label: 'رابط التقييم المباشر على Google Maps',
+    placeholder: 'https://g.page/r/YOUR_PLACE/review أو https://maps.app.goo.gl/...',
+    type: 'url',
+    icon: <MapPin size={16} />,
+    hint: 'الرابط الذي يتم توجيه العميل إليه عند منحه تقييماً إيجابياً',
+  },
+];
+
 export const AdminAddCardPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -141,12 +177,23 @@ export const AdminAddCardPage: React.FC = () => {
     editCard ? (editCard.requires_subscription ?? true) : true
   );
 
+  /* Template & Active Shift state */
+  const initialShift = editCard?.payment_shifts?.[0] || (editCard as any)?.active_shift;
+  const [template, setTemplate] = useState<string>(editCard?.template || 'default');
+  const [shiftLabel, setShiftLabel] = useState<string>(initialShift?.label || 'شيفت المساء');
+  const [cashierName, setCashierName] = useState<string>(initialShift?.cashier_name || '');
+  const [hourFrom, setHourFrom] = useState<number | ''>(initialShift?.hour_from ?? 6);
+  const [periodFrom, setPeriodFrom] = useState<'am' | 'pm'>(initialShift?.period_from || 'pm');
+  const [hourTo, setHourTo] = useState<number | ''>(initialShift?.hour_to ?? 2);
+  const [periodTo, setPeriodTo] = useState<'am' | 'pm'>(initialShift?.period_to || 'am');
+  const [enableReviewGate, setEnableReviewGate] = useState<boolean>(editCard?.business_data?.enable_review_gate ?? true);
+
   /* Customer link state */
   const [selectedCustomer, setSelectedCustomer] = useState<ApiCustomer | null>(null);
   const [initialCustomer, setInitialCustomer] = useState<ApiCustomer | null>(null);
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
 
-  /* Business data state - all 13 fields */
+  /* Business data state */
   const [bizData, setBizData] = useState<Record<string, string>>({
     business_name: editCard?.business_data?.business_name || '',
     logo: editCard?.business_data?.logo || '',
@@ -161,6 +208,10 @@ export const AdminAddCardPage: React.FC = () => {
     website: editCard?.business_data?.website || '',
     instapay: editCard?.business_data?.instapay || '',
     vodafone_cash: editCard?.business_data?.vodafone_cash || '',
+    maintenance_whatsapp: editCard?.business_data?.maintenance_whatsapp || '',
+    offers_url: editCard?.business_data?.offers_url || '',
+    telegram_group: editCard?.business_data?.telegram_group || '',
+    google_review_url: editCard?.business_data?.google_review_url || '',
   });
 
   const [autoCode, setAutoCode] = useState(!editCard);
@@ -322,6 +373,7 @@ export const AdminAddCardPage: React.FC = () => {
   /* Category ID for Business Profile */
   const BUSINESS_PROFILE_CATEGORY_ID = '6ac46e143883b08344234133';
   const isBusinessProfileCategory = Boolean(
+    template === 'mobile_shop' ||
     categoryId === BUSINESS_PROFILE_CATEGORY_ID ||
     categories.find((c) => c._id === categoryId && (c.name.includes('نشاط') || c.name.toLowerCase().includes('business')))
   );
@@ -359,7 +411,7 @@ export const AdminAddCardPage: React.FC = () => {
       return;
     }
 
-    // Build business_data only if category is Business Profile (ID: 6ac46e143883b08344234133)
+    // Build business_data only if category is Business Profile or Mobile Shop template
     const business: BusinessData = {};
     let hasBiz = false;
     if (isBusinessProfileCategory) {
@@ -381,6 +433,30 @@ export const AdminAddCardPage: React.FC = () => {
           hasBiz = true;
         }
       }
+
+      if (template === 'mobile_shop') {
+        business.enable_review_gate = enableReviewGate;
+        hasBiz = true;
+      }
+    }
+
+    // Payment shifts packaging for backend
+    let paymentShiftsList: PaymentShift[] | undefined = undefined;
+    if (template === 'mobile_shop') {
+      paymentShiftsList = [
+        {
+          label: shiftLabel.trim() || 'شيفت الكاشير',
+          cashier_name: cashierName.trim() || undefined,
+          hour_from: hourFrom !== '' ? Number(hourFrom) : undefined,
+          period_from: periodFrom,
+          hour_to: hourTo !== '' ? Number(hourTo) : undefined,
+          period_to: periodTo,
+          instapay: bizData.instapay?.trim() || undefined,
+          vodafone_cash: bizData.vodafone_cash?.trim() || undefined,
+          priority: 0,
+          is_active: true,
+        },
+      ];
     }
 
     // Handle redirect URL: if empty, gracefully fallback to default redirect URL for this card
@@ -410,6 +486,8 @@ export const AdminAddCardPage: React.FC = () => {
         const updateDto: import('../../types').ApiUpdateCardDto = {
           ...baseDto,
           custom_slug: trimmedSlug || null,
+          template: template,
+          payment_shifts: paymentShiftsList,
         };
         updateDto.nfc_uid = nfcUid.trim() ? nfcUid.trim().toUpperCase() : '';
         updateDto.business_data = isBusinessProfileCategory ? (hasBiz ? business : null) : null;
@@ -439,6 +517,8 @@ export const AdminAddCardPage: React.FC = () => {
         const createDto: ApiCreateCardDto = {
           ...baseDto,
           card_code: cardCode.trim().toUpperCase(),
+          template: template,
+          payment_shifts: paymentShiftsList,
         };
         if (trimmedSlug) createDto.custom_slug = trimmedSlug;
         if (nfcUid.trim()) createDto.nfc_uid = nfcUid.trim().toUpperCase();
@@ -800,6 +880,251 @@ export const AdminAddCardPage: React.FC = () => {
                 })}
               </div>
             </div>
+
+            {/* Card Page Template Selection */}
+            <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '6px' }}>
+              <label className="form-label" style={{ fontWeight: 800, fontSize: '14px', marginBottom: '8px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Sparkles size={16} style={{ color: 'var(--clr-primary-500)' }} />
+                  قالب صفحة العرض (Card Page Template)
+                </span>
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '12px' }}>
+                {/* Default Template Option */}
+                <div
+                  onClick={() => setTemplate('default')}
+                  style={{
+                    border: template === 'default' ? '2px solid var(--clr-primary-500)' : '1px solid var(--bdr-light)',
+                    backgroundColor: template === 'default' ? 'var(--clr-primary-50)' : 'var(--bg-subtle)',
+                    borderRadius: '14px',
+                    padding: '14px 16px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '10px',
+                      backgroundColor: template === 'default' ? 'var(--clr-primary-500)' : '#e2e8f0',
+                      color: template === 'default' ? '#fff' : '#64748b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Globe size={20} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 800, fontSize: '13.5px', color: template === 'default' ? 'var(--clr-primary-900)' : 'var(--txt-heading)' }}>
+                        القالب الافتراضي (Default)
+                      </span>
+                      {template === 'default' && <Check size={16} style={{ color: 'var(--clr-primary-600)' }} />}
+                    </div>
+                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--txt-muted)', lineHeight: 1.5 }}>
+                      صفحة البروفايل وبطاقة الأعمال القياسية لروابط التواصل والنشاط التجاري.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Mobile Shop Template Option */}
+                <div
+                  onClick={() => setTemplate('mobile_shop')}
+                  style={{
+                    border: template === 'mobile_shop' ? '2px solid #8b5cf6' : '1px solid var(--bdr-light)',
+                    backgroundColor: template === 'mobile_shop' ? 'rgba(139, 92, 246, 0.08)' : 'var(--bg-subtle)',
+                    borderRadius: '14px',
+                    padding: '14px 16px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '10px',
+                      backgroundColor: template === 'mobile_shop' ? '#8b5cf6' : '#e2e8f0',
+                      color: template === 'mobile_shop' ? '#fff' : '#64748b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Smartphone size={20} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 800, fontSize: '13.5px', color: template === 'mobile_shop' ? '#6b21a8' : 'var(--txt-heading)' }}>
+                        كاشير محلات الموبايل (Mobile Shop)
+                      </span>
+                      {template === 'mobile_shop' && <Check size={16} style={{ color: '#7c3aed' }} />}
+                    </div>
+                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--txt-muted)', lineHeight: 1.5 }}>
+                      مخصص لكاونتر الكاشير: تبديل الشيفتات، إنستاباي، فودافون كاش، وخدمات الصيانة والتقييم.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Shift Settings when template is mobile_shop */}
+            {template === 'mobile_shop' && (
+              <div
+                style={{
+                  gridColumn: '1 / -1',
+                  backgroundColor: 'rgba(139, 92, 246, 0.05)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  borderRadius: '16px',
+                  padding: '18px 20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '14px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(139, 92, 246, 0.15)', paddingBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'rgba(139, 92, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
+                      <UserCheck size={18} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: '#581c87' }}>
+                        إعدادات الشيفت الحالي والكاشير المسؤول (Active Shift)
+                      </h4>
+                      <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#7c3aed' }}>
+                        يظهر هذا الكاشير في شريط الشيفت النشط أعلى واجهة الكارت للعملاء
+                      </p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: 700, backgroundColor: '#10b981', color: '#fff', padding: '3px 8px', borderRadius: '6px' }}>
+                    ● شيفت نشط
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '14px' }}>
+                  {/* Shift Label */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>
+                      مسمى الشيفت
+                    </label>
+                    <input
+                      className="form-input"
+                      type="text"
+                      value={shiftLabel}
+                      onChange={(e) => setShiftLabel(e.target.value)}
+                      placeholder="مثال: شيفت المساء"
+                      style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                    />
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+                      {['شيفت الصباح', 'شيفت المساء', 'شيفت الليل'].map((lbl) => (
+                        <button
+                          key={lbl}
+                          type="button"
+                          onClick={() => setShiftLabel(lbl)}
+                          style={{
+                            fontSize: '11px',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(139, 92, 246, 0.25)',
+                            backgroundColor: shiftLabel === lbl ? '#8b5cf6' : '#fff',
+                            color: shiftLabel === lbl ? '#fff' : '#6b21a8',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {lbl}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Cashier Name */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>
+                      اسم الكاشير المسؤول
+                    </label>
+                    <input
+                      className="form-input"
+                      type="text"
+                      value={cashierName}
+                      onChange={(e) => setCashierName(e.target.value)}
+                      placeholder="مثال: أحمد"
+                      style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                    />
+                    <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
+                      يظهر اسمه للعميل لتأكيد التحويلات النقدية
+                    </span>
+                  </div>
+
+                  {/* Hours From */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={14} style={{ color: '#8b5cf6' }} />
+                      من الساعة
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <input
+                        className="form-input"
+                        type="number"
+                        min={1}
+                        max={12}
+                        value={hourFrom}
+                        onChange={(e) => setHourFrom(e.target.value ? Number(e.target.value) : '')}
+                        placeholder="6"
+                        style={{ width: '70px', textAlign: 'center', fontWeight: 700, fontSize: '13px', backgroundColor: '#fff' }}
+                      />
+                      <select
+                        className="form-input"
+                        value={periodFrom}
+                        onChange={(e) => setPeriodFrom(e.target.value as 'am' | 'pm')}
+                        style={{ flex: 1, fontWeight: 700, fontSize: '13px', backgroundColor: '#fff' }}
+                      >
+                        <option value="pm">مساءً (م)</option>
+                        <option value="am">صباحاً (ص)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Hours To */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>
+                      إلى الساعة
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <input
+                        className="form-input"
+                        type="number"
+                        min={1}
+                        max={12}
+                        value={hourTo}
+                        onChange={(e) => setHourTo(e.target.value ? Number(e.target.value) : '')}
+                        placeholder="2"
+                        style={{ width: '70px', textAlign: 'center', fontWeight: 700, fontSize: '13px', backgroundColor: '#fff' }}
+                      />
+                      <select
+                        className="form-input"
+                        value={periodTo}
+                        onChange={(e) => setPeriodTo(e.target.value as 'am' | 'pm')}
+                        style={{ flex: 1, fontWeight: 700, fontSize: '13px', backgroundColor: '#fff' }}
+                      >
+                        <option value="am">صباحاً (ص)</option>
+                        <option value="pm">مساءً (م)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Customer Link Section */}
             <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
@@ -1456,6 +1781,84 @@ export const AdminAddCardPage: React.FC = () => {
                     {f.hint && <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>{f.hint}</span>}
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* ── Group E: خدمات محلات الموبايل وتقييم جوجل ── */}
+            <div
+              style={{
+                backgroundColor: template === 'mobile_shop' ? 'rgba(139, 92, 246, 0.04)' : 'var(--bg-subtle)',
+                borderRadius: '14px',
+                padding: '18px 20px',
+                border: template === 'mobile_shop' ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid var(--bdr-light)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Store size={16} style={{ color: '#8b5cf6' }} />
+                  5. خدمات محلات الموبايل وبوابة تقييم Google Maps
+                </h3>
+                {template === 'mobile_shop' && (
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#7c3aed', backgroundColor: 'rgba(139, 92, 246, 0.1)', padding: '3px 8px', borderRadius: '6px' }}>
+                    قالب الكاشير مفعل ⭐
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: '16px' }}>
+                {MOBILE_SHOP_FIELDS.map((f) => (
+                  <div key={f.key} className="form-group">
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {React.cloneElement(f.icon as React.ReactElement, { style: { color: '#8b5cf6' } })}
+                        {f.label}
+                      </span>
+                    </label>
+                    <input
+                      className="form-input"
+                      type={f.type || 'text'}
+                      dir={f.type === 'url' || f.type === 'tel' ? 'ltr' : undefined}
+                      value={bizData[f.key] || ''}
+                      onChange={(e) => updateBiz(f.key, e.target.value)}
+                      placeholder={f.placeholder}
+                      style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
+                    />
+                    {f.hint && <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>{f.hint}</span>}
+                  </div>
+                ))}
+
+                {/* Review Gate Toggle */}
+                <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '6px' }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '12px',
+                      cursor: 'pointer',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      backgroundColor: enableReviewGate ? 'rgba(16, 185, 129, 0.08)' : '#fff',
+                      border: enableReviewGate ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--bdr-light)',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={enableReviewGate}
+                      onChange={(e) => setEnableReviewGate(e.target.checked)}
+                      style={{ width: '18px', height: '18px', marginTop: '3px', accentColor: '#10b981', cursor: 'pointer' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '13.5px', color: enableReviewGate ? '#065f46' : 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Star size={15} color="#eab308" fill="#eab308" />
+                        تفعيل بوابة الفلترة الذكية للتقييم (Review Gate)
+                      </div>
+                      <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--txt-secondary)', lineHeight: 1.5 }}>
+                        عند تفعيلها: تقييم 4 أو 5 نجوم يوجّه العميل تلقائياً لكتابة رأيه على خرائط Google Maps، بينما التقييم من 1 إلى 3 نجوم يفتح نافذة داخلية لمراسلة إدارة المحل عبر واتساب لمعالجة أي شكوى ودياً قبل نشرها.
+                      </p>
+                    </div>
+                  </label>
+                </div>
               </div>
             </div>
           </div>

@@ -9,6 +9,7 @@ import { useParams } from 'react-router-dom';
 import { cardsApi } from '../services';
 import { ApiSocialPageResponse, BusinessData } from '../types';
 import { PublicCardView } from '../components/public/PublicCardView';
+import { MobileShopTemplate } from '../components/public/MobileShopTemplate';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 type State = 'loading' | 'ok' | 'not_found' | 'error';
@@ -38,22 +39,25 @@ export const SocialPage: React.FC = () => {
         return;
       }
 
-      // Collect non-empty links for single-link auto-redirect
-      const links: string[] = [];
-      if (biz.whatsapp?.trim())       links.push(biz.whatsapp.trim());
-      if (biz.instagram?.trim())      links.push(biz.instagram.trim());
-      if (biz.facebook?.trim())       links.push(biz.facebook.trim());
-      if (biz.tiktok?.trim())         links.push(biz.tiktok.trim());
-      if (biz.google_maps?.trim())    links.push(biz.google_maps.trim());
-      if (biz.phone?.trim())          links.push(`tel:${biz.phone.trim()}`);
-      if (biz.email?.trim())          links.push(`mailto:${biz.email.trim()}`);
-      if (biz.website?.trim())        links.push(biz.website.trim());
-      if (biz.instapay?.trim())       links.push(biz.instapay.trim());
-      if (biz.vodafone_cash?.trim())  links.push(`tel:${biz.vodafone_cash.trim()}`);
+      // If template is 'mobile_shop' or other dedicated template, do not auto-redirect to single links
+      if (res.template !== 'mobile_shop') {
+        // Collect non-empty links for single-link auto-redirect
+        const links: string[] = [];
+        if (biz.whatsapp?.trim())       links.push(biz.whatsapp.trim());
+        if (biz.instagram?.trim())      links.push(biz.instagram.trim());
+        if (biz.facebook?.trim())       links.push(biz.facebook.trim());
+        if (biz.tiktok?.trim())         links.push(biz.tiktok.trim());
+        if (biz.google_maps?.trim())    links.push(biz.google_maps.trim());
+        if (biz.phone?.trim())          links.push(`tel:${biz.phone.trim()}`);
+        if (biz.email?.trim())          links.push(`mailto:${biz.email.trim()}`);
+        if (biz.website?.trim())        links.push(biz.website.trim());
+        if (biz.instapay?.trim())       links.push(biz.instapay.trim());
+        if (biz.vodafone_cash?.trim())  links.push(`tel:${biz.vodafone_cash.trim()}`);
 
-      if (links.length === 1) {
-        window.location.replace(links[0]);
-        return;
+        if (links.length === 1) {
+          window.location.replace(links[0]);
+          return;
+        }
       }
 
       setSocial(res); setState('ok');
@@ -87,6 +91,11 @@ export const SocialPage: React.FC = () => {
           </div>
         </div>
       );
+    }
+
+    // Render mobile shop cashier template if requested
+    if (social.template === 'mobile_shop') {
+      return <MobileShopTemplate data={social} />;
     }
 
     // Build a minimal card-like object for the existing PublicCardView

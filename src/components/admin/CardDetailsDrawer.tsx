@@ -644,6 +644,15 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
               {!card.requires_subscription && <span className="badge badge-success">دائم ♾</span>}
               {expired && <span className="badge badge-warning">⚠ منتهية</span>}
               {rulesCount > 0 && <span className="badge badge-blue">⚡ {rulesCount} rules</span>}
+              {card.template === 'mobile_shop' ? (
+                <span className="badge" style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', border: '1px solid #d8b4fe' }}>
+                  📱 كاشير محلات الموبايل
+                </span>
+              ) : (
+                <span className="badge" style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
+                  القالب: الافتراضي
+                </span>
+              )}
             </div>
           </div>
           <button
@@ -866,6 +875,34 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                 </div>
               </div>
 
+              {/* Active Shift if card has active_shift or payment_shifts */}
+              {(card.active_shift || card.payment_shifts?.[0]) && (() => {
+                const s = card.active_shift || card.payment_shifts![0];
+                return (
+                  <div style={{ backgroundColor: 'rgba(139, 92, 246, 0.06)', borderRadius: 'var(--r-lg)', padding: '13px 16px', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 800, color: '#6b21a8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+                        الشيفت الحالي للكاشير (Active Shift)
+                      </div>
+                      {s.label && (
+                        <span style={{ fontSize: '11px', fontWeight: 700, backgroundColor: 'rgba(139, 92, 246, 0.15)', color: '#7c3aed', padding: '2px 8px', borderRadius: '6px' }}>
+                          {s.label}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <Field label="الكاشير المسؤول">{s.cashier_name || '—'}</Field>
+                      <Field label="ساعات العمل">
+                        {s.hour_from !== undefined && s.hour_from !== null && s.hour_to !== undefined && s.hour_to !== null
+                          ? `${s.hour_from} ${s.period_from === 'pm' ? 'م' : 'ص'} - ${s.hour_to} ${s.period_to === 'pm' ? 'م' : 'ص'}`
+                          : '—'}
+                      </Field>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Business data */}
               {card.business_data && Object.values(card.business_data).some(Boolean) && (
                 <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-lg)', padding: '14px 16px', border: '1px solid var(--bdr-light)' }}>
@@ -873,11 +910,34 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                     بيانات النشاط التجاري
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: '10px' }}>
-                    {(Object.entries(card.business_data) as [keyof BusinessData, string | null | undefined][])
-                      .filter(([, v]) => v)
-                      .map(([k, v]) => (
-                        <Field key={k} label={k.replace(/_/g, ' ')}>{v}</Field>
-                      ))}
+                    {(Object.entries(card.business_data) as [keyof BusinessData, any][])
+                      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+                      .map(([k, v]) => {
+                        const labelsMap: Record<string, string> = {
+                          business_name: 'اسم النشاط',
+                          logo: 'رابط الشعار',
+                          description: 'الوصف',
+                          phone: 'الهاتف',
+                          whatsapp: 'واتساب',
+                          email: 'البريد',
+                          website: 'الموقع',
+                          google_maps: 'خرائط جوجل',
+                          instagram: 'انستجرام',
+                          facebook: 'فيسبوك',
+                          tiktok: 'تيك توك',
+                          instapay: 'إنستاباي',
+                          vodafone_cash: 'فودافون كاش',
+                          maintenance_whatsapp: 'واتساب الصيانة',
+                          offers_url: 'قناة العروض والأسعار',
+                          telegram_group: 'جروب التليجرام',
+                          google_review_url: 'رابط تقييم جوجل',
+                          enable_review_gate: 'بوابة تقييم جوجل',
+                        };
+                        const displayVal = typeof v === 'boolean' ? (v ? 'مفعلة ✓' : 'معطلة ✕') : String(v);
+                        return (
+                          <Field key={k} label={labelsMap[k] || k.replace(/_/g, ' ')}>{displayVal}</Field>
+                        );
+                      })}
                   </div>
                 </div>
               )}
