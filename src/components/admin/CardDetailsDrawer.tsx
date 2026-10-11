@@ -554,7 +554,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
 
   const handleSaveEdit = () => {
     onClose();
-    navigate('/admin/add-card', { state: { cardToEdit: card } });
+    navigate(`/admin/cards/${card._id}/edit`);
   };
 
   const handleToggle = async () => {

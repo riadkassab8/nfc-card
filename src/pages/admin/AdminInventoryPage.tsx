@@ -15,7 +15,7 @@ import {
   Plus, Search, RefreshCw, CreditCard, CheckCircle2, XCircle,
   Power, Trash2, Eye, Download, FileDown, Layers, Copy,
   ChevronLeft, ChevronRight, TrendingUp, Link as LinkIcon,
-  MoreVertical, UserCheck,
+  MoreVertical, UserCheck, Edit2,
 } from 'lucide-react';
 
 
@@ -1196,6 +1196,17 @@ export const AdminInventoryPage: React.FC = () => {
               >
                 <Eye size={15} style={{ color: 'var(--clr-primary-600)' }} />
                 <span>تفاصيل البطاقة</span>
+              </button>
+
+              <button
+                className="menu-item-btn"
+                onClick={() => {
+                  navigate(`/admin/cards/${dCard._id}/edit`);
+                  setDropdownState(null);
+                }}
+              >
+                <Edit2 size={15} style={{ color: 'var(--clr-primary-700)' }} />
+                <span>تعديل البطاقة (Edit)</span>
               </button>
 
               <button

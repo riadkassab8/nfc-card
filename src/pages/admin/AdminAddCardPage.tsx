@@ -5,6 +5,7 @@ import {
   ApiCard,
   ApiCategory,
   ApiCreateCardDto,
+  ApiUpdateCardDto,
   CARD_TYPES,
   CardType,
   BusinessData,
@@ -16,10 +17,35 @@ import {
 import { SelectCustomerModal } from '../../components/admin/SelectCustomerModal';
 import Swal from 'sweetalert2';
 import {
-  ArrowRight, CreditCard, Plus, Building2, Globe, Phone, Mail,
-  Instagram, Facebook, MapPin, MessageCircle, Video, Link as LinkIcon,
-  Image, FileText, RefreshCw, Smartphone, Check, Sparkles, AlertCircle,
-  HelpCircle, ExternalLink, UploadCloud, Trash2, User, Clock, UserCheck, Store, Star
+  ArrowRight,
+  ArrowLeft,
+  CreditCard,
+  Plus,
+  Building2,
+  Globe,
+  Phone,
+  Mail,
+  Instagram,
+  Facebook,
+  MapPin,
+  MessageCircle,
+  Video,
+  Link as LinkIcon,
+  FileText,
+  RefreshCw,
+  Smartphone,
+  Check,
+  CheckCircle2,
+  Sparkles,
+  ExternalLink,
+  UploadCloud,
+  Trash2,
+  User,
+  Clock,
+  UserCheck,
+  Store,
+  Star,
+  Edit2,
 } from 'lucide-react';
 
 /* ── Field definitions ─────────────────────────────────────────── */
@@ -32,7 +58,6 @@ interface BizFieldDef {
   hint?: string;
   gridFull?: boolean;
 }
-
 
 const CONTACT_FIELDS: BizFieldDef[] = [
   {
@@ -49,7 +74,7 @@ const CONTACT_FIELDS: BizFieldDef[] = [
     placeholder: 'https://wa.me/20100000000',
     type: 'url',
     icon: <MessageCircle size={16} />,
-    hint: 'يفتح محادثة واتساب مباشرة عند الضغط عليه (يجب أن يكون رابطاً)',
+    hint: 'يفتح محادثة واتساب مباشرة عند الضغط عليه (يجب أن يكون رابطاً يبدأ بـ https://)',
   },
   {
     key: 'email',
@@ -69,7 +94,7 @@ const CONTACT_FIELDS: BizFieldDef[] = [
   },
   {
     key: 'google_maps',
-    label: 'رابط خرائط جوجل أو تقييمات Google',
+    label: 'رابط خرائط جوجل أو الموقع الجغرافي',
     placeholder: 'https://maps.app.goo.gl/... أو https://g.page/r/.../review',
     type: 'url',
     icon: <MapPin size={16} />,
@@ -156,10 +181,21 @@ const MOBILE_SHOP_FIELDS: BizFieldDef[] = [
   },
 ];
 
+/* ── Steps Configuration ───────────────────────────────────────── */
+const STEPS = [
+  { id: 1, title: 'بيانات الكارت والقالب', desc: 'الكود، التصنيف، القالب، والاشتراك', icon: <CreditCard size={18} /> },
+  { id: 2, title: 'هوية النشاط والتواصل', desc: 'الاسم، الشعار، وقنوات الاتصال', icon: <Building2 size={18} /> },
+  { id: 3, title: 'الكاشير وطرق الدفع', desc: 'الشيفتات، الدفع الفوري، والتقييم', icon: <Smartphone size={18} /> },
+  { id: 4, title: 'مراجعة وتأكيد', desc: 'ملخص البيانات والإنشاء النهائي', icon: <Sparkles size={18} /> },
+];
+
 export const AdminAddCardPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const editCard = location.state?.cardToEdit as ApiCard | undefined;
+
+  /* Step state */
+  const [currentStep, setCurrentStep] = useState<number>(1);
 
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [loading, setLoading] = useState(false);
@@ -170,7 +206,6 @@ export const AdminAddCardPage: React.FC = () => {
   const [customSlug, setCustomSlug] = useState(editCard?.custom_slug || '');
   const [nfcUid, setNfcUid] = useState(editCard?.nfc_uid || '');
   const [cardType, setCardType] = useState<string>(editCard?.card_type || CardType.CARD);
-  // Default to EMPTY as requested: رابط التوجيه يكون فاضي
   const [redirectUrl, setRedirectUrl] = useState(editCard?.current_redirect_url || '');
   const [categoryId, setCategoryId] = useState(getCategoryId(editCard?.category_id) || '');
   const [requiresSubscription, setRequiresSubscription] = useState<boolean>(
@@ -270,64 +305,47 @@ export const AdminAddCardPage: React.FC = () => {
       setUploadStatus('تم حفظ الصورة محلياً بنجاح ✓');
     } finally {
       setUploadingLogo(false);
+      setTimeout(() => setUploadStatus(null), 3000);
     }
   };
 
-  const handleRemoveLogo = () => {
-    updateBiz('logo', '');
-    setUploadStatus(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  /* Fetch full card details in edit mode */
-  useEffect(() => {
-    if (editCard) {
-      cardsApi
-        .getCardById(editCard._id)
-        .then((fullCard) => {
-          setCardCode(fullCard.card_code || '');
-          setCustomSlug(fullCard.custom_slug || '');
-          setNfcUid(fullCard.nfc_uid || '');
-          setCardType(fullCard.card_type || CardType.CARD);
-          setRedirectUrl(fullCard.current_redirect_url || '');
-          setCategoryId(getCategoryId(fullCard.category_id) || '');
-          setRequiresSubscription(fullCard.requires_subscription ?? true);
-
-          setBizData({
-            business_name: fullCard.business_data?.business_name || '',
-            logo: fullCard.business_data?.logo || '',
-            description: fullCard.business_data?.description || '',
-            phone: fullCard.business_data?.phone || '',
-            email: fullCard.business_data?.email || '',
-            whatsapp: fullCard.business_data?.whatsapp || '',
-            instagram: fullCard.business_data?.instagram || '',
-            facebook: fullCard.business_data?.facebook || '',
-            tiktok: fullCard.business_data?.tiktok || '',
-            google_maps: fullCard.business_data?.google_maps || '',
-            website: fullCard.business_data?.website || '',
-            instapay: fullCard.business_data?.instapay || '',
-            vodafone_cash: fullCard.business_data?.vodafone_cash || '',
-          });
-
-          if (fullCard.customer && typeof fullCard.customer === 'object') {
-            setSelectedCustomer(fullCard.customer);
-            setInitialCustomer(fullCard.customer);
-          }
-        })
-        .catch(console.error);
-    }
-  }, [editCard]);
-
+  /* Initial data loader */
   const loadData = useCallback(async () => {
-    setFetchingData(true);
     try {
-      const [catRes, countRes] = await Promise.all([
-        categoriesApi.getCategories({ limit: 100 }),
+      setFetchingData(true);
+      const [catsRes, countRes] = await Promise.all([
+        categoriesApi.getCategories({ limit: 100, is_active: true }),
         cardsApi.getCards({ limit: 1 }),
       ]);
-      const allCats = catRes.data ?? [];
-      const activeCats = allCats.filter((c: ApiCategory) => c.is_active);
+
+      const activeCats = catsRes.data ?? [];
       setCategories(activeCats);
+
+      // Auto-select Business Profile category if available
+      const bizCat = activeCats.find(
+        (c) => c.name.includes('نشاط') || c.name.toLowerCase().includes('business')
+      );
+      if (!categoryId && bizCat) {
+        setCategoryId(bizCat._id);
+      } else if (!categoryId && activeCats.length > 0) {
+        setCategoryId(activeCats[0]._id);
+      }
+
+      // If editing, load customer if assigned
+      if (editCard) {
+        const rawCustId = editCard.customer_id || editCard.customer;
+        const custId = typeof rawCustId === 'string' ? rawCustId : rawCustId?._id;
+        if (custId) {
+          try {
+            const custRes = await customersApi.getCustomerById(custId);
+            const actualCust = custRes?.customer || (custRes as any);
+            setSelectedCustomer(actualCust);
+            setInitialCustomer(actualCust);
+          } catch (err) {
+            console.error('Failed to load assigned customer:', err);
+          }
+        }
+      }
 
       // Auto-generate next card code
       const realTotal = countRes.total ?? 0;
@@ -347,7 +365,6 @@ export const AdminAddCardPage: React.FC = () => {
       if (autoCode && !editCard) {
         setCardCode(nextCode);
         setNfcUid(nextNfc);
-        // Note: redirectUrl is deliberately KEPT EMPTY as per user instruction!
       }
     } catch (e: any) {
       Swal.fire({
@@ -359,8 +376,7 @@ export const AdminAddCardPage: React.FC = () => {
     } finally {
       setFetchingData(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [categoryId, autoCode, editCard]);
 
   useEffect(() => {
     loadData();
@@ -378,44 +394,39 @@ export const AdminAddCardPage: React.FC = () => {
     categories.find((c) => c._id === categoryId && (c.name.includes('نشاط') || c.name.toLowerCase().includes('business')))
   );
 
-  /* ── Submit Handler ── */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  /* Step Validation */
+  const validateStep = (stepNumber: number): boolean => {
+    if (stepNumber === 1) {
+      if (!cardCode.trim()) {
+        Swal.fire({ icon: 'warning', title: 'حقل مطلوب', text: 'كود البطاقة مطلوب', confirmButtonColor: '#3b82f6' });
+        return false;
+      }
+      if (!/^CARD-\d{4,}$/.test(cardCode.trim())) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'صيغة خاطئة',
+          text: 'كود البطاقة يجب أن يكون بالصيغة CARD-XXXX مثل CARD-0001',
+          confirmButtonColor: '#3b82f6',
+        });
+        return false;
+      }
+      const trimmedSlug = customSlug.trim().toLowerCase();
+      if (trimmedSlug && !CUSTOM_SLUG_REGEX.test(trimmedSlug)) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'صيغة خاطئة للرابط المخصص',
+          text: 'الرابط المخصص يقبل فقط حروف إنجليزية صغيرة، أرقام، والشرطة (-) بدون مسافات أو رموز خاصة (مثال: dr-ahmed)',
+          confirmButtonColor: '#3b82f6',
+        });
+        return false;
+      }
+      if (!categoryId) {
+        Swal.fire({ icon: 'warning', title: 'حقل مطلوب', text: 'يرجى اختيار تصنيف للبطاقة', confirmButtonColor: '#3b82f6' });
+        return false;
+      }
+    }
 
-    // Validation
-    if (!cardCode.trim()) {
-      Swal.fire({ icon: 'warning', title: 'حقل مطلوب', text: 'كود البطاقة مطلوب', confirmButtonColor: '#3b82f6' });
-      return;
-    }
-    if (!/^CARD-\d{4,}$/.test(cardCode.trim())) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'صيغة خاطئة',
-        text: 'كود البطاقة يجب أن يكون بالصيغة CARD-XXXX مثل CARD-0001',
-        confirmButtonColor: '#3b82f6',
-      });
-      return;
-    }
-    const trimmedSlug = customSlug.trim().toLowerCase();
-    if (trimmedSlug && !CUSTOM_SLUG_REGEX.test(trimmedSlug)) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'صيغة خاطئة للرابط المخصص',
-        text: 'الرابط المخصص يقبل فقط حروف إنجليزية صغيرة، أرقام، والشرطة (-) بدون مسافات أو رموز خاصة (مثال: dr-ahmed)',
-        confirmButtonColor: '#3b82f6',
-      });
-      return;
-    }
-    if (!categoryId) {
-      Swal.fire({ icon: 'warning', title: 'حقل مطلوب', text: 'يرجى اختيار تصنيف للبطاقة', confirmButtonColor: '#3b82f6' });
-      return;
-    }
-
-    // Build business_data only if category is Business Profile or Mobile Shop template
-    const business: BusinessData = {};
-    let hasBiz = false;
-    if (isBusinessProfileCategory) {
-      // Validate WhatsApp is a link if provided
+    if (stepNumber === 2) {
       const waVal = bizData.whatsapp?.trim();
       if (waVal && !/^https?:\/\//i.test(waVal)) {
         Swal.fire({
@@ -424,9 +435,47 @@ export const AdminAddCardPage: React.FC = () => {
           text: 'يجب أن تقوم بإدخال رابط واتساب صحيح يبدأ بـ https:// (مثل: https://wa.me/201000000000) وليس مجرد رقم.',
           confirmButtonColor: '#3b82f6',
         });
-        return;
+        return false;
       }
+    }
 
+    return true;
+  };
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep((prev) => Math.min(prev + 1, 4));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handlePrev = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const goToStep = (stepNumber: number) => {
+    if (editCard || stepNumber < currentStep) {
+      setCurrentStep(stepNumber);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (validateStep(currentStep)) {
+      setCurrentStep(stepNumber);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  /* ── Submit Handler ── */
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    if (!validateStep(1) || !validateStep(2)) return;
+
+    const trimmedSlug = customSlug.trim().toLowerCase();
+
+    // Build business_data
+    const business: BusinessData = {};
+    let hasBiz = false;
+    if (isBusinessProfileCategory) {
       for (const [k, v] of Object.entries(bizData)) {
         if (typeof v === 'string' && v.trim()) {
           (business as any)[k] = v.trim();
@@ -459,14 +508,13 @@ export const AdminAddCardPage: React.FC = () => {
       ];
     }
 
-    // Handle redirect URL: if empty, gracefully fallback to default redirect URL for this card
+    // Handle redirect URL
     const domainOrigin = window.location.origin.replace(
       /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i,
       'https://smart-card-qr-api.koyeb.app'
     );
     let formattedUrl = redirectUrl.trim();
     if (!formattedUrl) {
-      // Auto-fallback so backend receives valid URL
       formattedUrl = `${domainOrigin}/r/${cardCode.trim().toUpperCase()}`;
     } else if (!/^https?:\/\//i.test(formattedUrl)) {
       formattedUrl = `https://${formattedUrl}`;
@@ -483,7 +531,7 @@ export const AdminAddCardPage: React.FC = () => {
     try {
       if (editCard) {
         // Update mode
-        const updateDto: import('../../types').ApiUpdateCardDto = {
+        const updateDto: ApiUpdateCardDto = {
           ...baseDto,
           custom_slug: trimmedSlug || null,
           template: template,
@@ -538,7 +586,7 @@ export const AdminAddCardPage: React.FC = () => {
             <div style="text-align:right;direction:rtl;font-family:Tajawal,sans-serif">
               <p style="margin:8px 0;font-size:15px">البطاقة <strong style="color:#2563eb">${created.card_code}</strong> جاهزة تماماً</p>
               ${created.custom_slug ? `<p style="margin:4px 0;font-size:13.5px;color:#16a34a">الرابط المخصص: <strong>/social/${created.custom_slug}</strong></p>` : ''}
-              <p style="margin:4px 0;font-size:13px;color:#64748b">النوع: ${created.card_type}</p>
+              <p style="margin:4px 0;font-size:13px;color:#64748b">النوع: ${created.card_type} | القالب: ${created.template === 'mobile_shop' ? 'كاشير محلات الموبايل' : 'الافتراضي'}</p>
               <div style="margin-top:16px;text-align:center">
                 <a href="/social/${created.custom_slug || created.card_code}" target="_blank" style="display:inline-block;padding:9px 20px;background:#16a34a;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">
                   🚀 فتح صفحة البطاقة التفاعلية
@@ -559,14 +607,16 @@ export const AdminAddCardPage: React.FC = () => {
             setAutoCode(true);
             setCustomSlug('');
             setNfcUid('');
-            setRedirectUrl(''); // Reset to empty!
+            setRedirectUrl('');
             setBizData({
               business_name: '', logo: '', description: '', phone: '',
               email: '', whatsapp: '', instagram: '', facebook: '',
               tiktok: '', google_maps: '', website: '', instapay: '',
-              vodafone_cash: '',
+              vodafone_cash: '', maintenance_whatsapp: '', offers_url: '',
+              telegram_group: '', google_review_url: '',
             });
             setSelectedCustomer(null);
+            setCurrentStep(1);
             loadData();
           }
         });
@@ -595,10 +645,12 @@ export const AdminAddCardPage: React.FC = () => {
     categoryId
   );
 
-  return (
-    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', fontFamily: 'var(--font)', maxWidth: '1000px', margin: '0 auto', paddingBottom: '50px' }}>
+  const selectedCategoryName = categories.find((c) => c._id === categoryId)?.name || 'غير محدد';
 
-      {/* ══════ Top Header & Breadcrumb ══════ */}
+  return (
+    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '20px', fontFamily: 'var(--font)', maxWidth: '980px', margin: '0 auto', paddingBottom: '60px' }}>
+
+      {/* ══════ Top Header & Title ══════ */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <button
@@ -618,7 +670,7 @@ export const AdminAddCardPage: React.FC = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
               <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 900, color: 'var(--txt-heading)' }}>
-                {editCard ? `تعديل البطاقة ${editCard.card_code}` : 'إضافة بطاقة ذكية جديدة'}
+                {editCard ? `تعديل البطاقة ${editCard.card_code}` : 'معالج إنشاء بطاقة ذكية جديدة'}
               </h1>
               <span
                 style={{
@@ -631,13 +683,13 @@ export const AdminAddCardPage: React.FC = () => {
                   border: `1px solid ${editCard ? 'var(--clr-warning-bdr)' : 'var(--clr-primary-200)'}`,
                 }}
               >
-                {editCard ? 'وضع التعديل' : 'بطاقة جديدة'}
+                {editCard ? 'وضع التعديل' : 'خطوات منظمة'}
               </span>
             </div>
             <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--txt-muted)' }}>
               {editCard
-                ? 'تحديث بيانات البطاقة والنشاط التجاري وروابط التواصل'
-                : 'أدخل تفاصيل البطاقة واملأ بيانات النشاط التجاري لتجهيز صفحة العميل'}
+                ? 'تحديث بيانات الكارت والشيفتات وهوية النشاط عبر خطوات منظمة'
+                : 'اتبع الخطوات لإعداد بيانات الكارت، هوية النشاط، وإعدادات الكاشير والدفع'}
             </p>
           </div>
         </div>
@@ -662,7 +714,7 @@ export const AdminAddCardPage: React.FC = () => {
               border: '1px solid var(--clr-primary-200)',
             }}
           >
-            <ExternalLink size={14} /> معاينة صفحة البطاقة الحالية
+            <ExternalLink size={14} /> معاينة صفحة الكارت الحالية
           </a>
         )}
       </div>
@@ -679,219 +731,163 @@ export const AdminAddCardPage: React.FC = () => {
         />
       )}
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-
-        {/* ══════ Section 1: بيانات البطاقة الأساسية ══════ */}
+      {/* ══════ Multi-Step Stepper Bar ══════ */}
+      <div
+        style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '18px',
+          border: '1px solid var(--bdr-light)',
+          padding: '16px 20px',
+          boxShadow: 'var(--shadow-xs)',
+        }}
+      >
         <div
           style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid var(--bdr-light)',
-            borderRadius: '20px',
-            padding: '26px 28px',
-            boxShadow: 'var(--shadow-xs)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))',
+            gap: '10px',
+            alignItems: 'center',
           }}
         >
-          {/* Section Title */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', borderBottom: '1px solid var(--bdr-light)', paddingBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {STEPS.map((s) => {
+            const isCompleted = currentStep > s.id;
+            const isCurrent = currentStep === s.id;
+            const isClickable = editCard || isCompleted || s.id === currentStep;
+
+            return (
               <div
+                key={s.id}
+                onClick={() => isClickable && goToStep(s.id)}
                 style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
-                  backgroundColor: 'var(--clr-primary-50)',
-                  color: 'var(--clr-primary-600)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px solid var(--clr-primary-200)',
+                  gap: '12px',
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  backgroundColor: isCurrent ? 'var(--clr-primary-50)' : isCompleted ? '#f0fdf4' : 'transparent',
+                  border: isCurrent ? '1.5px solid var(--clr-primary-500)' : isCompleted ? '1.5px solid #bbf7d0' : '1px solid transparent',
+                  cursor: isClickable ? 'pointer' : 'default',
+                  opacity: isClickable ? 1 : 0.65,
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <CreditCard size={22} />
-              </div>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--txt-heading)' }}>
-                  بيانات البطاقة والتشغيل (Card Information)
-                </h2>
-                <p style={{ margin: '2px 0 0', fontSize: '12.5px', color: 'var(--txt-muted)' }}>
-                  إعدادات كود البطاقة ونوعها والاشتراك والتصنيف
-                </p>
-              </div>
-            </div>
+                {/* Step Number / Icon */}
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    backgroundColor: isCurrent ? 'var(--clr-primary-500)' : isCompleted ? '#16a34a' : 'var(--bg-subtle)',
+                    color: isCurrent || isCompleted ? '#ffffff' : 'var(--txt-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    flexShrink: 0,
+                    boxShadow: isCurrent ? '0 4px 12px rgba(59, 130, 246, 0.28)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {isCompleted ? <Check size={18} strokeWidth={3} /> : s.icon}
+                </div>
 
-            {fetchingData && (
-              <span style={{ fontSize: '12px', color: 'var(--txt-muted)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <RefreshCw size={13} className="spin" /> تحميل البيانات...
-              </span>
-            )}
-          </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: isCurrent ? 'var(--clr-primary-600)' : isCompleted ? '#16a34a' : 'var(--txt-muted)' }}>
+                      الخطوة {s.id}
+                    </span>
+                    {isCompleted && (
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#16a34a', backgroundColor: '#dcfce7', padding: '1px 5px', borderRadius: '4px' }}>
+                        مكتملة
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: isCurrent ? 800 : 700,
+                      color: isCurrent ? 'var(--clr-primary-900)' : isCompleted ? '#166534' : 'var(--txt-secondary)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {s.title}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
+        {/* Progress Bar Line */}
+        <div style={{ height: '4px', backgroundColor: '#f1f5f9', borderRadius: '999px', marginTop: '14px', overflow: 'hidden' }}>
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))',
-              gap: '18px',
+              height: '100%',
+              backgroundColor: 'var(--clr-primary-500)',
+              width: `${(currentStep / 4) * 100}%`,
+              transition: 'width 0.25s ease',
+              borderRadius: '999px',
+            }}
+          />
+        </div>
+      </div>
+
+      <form onSubmit={(e) => { e.preventDefault(); if (currentStep === 4) handleSubmit(); else handleNext(); }}>
+
+        {/* ════════════════════════════════════════════════════════════
+            STEP 1: بيانات الكارت ونوع القالب (Card & Template)
+            ════════════════════════════════════════════════════════════ */}
+        {currentStep === 1 && (
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid var(--bdr-light)',
+              borderRadius: '20px',
+              padding: '26px 28px',
+              boxShadow: 'var(--shadow-xs)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '22px',
             }}
           >
-            {/* Card Code */}
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <CreditCard size={15} style={{ color: 'var(--clr-primary-500)' }} />
-                  كود البطاقة <span style={{ color: 'var(--clr-error)' }}>*</span>
-                </span>
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  className="form-input"
-                  value={cardCode}
-                  onChange={(e) => {
-                    setCardCode(e.target.value.toUpperCase());
-                    setAutoCode(false);
-                  }}
-                  placeholder="CARD-0001"
-                  required
-                  style={{
-                    fontFamily: 'monospace',
-                    fontWeight: 700,
-                    letterSpacing: '0.5px',
-                    fontSize: '14.5px',
-                  }}
-                />
-              </div>
-              <span style={{ fontSize: '12px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
-                صيغة الكود: CARD-XXXX (يتم توليده تلقائياً بالتسلسل)
-              </span>
-            </div>
-
-            {/* NFC UID */}
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <CreditCard size={15} style={{ color: 'var(--txt-muted)' }} />
-                  معرف NFC الفعلي (NFC UID)
-                </span>
-              </label>
-              <input
-                className="form-input"
-                value={nfcUid}
-                onChange={(e) => setNfcUid(e.target.value.toUpperCase())}
-                placeholder="NFC-7FJ2K9"
-                style={{ fontFamily: 'monospace', fontSize: '14px' }}
-              />
-              <span style={{ fontSize: '12px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
-                اختياري — معرّف رقاقة الـ NFC الفيزيائية
-              </span>
-            </div>
-
-            {/* Custom Slug */}
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Globe size={15} style={{ color: 'var(--clr-primary-500)' }} />
-                  الرابط المخصص (Custom Slug)
-                </span>
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  className="form-input"
-                  dir="ltr"
-                  value={customSlug}
-                  onChange={(e) => setCustomSlug(e.target.value.toLowerCase())}
-                  placeholder="dr-ahmed"
-                  style={{ textAlign: 'left', fontWeight: 600, fontSize: '14px' }}
-                />
-              </div>
-              <span style={{ fontSize: '12px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
-                معاينة الرابط: <code style={{ color: 'var(--clr-primary-700)', fontWeight: 700 }}>/social/{customSlug || (cardCode || 'card-name')}</code>
-              </span>
-            </div>
-
-            {/* Category */}
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <FileText size={15} style={{ color: 'var(--clr-primary-500)' }} />
-                  التصنيف (Category) <span style={{ color: 'var(--clr-error)' }}>*</span>
-                </span>
-              </label>
-              <select
-                className="form-input"
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                required
-                style={{ fontSize: '14px', fontWeight: 600 }}
-              >
-                <option value="">— اختر تصنيف البطاقة —</option>
-                {categories.filter((c) => c.is_active).map((c) => (
-                  <option key={c._id} value={c._id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              {isBusinessProfileCategory ? (
-                <div style={{ marginTop: '8px', padding: '6px 12px', borderRadius: '8px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Sparkles size={14} /> تم تفعيل سكشن بيانات النشاط التجاري (Business Profile)
+            {/* Step 1 Header */}
+            <div style={{ borderBottom: '1px solid var(--bdr-light)', paddingBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: 'var(--clr-primary-50)', color: 'var(--clr-primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <CreditCard size={22} />
+                  </div>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                      الخطوة 1: بيانات البطاقة ونوع القالب
+                    </h2>
+                    <p style={{ margin: '2px 0 0', fontSize: '12.5px', color: 'var(--txt-muted)' }}>
+                      حدد كود البطاقة، التصنيف، الشكل الفيزيائي، ونموذج العرض المخصص
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <span style={{ fontSize: '12px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
-                  يظهر سكشن بيانات النشاط التجاري تلقائياً عند اختيار تصنيف النشاط التجاري
-                </span>
-              )}
-            </div>
-
-            {/* Card Physical Type */}
-            <div className="form-group" style={{ gridColumn: 'span 1' }}>
-              <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <CreditCard size={15} style={{ color: 'var(--clr-primary-500)' }} />
-                  شكل المنتج الفيزيائي <span style={{ color: 'var(--clr-error)' }}>*</span>
-                </span>
-              </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {CARD_TYPES.map((t) => {
-                  const isSelected = cardType === t;
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setCardType(t)}
-                      style={{
-                        flex: 1,
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        border: isSelected ? '2px solid var(--clr-primary-500)' : '1px solid var(--bdr-light)',
-                        backgroundColor: isSelected ? 'var(--clr-primary-50)' : 'var(--bg-subtle)',
-                        color: isSelected ? 'var(--clr-primary-800)' : 'var(--txt-secondary)',
-                        fontWeight: isSelected ? 800 : 600,
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      {isSelected && <Check size={14} style={{ color: 'var(--clr-primary-600)' }} />}
-                      {t}
-                    </button>
-                  );
-                })}
+                {fetchingData && (
+                  <span style={{ fontSize: '12px', color: 'var(--txt-muted)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <RefreshCw size={13} className="spin" /> تحميل البيانات...
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* Card Page Template Selection */}
-            <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '6px' }}>
-              <label className="form-label" style={{ fontWeight: 800, fontSize: '14px', marginBottom: '8px' }}>
+            {/* Template Selection Cards */}
+            <div className="form-group">
+              <label className="form-label" style={{ fontWeight: 800, fontSize: '13.5px', marginBottom: '8px' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Sparkles size={16} style={{ color: 'var(--clr-primary-500)' }} />
-                  قالب صفحة العرض (Card Page Template)
+                  قالب صفحة العرض (Card Page Template) <span style={{ color: 'var(--clr-error)' }}>*</span>
                 </span>
               </label>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '12px' }}>
-                {/* Default Template Option */}
+                {/* Default Template */}
                 <div
                   onClick={() => setTemplate('default')}
                   style={{
@@ -934,7 +930,7 @@ export const AdminAddCardPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Mobile Shop Template Option */}
+                {/* Mobile Shop Template */}
                 <div
                   onClick={() => setTemplate('mobile_shop')}
                   style={{
@@ -972,18 +968,505 @@ export const AdminAddCardPage: React.FC = () => {
                       {template === 'mobile_shop' && <Check size={16} style={{ color: '#7c3aed' }} />}
                     </div>
                     <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--txt-muted)', lineHeight: 1.5 }}>
-                      مخصص لكاونتر الكاشير: تبديل الشيفتات، إنستاباي، فودافون كاش، وخدمات الصيانة والتقييم.
+                      مخصص لنقاط البيع: تبديل الشيفتات، إنستاباي، فودافون كاش، وخدمات الصيانة والتقييم.
                     </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Active Shift Settings when template is mobile_shop */}
+            {/* Grid for Primary Inputs */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: '18px' }}>
+              {/* Card Code */}
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <CreditCard size={15} style={{ color: 'var(--clr-primary-500)' }} />
+                    كود البطاقة <span style={{ color: 'var(--clr-error)' }}>*</span>
+                  </span>
+                </label>
+                <input
+                  className="form-input"
+                  value={cardCode}
+                  onChange={(e) => {
+                    setCardCode(e.target.value.toUpperCase());
+                    setAutoCode(false);
+                  }}
+                  placeholder="CARD-0001"
+                  required
+                  style={{ fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.5px', fontSize: '14.5px' }}
+                />
+                <span style={{ fontSize: '12px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
+                  صيغة الكود: CARD-XXXX (يتم توليده تلقائياً بالتسلسل)
+                </span>
+              </div>
+
+              {/* NFC UID */}
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <CreditCard size={15} style={{ color: 'var(--txt-muted)' }} />
+                    معرف NFC الفعلي (NFC UID)
+                  </span>
+                </label>
+                <input
+                  className="form-input"
+                  value={nfcUid}
+                  onChange={(e) => setNfcUid(e.target.value.toUpperCase())}
+                  placeholder="NFC-7FJ2K9"
+                  style={{ fontFamily: 'monospace', fontSize: '14px' }}
+                />
+                <span style={{ fontSize: '12px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
+                  اختياري — معرّف رقاقة الـ NFC الفيزيائية
+                </span>
+              </div>
+
+              {/* Custom Slug */}
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Globe size={15} style={{ color: 'var(--clr-primary-500)' }} />
+                    الرابط المخصص (Custom Slug)
+                  </span>
+                </label>
+                <input
+                  className="form-input"
+                  dir="ltr"
+                  value={customSlug}
+                  onChange={(e) => setCustomSlug(e.target.value.toLowerCase())}
+                  placeholder="dr-ahmed"
+                  style={{ textAlign: 'left', fontWeight: 600, fontSize: '14px' }}
+                />
+                <span style={{ fontSize: '12px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
+                  معاينة الرابط: <code style={{ color: 'var(--clr-primary-700)', fontWeight: 700 }}>/social/{customSlug || (cardCode || 'card-name')}</code>
+                </span>
+              </div>
+
+              {/* Category */}
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FileText size={15} style={{ color: 'var(--clr-primary-500)' }} />
+                    التصنيف (Category) <span style={{ color: 'var(--clr-error)' }}>*</span>
+                  </span>
+                </label>
+                <select
+                  className="form-input"
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  required
+                  style={{ fontSize: '14px', fontWeight: 600 }}
+                >
+                  <option value="">— اختر تصنيف البطاقة —</option>
+                  {categories.filter((c) => c.is_active).map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Physical Card Type */}
+              <div className="form-group" style={{ gridColumn: 'span 1' }}>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
+                  شكل المنتج الفيزيائي <span style={{ color: 'var(--clr-error)' }}>*</span>
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {CARD_TYPES.map((t) => {
+                    const isSelected = cardType === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setCardType(t)}
+                        style={{
+                          flex: 1,
+                          padding: '10px 8px',
+                          borderRadius: '10px',
+                          border: isSelected ? '2px solid var(--clr-primary-500)' : '1px solid var(--bdr-light)',
+                          backgroundColor: isSelected ? 'var(--clr-primary-50)' : 'var(--bg-subtle)',
+                          color: isSelected ? 'var(--clr-primary-800)' : 'var(--txt-secondary)',
+                          fontWeight: isSelected ? 800 : 600,
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {isSelected && <Check size={14} style={{ color: 'var(--clr-primary-600)' }} />}
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Subscription Type */}
+              <div className="form-group" style={{ gridColumn: 'span 1' }}>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
+                  نظام الاشتراك
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <label
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+                      padding: '9px 12px', borderRadius: '10px',
+                      border: `2px solid ${requiresSubscription ? 'var(--clr-primary-500)' : 'var(--bdr-light)'}`,
+                      backgroundColor: requiresSubscription ? 'var(--clr-primary-50)' : 'var(--bg-subtle)',
+                      flex: 1,
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      checked={requiresSubscription}
+                      onChange={() => setRequiresSubscription(true)}
+                      style={{ accentColor: 'var(--clr-primary-500)' }}
+                    />
+                    <div>
+                      <span style={{ fontWeight: 800, fontSize: '13px', color: requiresSubscription ? 'var(--clr-primary-800)' : 'var(--txt-secondary)', display: 'block' }}>
+                        باشتراك سنوي
+                      </span>
+                    </div>
+                  </label>
+
+                  <label
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+                      padding: '9px 12px', borderRadius: '10px',
+                      border: `2px solid ${!requiresSubscription ? '#16a34a' : 'var(--bdr-light)'}`,
+                      backgroundColor: !requiresSubscription ? '#f0fdf4' : 'var(--bg-subtle)',
+                      flex: 1,
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      checked={!requiresSubscription}
+                      onChange={() => setRequiresSubscription(false)}
+                      style={{ accentColor: '#16a34a' }}
+                    />
+                    <div>
+                      <span style={{ fontWeight: 800, fontSize: '13px', color: !requiresSubscription ? '#15803d' : 'var(--txt-secondary)', display: 'block' }}>
+                        دائم مدى الحياة ♾
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Customer Link Section */}
+              <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '6px' }}>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <User size={15} style={{ color: 'var(--clr-primary-500)' }} />
+                    ربط الكارت بعميل (Customer)
+                  </span>
+                </label>
+                
+                {selectedCustomer ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--clr-primary-200)', backgroundColor: 'var(--clr-primary-50)' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--clr-primary-800)', fontSize: '14px' }}>
+                        {selectedCustomer.name}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--clr-primary-600)', marginTop: '2px' }}>
+                        {selectedCustomer.phone}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button type="button" onClick={() => setCustomerModalOpen(true)} className="btn-outline" style={{ padding: '6px 12px', fontSize: '12px', height: '32px' }}>
+                        تغيير العميل
+                      </button>
+                      <button type="button" onClick={() => setSelectedCustomer(null)} style={{ background: '#fff', border: '1px solid var(--clr-error-bdr)', color: 'var(--clr-error)', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>
+                        إلغاء الربط
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCustomerModalOpen(true)}
+                    style={{
+                      width: '100%', padding: '12px', borderRadius: '10px',
+                      border: '1px dashed var(--clr-primary-300)', backgroundColor: 'var(--bg-subtle)',
+                      color: 'var(--clr-primary-600)', fontWeight: 700, fontSize: '13.5px',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    }}
+                  >
+                    <Plus size={16} /> اختيار العميل لربط الكارت به
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════
+            STEP 2: هوية النشاط والتواصل (Business & Contact)
+            ════════════════════════════════════════════════════════════ */}
+        {currentStep === 2 && (
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid var(--bdr-light)',
+              borderRadius: '20px',
+              padding: '26px 28px',
+              boxShadow: 'var(--shadow-xs)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px',
+            }}
+          >
+            {/* Step 2 Header */}
+            <div style={{ borderBottom: '1px solid var(--bdr-light)', paddingBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#f0fdf4', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Building2 size={22} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                    الخطوة 2: هوية النشاط التجاري وقنوات التواصل
+                  </h2>
+                  <p style={{ margin: '2px 0 0', fontSize: '12.5px', color: 'var(--txt-muted)' }}>
+                    اسم النشاط، الشعار، النبذة التعريفية، وحسابات التواصل الاجتماعي
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Business Info & Logo */}
+            <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>
+              <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Building2 size={16} style={{ color: 'var(--clr-primary-600)' }} />
+                1. البيانات الأساسية والشعار
+              </h3>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: '18px' }}>
+                {/* Business Name */}
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
+                    اسم النشاط التجاري / الشخصي
+                  </label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={bizData.business_name || ''}
+                    onChange={(e) => updateBiz('business_name', e.target.value)}
+                    placeholder="مثال: توب فون للإلكترونيات أو عيادة د. أحمد"
+                    maxLength={120}
+                    style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
+                  />
+                </div>
+
+                {/* Logo Upload Component */}
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', margin: 0 }}>
+                      شعار النشاط أو الصورة الشخصية (Logo)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setLogoMode(logoMode === 'upload' ? 'url' : 'upload')}
+                      style={{ background: 'none', border: 'none', color: 'var(--clr-primary-600)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      {logoMode === 'upload' ? '🔗 أو إدخال رابط خارجي (URL)' : '📁 أو رفع ملف من الجهاز'}
+                    </button>
+                  </div>
+
+                  {logoMode === 'upload' ? (
+                    <div>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleLogoFile(e.target.files[0]);
+                          }
+                        }}
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        style={{ display: 'none' }}
+                      />
+
+                      {bizData.logo ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid var(--bdr-light)', gap: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                            <img src={bizData.logo} alt="Preview" style={{ width: '56px', height: '56px', borderRadius: '12px', objectFit: 'cover' }} />
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--txt-heading)' }}>تم اختيار الشعار</div>
+                              <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>جاهز للعرض ✓</span>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-outline" style={{ fontSize: '12px', padding: '6px 12px' }}>
+                              تغيير الصورة
+                            </button>
+                            <button type="button" onClick={() => updateBiz('logo', '')} style={{ background: '#fff', border: '1px solid var(--clr-error-bdr)', color: 'var(--clr-error)', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer' }}>
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                          onDragLeave={() => setDragOver(false)}
+                          onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files[0]) handleLogoFile(e.dataTransfer.files[0]); }}
+                          style={{
+                            border: `2px dashed ${dragOver ? 'var(--clr-primary-500)' : 'var(--bdr-medium)'}`,
+                            borderRadius: '12px', padding: '24px', textAlign: 'center', backgroundColor: dragOver ? 'var(--clr-primary-50)' : '#fff', cursor: 'pointer',
+                          }}
+                        >
+                          <UploadCloud size={30} style={{ color: 'var(--clr-primary-500)', margin: '0 auto 8px' }} />
+                          <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--txt-heading)' }}>
+                            اضغط لاختيار صورة أو اسحبها هنا
+                          </div>
+                          <div style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '4px' }}>
+                            PNG, JPG, WEBP بحد أقصى 5 ميجابايت
+                          </div>
+                        </div>
+                      )}
+                      {uploadStatus && (
+                        <div style={{ marginTop: '8px', fontSize: '12px', fontWeight: 600, color: uploadingLogo ? 'var(--clr-primary-600)' : '#16a34a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {uploadingLogo && <span className="spinner-border spinner-border-sm" role="status" />}
+                          {uploadStatus}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <input
+                      className="form-input"
+                      type="url"
+                      dir="ltr"
+                      value={bizData.logo || ''}
+                      onChange={(e) => updateBiz('logo', e.target.value)}
+                      placeholder="https://example.com/logo.png"
+                      style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
+                    />
+                  )}
+                </div>
+
+                {/* Description */}
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
+                    نبذة عن النشاط (الوصف)
+                  </label>
+                  <textarea
+                    className="form-input"
+                    value={bizData.description || ''}
+                    onChange={(e) => updateBiz('description', e.target.value)}
+                    placeholder="اكتب نبذة مختصرة عن الخدمات لتعريف العملاء بنشاطك..."
+                    rows={2}
+                    maxLength={500}
+                    style={{ resize: 'vertical', minHeight: '65px', fontSize: '13.5px', backgroundColor: '#fff' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Channels */}
+            <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>
+              <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Phone size={16} style={{ color: '#059669' }} />
+                2. قنوات الاتصال والموقع
+              </h3>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '16px' }}>
+                {CONTACT_FIELDS.map((f) => (
+                  <div key={f.key} className="form-group" style={f.gridFull ? { gridColumn: '1 / -1' } : undefined}>
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {f.icon}
+                        {f.label}
+                      </span>
+                    </label>
+                    <input
+                      className="form-input"
+                      type={f.type || 'text'}
+                      dir={f.type === 'url' || f.type === 'tel' || f.type === 'email' ? 'ltr' : undefined}
+                      value={bizData[f.key] || ''}
+                      onChange={(e) => updateBiz(f.key, e.target.value)}
+                      placeholder={f.placeholder}
+                      style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                    />
+                    {f.hint && <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>{f.hint}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Social Accounts */}
+            <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>
+              <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Instagram size={16} style={{ color: '#e1306c' }} />
+                3. حسابات التواصل الاجتماعي (Social Media)
+              </h3>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '16px' }}>
+                {SOCIAL_FIELDS.map((f) => (
+                  <div key={f.key} className="form-group">
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {f.icon}
+                        {f.label}
+                      </span>
+                    </label>
+                    <input
+                      className="form-input"
+                      type={f.type || 'url'}
+                      dir="ltr"
+                      value={bizData[f.key] || ''}
+                      onChange={(e) => updateBiz(f.key, e.target.value)}
+                      placeholder={f.placeholder}
+                      style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════
+            STEP 3: الكاشير وبوابات الدفع (Cashier & Payments)
+            ════════════════════════════════════════════════════════════ */}
+        {currentStep === 3 && (
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid var(--bdr-light)',
+              borderRadius: '20px',
+              padding: '26px 28px',
+              boxShadow: 'var(--shadow-xs)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px',
+            }}
+          >
+            {/* Step 3 Header */}
+            <div style={{ borderBottom: '1px solid var(--bdr-light)', paddingBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Smartphone size={22} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                    الخطوة 3: إعدادات الكاشير والدفع والخدمات
+                  </h2>
+                  <p style={{ margin: '2px 0 0', fontSize: '12.5px', color: 'var(--txt-muted)' }}>
+                    {template === 'mobile_shop'
+                      ? 'إعدادات شيفت الكاشير، بوابات إنستاباي وفودافون كاش، وخدمات الصيانة والتقييم'
+                      : 'بوابات الدفع والتحويل المالي السريع (إنستاباي وفودافون كاش)'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Shift Settings (For Mobile Shop Template) */}
             {template === 'mobile_shop' && (
               <div
                 style={{
-                  gridColumn: '1 / -1',
                   backgroundColor: 'rgba(139, 92, 246, 0.05)',
                   border: '1px solid rgba(139, 92, 246, 0.3)',
                   borderRadius: '16px',
@@ -1126,638 +1609,11 @@ export const AdminAddCardPage: React.FC = () => {
               </div>
             )}
 
-            {/* Customer Link Section */}
-            <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
-              <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <User size={15} style={{ color: 'var(--clr-primary-500)' }} />
-                  ربط الكارت بعميل (Customer)
-                </span>
-              </label>
-              
-              {selectedCustomer ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--clr-primary-200)', backgroundColor: 'var(--clr-primary-50)' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: 'var(--clr-primary-800)', fontSize: '14px' }}>
-                      {selectedCustomer.name}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--clr-primary-600)', marginTop: '2px' }}>
-                      {selectedCustomer.phone}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button type="button" onClick={() => setCustomerModalOpen(true)} className="btn-outline" style={{ padding: '6px 12px', fontSize: '12px', height: '32px' }}>
-                      تغيير العميل
-                    </button>
-                    <button type="button" onClick={() => setSelectedCustomer(null)} style={{ background: '#fff', border: '1px solid var(--clr-error-bdr)', color: 'var(--clr-error)', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>
-                      إلغاء الربط
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setCustomerModalOpen(true)}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    borderRadius: '10px',
-                    border: '1px dashed var(--clr-primary-300)',
-                    backgroundColor: 'var(--bg-subtle)',
-                    color: 'var(--clr-primary-600)',
-                    fontWeight: 700,
-                    fontSize: '13.5px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--clr-primary-50)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-subtle)')}
-                >
-                  <Plus size={16} /> اختيار العميل لربط الكارت به
-                </button>
-              )}
-            </div>
-
-            {/* Subscription Type */}
-            <div className="form-group" style={{ gridColumn: 'span 1' }}>
-              <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <RefreshCw size={15} style={{ color: 'var(--clr-primary-500)' }} />
-                  نظام الاشتراك
-                </span>
-              </label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    cursor: 'pointer',
-                    padding: '9px 14px',
-                    borderRadius: '10px',
-                    border: `2px solid ${requiresSubscription ? 'var(--clr-primary-500)' : 'var(--bdr-light)'}`,
-                    backgroundColor: requiresSubscription ? 'var(--clr-primary-50)' : 'var(--bg-subtle)',
-                    flex: 1,
-                    transition: 'all 140ms ease',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    checked={requiresSubscription}
-                    onChange={() => setRequiresSubscription(true)}
-                    style={{ accentColor: 'var(--clr-primary-500)' }}
-                  />
-                  <div>
-                    <span style={{ fontWeight: 800, fontSize: '13px', color: requiresSubscription ? 'var(--clr-primary-800)' : 'var(--txt-secondary)', display: 'block' }}>
-                      باشتراك دوري
-                    </span>
-                    <span style={{ fontSize: '11px', color: 'var(--txt-muted)' }}>ينتهي بعد سنة</span>
-                  </div>
-                </label>
-
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    cursor: 'pointer',
-                    padding: '9px 14px',
-                    borderRadius: '10px',
-                    border: `2px solid ${!requiresSubscription ? '#16a34a' : 'var(--bdr-light)'}`,
-                    backgroundColor: !requiresSubscription ? '#f0fdf4' : 'var(--bg-subtle)',
-                    flex: 1,
-                    transition: 'all 140ms ease',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    checked={!requiresSubscription}
-                    onChange={() => setRequiresSubscription(false)}
-                    style={{ accentColor: '#16a34a' }}
-                  />
-                  <div>
-                    <span style={{ fontWeight: 800, fontSize: '13px', color: !requiresSubscription ? '#15803d' : 'var(--txt-secondary)', display: 'block' }}>
-                      دائم مدى الحياة ♾
-                    </span>
-                    <span style={{ fontSize: '11px', color: 'var(--txt-muted)' }}>بدون انتهاء صلاحية</span>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            {/* Redirect URL (رابط التوجيه - فاضي افتراضياً) */}
-            <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '6px' }}>
-              <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <LinkIcon size={15} style={{ color: 'var(--clr-primary-500)' }} />
-                  رابط التوجيه المباشر (Redirect URL)
-                  <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--txt-muted)' }}>
-                    (اختياري — اتركه فارغاً إذا كنت تريد فتح صفحة البطاقة التفاعلية)
-                  </span>
-                </span>
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  className="form-input"
-                  dir="ltr"
-                  type="text"
-                  value={redirectUrl}
-                  onChange={(e) => setRedirectUrl(e.target.value)}
-                  placeholder="https://example.com أو اتركه فارغاً للتوجيه التلقائي"
-                  style={{
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    paddingRight: redirectUrl ? '36px' : '14px',
-                  }}
-                />
-                {redirectUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setRedirectUrl('')}
-                    style={{
-                      position: 'absolute',
-                      right: '10px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--txt-muted)',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      padding: '4px',
-                    }}
-                    title="تفريغ الرابط"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  marginTop: '6px',
-                  fontSize: '12.5px',
-                  color: 'var(--txt-secondary)',
-                }}
-              >
-                <HelpCircle size={14} style={{ color: 'var(--clr-primary-500)', flexShrink: 0 }} />
-                <span>
-                  إذا تُرك هذا الحقل <strong>فارغاً</strong>، فسيتم توجيه الماسح تلقائياً لصفحة أزرار النشاط التجاري (Social Profile). أما إذا أدخلت رابطاً خارجياً (مثل صفحة انستجرام أو متجر)، فسيتم تحويل العميل إليه مباشرة.
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ══════ Section 2: بيانات النشاط التجاري وملف التواصل (يظهر فقط لتصنيف النشاط التجاري 6ac46e143883b08344234133) ══════ */}
-        {isBusinessProfileCategory && (
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid var(--bdr-light)',
-              borderRadius: '20px',
-              padding: '26px 28px',
-              boxShadow: 'var(--shadow-xs)',
-            }}
-          >
-          {/* Section Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid var(--bdr-light)', paddingBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
-                  backgroundColor: '#f0fdf4',
-                  color: '#16a34a',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px solid #bbf7d0',
-                }}
-              >
-                <Building2 size={22} />
-              </div>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--txt-heading)' }}>
-                  بيانات النشاط التجاري وملف التواصل (Business Profile)
-                </h2>
-                <p style={{ margin: '2px 0 0', fontSize: '12.5px', color: 'var(--txt-muted)' }}>
-                  جميع الحقول متاحة الآن بالكامل لجميع البطاقات والتصنيفات (اختيارية)
-                </p>
-              </div>
-            </div>
-
-            <span
-              style={{
-                fontSize: '12px',
-                fontWeight: 700,
-                color: '#16a34a',
-                backgroundColor: '#f0fdf4',
-                padding: '4px 12px',
-                borderRadius: '20px',
-                border: '1px solid #bbf7d0',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-            >
-              <Sparkles size={13} /> 13 حقلاً متاحاً
-            </span>
-          </div>
-
-          <div
-            style={{
-              backgroundColor: '#f8fafc',
-              borderRadius: '12px',
-              padding: '12px 16px',
-              border: '1px solid #e2e8f0',
-              marginBottom: '24px',
-              fontSize: '13px',
-              color: 'var(--txt-secondary)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}
-          >
-            <div
-              style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--clr-primary-100)',
-                color: 'var(--clr-primary-700)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontWeight: 800,
-                fontSize: '12px',
-              }}
-            >
-              i
-            </div>
-            <span>
-              املأ الحقول التي تريد ظهورها في صفحة التواصل الاجتماعي الخاصة بالبطاقة. أي حقل تتركه فارغاً لن يظهر للعميل.
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '26px' }}>
-
-            {/* ── Group A: المعلومات الأساسية ── */}
-            <div
-              style={{
-                backgroundColor: 'var(--bg-subtle)',
-                borderRadius: '14px',
-                padding: '18px 20px',
-                border: '1px solid var(--bdr-light)',
-              }}
-            >
-              <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Building2 size={16} style={{ color: 'var(--clr-primary-600)' }} />
-                1. البيانات الأساسية والشعار
-              </h3>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: '18px' }}>
-                {/* Business Name */}
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Building2 size={16} style={{ color: 'var(--clr-primary-500)' }} />
-                      اسم النشاط التجاري / الشخصي
-                    </span>
-                  </label>
-                  <input
-                    className="form-input"
-                    type="text"
-                    value={bizData.business_name || ''}
-                    onChange={(e) => updateBiz('business_name', e.target.value)}
-                    placeholder="مثال: عيادة د. أحمد علي أو مطعم كوفي هاوس"
-                    maxLength={120}
-                    style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
-                  />
-                  <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>
-                    الاسم الرئيسي الذي سيظهر في أعلى صفحة البطاقة (بحد أقصى 120 حرف)
-                  </span>
-                </div>
-
-                {/* Logo Upload Component (Full Width) */}
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', margin: 0 }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Image size={16} style={{ color: 'var(--clr-primary-500)' }} />
-                        شعار النشاط أو الصورة الشخصية (Logo)
-                      </span>
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() => setLogoMode(logoMode === 'upload' ? 'url' : 'upload')}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--clr-primary-600)',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}
-                    >
-                      {logoMode === 'upload' ? '🔗 أو إدخال رابط خارجي (URL)' : '📁 أو رفع ملف من الجهاز'}
-                    </button>
-                  </div>
-
-                  {logoMode === 'upload' ? (
-                    <div>
-                      {/* Hidden File Input */}
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            handleLogoFile(e.target.files[0]);
-                          }
-                        }}
-                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                        style={{ display: 'none' }}
-                      />
-
-                      {bizData.logo ? (
-                        /* Image Preview Card */
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '12px 16px',
-                            backgroundColor: '#fff',
-                            borderRadius: '12px',
-                            border: '1px solid var(--bdr-light)',
-                            boxShadow: 'var(--shadow-xs)',
-                            flexWrap: 'wrap',
-                            gap: '12px',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                            <div
-                              style={{
-                                width: '64px',
-                                height: '64px',
-                                borderRadius: '12px',
-                                border: '1px solid var(--bdr-light)',
-                                overflow: 'hidden',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backgroundColor: 'var(--bg-subtle)',
-                                flexShrink: 0,
-                              }}
-                            >
-                              <img
-                                src={bizData.logo}
-                                alt="Logo Preview"
-                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                onError={(e) => {
-                                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                                }}
-                              />
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--txt-heading)' }}>
-                                تم اختيار وتجهيز الشعار
-                              </div>
-                              <div style={{ fontSize: '12px', color: uploadingLogo ? 'var(--clr-primary-600)' : 'var(--clr-success)', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
-                                {uploadingLogo ? <RefreshCw size={12} className="spin" /> : <Check size={12} />}
-                                <span>{uploadStatus || 'جاهز للاستخدام في صفحة البطاقة'}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                              type="button"
-                              onClick={() => fileInputRef.current?.click()}
-                              disabled={uploadingLogo}
-                              className="btn-outline"
-                              style={{
-                                padding: '6px 14px',
-                                borderRadius: '8px',
-                                fontSize: '12.5px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                              }}
-                            >
-                              <UploadCloud size={14} /> تغيير الصورة
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleRemoveLogo}
-                              disabled={uploadingLogo}
-                              style={{
-                                padding: '6px 12px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--clr-error-bdr)',
-                                backgroundColor: 'var(--clr-error-bg)',
-                                color: 'var(--clr-error)',
-                                fontSize: '12.5px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                              }}
-                            >
-                              <Trash2 size={14} /> حذف
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        /* Dropzone */
-                        <div
-                          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                          onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            setDragOver(false);
-                            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                              handleLogoFile(e.dataTransfer.files[0]);
-                            }
-                          }}
-                          onClick={() => fileInputRef.current?.click()}
-                          style={{
-                            border: `2px dashed ${dragOver ? 'var(--clr-primary-500)' : 'var(--bdr-medium)'}`,
-                            backgroundColor: dragOver ? 'var(--clr-primary-50)' : '#fff',
-                            borderRadius: '12px',
-                            padding: '24px 20px',
-                            textAlign: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: '46px',
-                              height: '46px',
-                              borderRadius: '50%',
-                              backgroundColor: 'var(--clr-primary-50)',
-                              color: 'var(--clr-primary-600)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              margin: '0 auto 10px',
-                            }}
-                          >
-                            <UploadCloud size={22} />
-                          </div>
-                          <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--txt-heading)', marginBottom: '3px' }}>
-                            {uploadingLogo ? 'جاري رفع الملف...' : 'اضغط لرفع الشعار أو اسحب الصورة وأفلتها هنا'}
-                          </div>
-                          <div style={{ fontSize: '12px', color: 'var(--txt-muted)' }}>
-                            يدعم PNG, JPG, WEBP, SVG (بحد أقصى 5 ميجابايت)
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    /* Fallback: Direct URL mode */
-                    <div>
-                      <input
-                        className="form-input"
-                        type="url"
-                        dir="ltr"
-                        value={bizData.logo || ''}
-                        onChange={(e) => updateBiz('logo', e.target.value)}
-                        placeholder="https://example.com/logo.png"
-                        style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
-                      />
-                      <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>
-                        رابط صورة مباشر يبدأ بـ https://
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Description Textarea */}
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <FileText size={16} style={{ color: 'var(--clr-primary-500)' }} />
-                      نبذة عن النشاط (الوصف)
-                    </span>
-                  </label>
-                  <textarea
-                    className="form-input"
-                    value={bizData.description || ''}
-                    onChange={(e) => updateBiz('description', e.target.value)}
-                    placeholder="اكتب نبذة مختصرة عن الخدمات أو النشاط التجاري لتعريف العملاء بك..."
-                    rows={3}
-                    maxLength={500}
-                    style={{ resize: 'vertical', minHeight: '75px', fontSize: '13.5px', backgroundColor: '#fff' }}
-                  />
-                  <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>
-                    وصف جذاب ومختصر يظهر تحت الاسم (بحد أقصى 500 حرف)
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Group B: الاتصال والموقع ── */}
-            <div
-              style={{
-                backgroundColor: 'var(--bg-subtle)',
-                borderRadius: '14px',
-                padding: '18px 20px',
-                border: '1px solid var(--bdr-light)',
-              }}
-            >
-              <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Phone size={16} style={{ color: '#059669' }} />
-                2. قنوات الاتصال والموقع
-              </h3>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: '16px' }}>
-                {CONTACT_FIELDS.map((f) => (
-                  <div key={f.key} className="form-group" style={f.gridFull ? { gridColumn: '1 / -1' } : undefined}>
-                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {React.cloneElement(f.icon as React.ReactElement, { style: { color: '#059669' } })}
-                        {f.label}
-                      </span>
-                    </label>
-                    <input
-                      className="form-input"
-                      type={f.type || 'text'}
-                      dir={f.type === 'url' || f.type === 'tel' || f.type === 'email' ? 'ltr' : undefined}
-                      value={bizData[f.key] || ''}
-                      onChange={(e) => updateBiz(f.key, e.target.value)}
-                      placeholder={f.placeholder}
-                      style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
-                    />
-                    {f.hint && <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>{f.hint}</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Group C: التواصل الاجتماعي ── */}
-            <div
-              style={{
-                backgroundColor: 'var(--bg-subtle)',
-                borderRadius: '14px',
-                padding: '18px 20px',
-                border: '1px solid var(--bdr-light)',
-              }}
-            >
-              <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Instagram size={16} style={{ color: '#e1306c' }} />
-                3. حسابات التواصل الاجتماعي (Social Media)
-              </h3>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: '16px' }}>
-                {SOCIAL_FIELDS.map((f) => (
-                  <div key={f.key} className="form-group">
-                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {React.cloneElement(f.icon as React.ReactElement, { style: { color: 'var(--txt-secondary)' } })}
-                        {f.label}
-                      </span>
-                    </label>
-                    <input
-                      className="form-input"
-                      type={f.type || 'url'}
-                      dir="ltr"
-                      value={bizData[f.key] || ''}
-                      onChange={(e) => updateBiz(f.key, e.target.value)}
-                      placeholder={f.placeholder}
-                      style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Group D: الدفع والمحافظ الإلكترونية ── */}
-            <div
-              style={{
-                backgroundColor: 'var(--bg-subtle)',
-                borderRadius: '14px',
-                padding: '18px 20px',
-                border: '1px solid var(--bdr-light)',
-              }}
-            >
+            {/* Fast Payment Options */}
+            <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>
               <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CreditCard size={16} style={{ color: '#7c3aed' }} />
-                4. طرق الدفع والتحويل المالي السريع
+                طرق الدفع والتحويل المالي السريع
               </h3>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: '16px' }}>
@@ -1765,7 +1621,7 @@ export const AdminAddCardPage: React.FC = () => {
                   <div key={f.key} className="form-group">
                     <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {React.cloneElement(f.icon as React.ReactElement, { style: { color: '#7c3aed' } })}
+                        {f.icon}
                         {f.label}
                       </span>
                     </label>
@@ -1784,88 +1640,260 @@ export const AdminAddCardPage: React.FC = () => {
               </div>
             </div>
 
-            {/* ── Group E: خدمات محلات الموبايل وتقييم جوجل ── */}
-            <div
-              style={{
-                backgroundColor: template === 'mobile_shop' ? 'rgba(139, 92, 246, 0.04)' : 'var(--bg-subtle)',
-                borderRadius: '14px',
-                padding: '18px 20px',
-                border: template === 'mobile_shop' ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid var(--bdr-light)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Store size={16} style={{ color: '#8b5cf6' }} />
-                  5. خدمات محلات الموبايل وبوابة تقييم Google Maps
-                </h3>
-                {template === 'mobile_shop' && (
+            {/* Mobile Shop Services and Review Gate */}
+            {template === 'mobile_shop' && (
+              <div style={{ backgroundColor: 'rgba(139, 92, 246, 0.04)', borderRadius: '14px', padding: '18px 20px', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Store size={16} style={{ color: '#8b5cf6' }} />
+                    خدمات محلات الموبايل وبوابة تقييم Google Maps
+                  </h3>
                   <span style={{ fontSize: '11px', fontWeight: 700, color: '#7c3aed', backgroundColor: 'rgba(139, 92, 246, 0.1)', padding: '3px 8px', borderRadius: '6px' }}>
                     قالب الكاشير مفعل ⭐
                   </span>
-                )}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: '16px' }}>
+                  {MOBILE_SHOP_FIELDS.map((f) => (
+                    <div key={f.key} className="form-group">
+                      <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {f.icon}
+                          {f.label}
+                        </span>
+                      </label>
+                      <input
+                        className="form-input"
+                        type={f.type || 'text'}
+                        dir={f.type === 'url' || f.type === 'tel' ? 'ltr' : undefined}
+                        value={bizData[f.key] || ''}
+                        onChange={(e) => updateBiz(f.key, e.target.value)}
+                        placeholder={f.placeholder}
+                        style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
+                      />
+                      {f.hint && <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>{f.hint}</span>}
+                    </div>
+                  ))}
+
+                  {/* Review Gate Toggle */}
+                  <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '6px' }}>
+                    <label
+                      style={{
+                        display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer',
+                        padding: '12px 16px', borderRadius: '12px',
+                        backgroundColor: enableReviewGate ? 'rgba(16, 185, 129, 0.08)' : '#fff',
+                        border: enableReviewGate ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--bdr-light)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={enableReviewGate}
+                        onChange={(e) => setEnableReviewGate(e.target.checked)}
+                        style={{ width: '18px', height: '18px', marginTop: '3px', accentColor: '#10b981', cursor: 'pointer' }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '13.5px', color: enableReviewGate ? '#065f46' : 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Star size={15} color="#eab308" fill="#eab308" />
+                          تفعيل بوابة الفلترة الذكية للتقييم (Review Gate)
+                        </div>
+                        <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--txt-secondary)', lineHeight: 1.5 }}>
+                          عند تفعيلها: تقييم 4 أو 5 نجوم يوجّه العميل تلقائياً لكتابة رأيه على خرائط Google Maps، بينما التقييم من 1 إلى 3 نجوم يفتح نافذة داخلية لمراسلة إدارة المحل عبر واتساب لمعالجة أي شكوى ودياً قبل نشرها.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Direct Redirect URL (Optional) */}
+            <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <LinkIcon size={15} style={{ color: 'var(--clr-primary-500)' }} />
+                    رابط التوجيه المباشر (Redirect URL)
+                    <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)' }}>(اختياري)</span>
+                  </span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    className="form-input"
+                    dir="ltr"
+                    type="text"
+                    value={redirectUrl}
+                    onChange={(e) => setRedirectUrl(e.target.value)}
+                    placeholder="https://example.com أو اتركه فارغاً لعرض صفحة الكارت التفاعلية"
+                    style={{ fontSize: '13.5px', backgroundColor: '#fff', textAlign: 'left' }}
+                  />
+                  {redirectUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setRedirectUrl('')}
+                      style={{
+                        position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                        background: 'none', border: 'none', color: 'var(--txt-muted)', cursor: 'pointer',
+                      }}
+                      title="تفريغ الرابط"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                <span style={{ fontSize: '12px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
+                  💡 تركه فارغاً يُوجّه العميل تلقائياً لصفحة البطاقة التفاعلية (Social Page) بجميع الأزرار وطرق الدفع.
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════
+            STEP 4: مراجعة وتأكيد (Review & Confirm)
+            ════════════════════════════════════════════════════════════ */}
+        {currentStep === 4 && (
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid var(--bdr-light)',
+              borderRadius: '20px',
+              padding: '26px 28px',
+              boxShadow: 'var(--shadow-xs)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+            }}
+          >
+            {/* Step 4 Header */}
+            <div style={{ borderBottom: '1px solid var(--bdr-light)', paddingBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: 'rgba(234, 179, 8, 0.12)', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Sparkles size={22} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                    الخطوة 4: مراجعة وتأكيد بيانات البطاقة
+                  </h2>
+                  <p style={{ margin: '2px 0 0', fontSize: '12.5px', color: 'var(--txt-muted)' }}>
+                    راجع تفاصيل البطاقة وهوية النشاط وإعدادات الكاشير قبل الحفظ النهائي
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Review Cards Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '16px' }}>
+              {/* Card 1: Card & Template Summary */}
+              <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '16px', border: '1px solid var(--bdr-light)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <CreditCard size={15} style={{ color: 'var(--clr-primary-500)' }} />
+                    بيانات الكارت
+                  </span>
+                  <button type="button" onClick={() => goToStep(1)} style={{ background: 'none', border: 'none', color: 'var(--clr-primary-600)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    <Edit2 size={12} /> تعديل
+                  </button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px' }}>
+                  <div><span style={{ color: 'var(--txt-muted)' }}>كود الكارت:</span> <strong style={{ color: 'var(--clr-primary-700)', fontFamily: 'monospace' }}>{cardCode}</strong></div>
+                  <div><span style={{ color: 'var(--txt-muted)' }}>التصنيف:</span> <strong>{selectedCategoryName}</strong></div>
+                  <div><span style={{ color: 'var(--txt-muted)' }}>الشكل الفيزيائي:</span> <strong>{cardType}</strong></div>
+                  <div><span style={{ color: 'var(--txt-muted)' }}>الاشتراك:</span> <strong>{requiresSubscription ? 'سنوي' : 'دائم مدى الحياة ♾'}</strong></div>
+                  <div>
+                    <span style={{ color: 'var(--txt-muted)' }}>القالب:</span>{' '}
+                    <span style={{ backgroundColor: template === 'mobile_shop' ? '#f3e8ff' : '#eff6ff', color: template === 'mobile_shop' ? '#7e22ce' : '#1d4ed8', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11.5px' }}>
+                      {template === 'mobile_shop' ? '📱 كاشير محلات الموبايل' : '🌟 القالب الافتراضي'}
+                    </span>
+                  </div>
+                  {customSlug && (
+                    <div><span style={{ color: 'var(--txt-muted)' }}>الرابط المخصص:</span> <code style={{ color: '#16a34a' }}>/social/{customSlug}</code></div>
+                  )}
+                  {selectedCustomer && (
+                    <div><span style={{ color: 'var(--txt-muted)' }}>العميل المربوط:</span> <strong>{selectedCustomer.name}</strong></div>
+                  )}
+                </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: '16px' }}>
-                {MOBILE_SHOP_FIELDS.map((f) => (
-                  <div key={f.key} className="form-group">
-                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {React.cloneElement(f.icon as React.ReactElement, { style: { color: '#8b5cf6' } })}
-                        {f.label}
-                      </span>
-                    </label>
-                    <input
-                      className="form-input"
-                      type={f.type || 'text'}
-                      dir={f.type === 'url' || f.type === 'tel' ? 'ltr' : undefined}
-                      value={bizData[f.key] || ''}
-                      onChange={(e) => updateBiz(f.key, e.target.value)}
-                      placeholder={f.placeholder}
-                      style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
-                    />
-                    {f.hint && <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>{f.hint}</span>}
-                  </div>
-                ))}
-
-                {/* Review Gate Toggle */}
-                <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '6px' }}>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '12px',
-                      cursor: 'pointer',
-                      padding: '12px 16px',
-                      borderRadius: '12px',
-                      backgroundColor: enableReviewGate ? 'rgba(16, 185, 129, 0.08)' : '#fff',
-                      border: enableReviewGate ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--bdr-light)',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={enableReviewGate}
-                      onChange={(e) => setEnableReviewGate(e.target.checked)}
-                      style={{ width: '18px', height: '18px', marginTop: '3px', accentColor: '#10b981', cursor: 'pointer' }}
-                    />
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '13.5px', color: enableReviewGate ? '#065f46' : 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Star size={15} color="#eab308" fill="#eab308" />
-                        تفعيل بوابة الفلترة الذكية للتقييم (Review Gate)
-                      </div>
-                      <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--txt-secondary)', lineHeight: 1.5 }}>
-                        عند تفعيلها: تقييم 4 أو 5 نجوم يوجّه العميل تلقائياً لكتابة رأيه على خرائط Google Maps، بينما التقييم من 1 إلى 3 نجوم يفتح نافذة داخلية لمراسلة إدارة المحل عبر واتساب لمعالجة أي شكوى ودياً قبل نشرها.
-                      </p>
+              {/* Card 2: Business & Identity Summary */}
+              <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '16px', border: '1px solid var(--bdr-light)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Building2 size={15} style={{ color: '#16a34a' }} />
+                    هوية النشاط
+                  </span>
+                  <button type="button" onClick={() => goToStep(2)} style={{ background: 'none', border: 'none', color: 'var(--clr-primary-600)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    <Edit2 size={12} /> تعديل
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                  {bizData.logo ? (
+                    <img src={bizData.logo} alt="Logo" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '48px', height: '48px', borderRadius: '10px', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                      <Building2 size={24} />
                     </div>
-                  </label>
+                  )}
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--txt-heading)' }}>
+                      {bizData.business_name || 'بدون اسم محدد'}
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--txt-muted)', lineClamp: 1, overflow: 'hidden' }}>
+                      {bizData.description || 'بدون نبذة'}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: 'var(--txt-secondary)' }}>
+                  {bizData.phone && <div>📞 هاتف: <span dir="ltr">{bizData.phone}</span></div>}
+                  {bizData.whatsapp && <div>💬 واتساب: <span dir="ltr">{bizData.whatsapp}</span></div>}
+                  {bizData.email && <div>✉️ بريد: <span dir="ltr">{bizData.email}</span></div>}
+                  {bizData.website && <div>🌐 موقع: <span dir="ltr">{bizData.website}</span></div>}
+                </div>
+              </div>
+
+              {/* Card 3: Cashier & Payments Summary */}
+              <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '16px', border: '1px solid var(--bdr-light)', gridColumn: '1 / -1' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Smartphone size={15} style={{ color: '#7c3aed' }} />
+                    إعدادات الكاشير والدفع
+                  </span>
+                  <button type="button" onClick={() => goToStep(3)} style={{ background: 'none', border: 'none', color: 'var(--clr-primary-600)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    <Edit2 size={12} /> تعديل
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '12px', fontSize: '12.5px' }}>
+                  {template === 'mobile_shop' && (
+                    <div style={{ backgroundColor: '#fff', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--bdr-light)' }}>
+                      <div style={{ fontWeight: 700, color: '#7c3aed', marginBottom: '4px' }}>الشيفت والكاشير:</div>
+                      <div>الشيفت: <strong>{shiftLabel || '—'}</strong></div>
+                      <div>الكاشير: <strong>{cashierName || '—'}</strong></div>
+                      <div>ساعات العمل: <strong>{hourFrom} {periodFrom === 'pm' ? 'م' : 'ص'} - {hourTo} {periodTo === 'pm' ? 'م' : 'ص'}</strong></div>
+                    </div>
+                  )}
+
+                  <div style={{ backgroundColor: '#fff', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--bdr-light)' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--txt-heading)', marginBottom: '4px' }}>بوابات الدفع الفوري:</div>
+                    <div>إنستاباي: <strong>{bizData.instapay || 'غير محدد'}</strong></div>
+                    <div>فودافون كاش: <strong>{bizData.vodafone_cash || 'غير محدد'}</strong></div>
+                  </div>
+
+                  {template === 'mobile_shop' && (
+                    <div style={{ backgroundColor: '#fff', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--bdr-light)' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--txt-heading)', marginBottom: '4px' }}>خدمات المحل والتقييم:</div>
+                      <div>واتساب الصيانة: <strong>{bizData.maintenance_whatsapp ? 'موجود ✓' : '—'}</strong></div>
+                      <div>قناة العروض: <strong>{bizData.offers_url ? 'موجودة ✓' : '—'}</strong></div>
+                      <div>بوابة تقييم Google: <strong>{enableReviewGate ? 'مفعلة بالفلترة ⭐' : 'مباشرة'}</strong></div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-        {/* ══════ Bottom Submit Bar ══════ */}
+        {/* ══════ Bottom Stepper Navigation Actions Bar ══════ */}
         <div
           style={{
             position: 'sticky',
@@ -1881,60 +1909,97 @@ export const AdminAddCardPage: React.FC = () => {
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: '12px',
+            marginTop: '20px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '13.5px', color: 'var(--txt-secondary)', fontWeight: 600 }}>
-              {editCard ? (
-                <>جاهز لحفظ التعديلات على كود <code style={{ color: 'var(--clr-primary-700)', fontWeight: 800 }}>{cardCode}</code></>
-              ) : (
-                <>كود البطاقة الجديدة: <code style={{ color: 'var(--clr-primary-700)', fontWeight: 800 }}>{cardCode || '—'}</code></>
-              )}
-            </span>
-            {!isFormValid && (
-              <span style={{ fontSize: '12px', color: 'var(--clr-error)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <AlertCircle size={13} /> يرجى ملء الحقول الإجبارية (كود البطاقة والتصنيف)
-              </span>
+          {/* Back Step / Cancel */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {currentStep > 1 ? (
+              <button
+                type="button"
+                className="btn-outline"
+                onClick={handlePrev}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '10px',
+                  fontSize: '13.5px',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <ArrowRight size={16} />
+                <span>الخطوة السابقة</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-outline"
+                onClick={() => navigate('/admin/cards')}
+                style={{ padding: '9px 18px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700 }}
+              >
+                إلغاء
+              </button>
             )}
+
+            <span style={{ fontSize: '12.5px', color: 'var(--txt-muted)' }}>
+              الخطوة {currentStep} من 4
+            </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <button
-              type="button"
-              className="btn-outline"
-              onClick={() => navigate('/admin/cards')}
-              style={{ padding: '9px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 700 }}
-            >
-              إلغاء
-            </button>
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={loading || !isFormValid}
-              style={{
-                minWidth: '180px',
-                padding: '9px 24px',
-                borderRadius: '10px',
-                fontSize: '14px',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-            >
-              {loading ? (
-                <>
-                  <RefreshCw size={16} className="spin" />
-                  <span>{editCard ? 'جاري الحفظ...' : 'جاري الإنشاء...'}</span>
-                </>
-              ) : (
-                <>
-                  <Plus size={17} />
-                  <span>{editCard ? 'إتمام وحفظ التعديلات' : 'إنشاء البطاقة الذكية'}</span>
-                </>
-              )}
-            </button>
+          {/* Next / Final Submit Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {currentStep < 4 ? (
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleNext}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <span>متابعة للخطوة التالية</span>
+                <ArrowLeft size={16} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => handleSubmit()}
+                disabled={loading || !isFormValid}
+                style={{
+                  minWidth: '200px',
+                  padding: '10px 24px',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                }}
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw size={16} className="spin" />
+                    <span>{editCard ? 'جاري حفظ التعديلات...' : 'جاري إنشاء البطاقة...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={18} />
+                    <span>{editCard ? 'حفظ التعديلات النهائية' : 'إتمام وإنشاء البطاقة الذكية 🎉'}</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 

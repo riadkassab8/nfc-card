@@ -13,6 +13,7 @@ import { AdminCustomersPage } from './pages/admin/AdminCustomersPage';
 import { CustomerDetailsPage } from './pages/admin/CustomerDetailsPage';
 import { AdminInventoryPage } from './pages/admin/AdminInventoryPage';
 import { AdminAddCardPage } from './pages/admin/AdminAddCardPage';
+import { AdminEditCardPage } from './pages/admin/AdminEditCardPage';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
 import { AdminScanPage } from './pages/admin/AdminScanPage';
 import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
@@ -131,6 +132,17 @@ export const App: React.FC = () => (
             <ProtectedRoute>
               <AdminShell title="إضافة بطاقة">
                 <AdminAddCardPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/cards/:id/edit"
+          element={
+            <ProtectedRoute>
+              <AdminShell title="تعديل البطاقة">
+                <AdminEditCardPage />
               </AdminShell>
             </ProtectedRoute>
           }
