@@ -34,7 +34,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   onToggleCollapse,
   onClose,
 }) => {
-  const { canAccessPage } = useAuth();
+  const { canAccessPage, admin } = useAuth();
 
   const filterAccessible = useCallback(
     (items: SidebarNavItemConfig[]): SidebarNavItemConfig[] => {
@@ -44,12 +44,19 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   );
 
   const [navItems, setNavItems] = useState<SidebarNavItemConfig[]>(() => {
+    if (admin?.sidebar_menu && admin.sidebar_menu.length > 0) {
+      return filterAccessible(admin.sidebar_menu);
+    }
     return filterAccessible(getSidebarConfig());
   });
 
   useEffect(() => {
-    // تحديث فوري بالقائمة الحالية مفلترة بالصلاحيات
-    setNavItems(filterAccessible(getSidebarConfig()));
+    // الأولوية لقائمة الروابط القادمة من الباك إند مع حساب المستخدم
+    if (admin?.sidebar_menu && admin.sidebar_menu.length > 0) {
+      setNavItems(filterAccessible(admin.sidebar_menu));
+    } else {
+      setNavItems(filterAccessible(getSidebarConfig()));
+    }
 
     // مزامنة القائمة من الـ Backend API في الخلفية
     fetchSidebarConfigFromApi()

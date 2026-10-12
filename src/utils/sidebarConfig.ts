@@ -15,6 +15,8 @@ import {
   Scan,
   ShieldAlert,
   History,
+  Activity,
+  Store,
 } from 'lucide-react';
 import { authApi } from '../services/api';
 import { SidebarNavItemConfig } from '../types';
@@ -31,6 +33,8 @@ export const ICON_MAP: Record<string, React.ElementType> = {
   Scan,
   ShieldAlert,
   History,
+  Activity,
+  Store,
 };
 
 export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
@@ -121,36 +125,29 @@ const STORAGE_KEY = 'k2rty_admin_sidebar_config_v1';
 export const SIDEBAR_CONFIG_EVENT = 'k2rty-sidebar-config-changed';
 
 /**
- * دمج أي عناصر مع الإعدادات الافتراضية لضمان عدم فقدان أي مسار
+ * تطبيع عناصر القائمة القادمة من الباك إند
+ * تضمن الحفاظ التام على الروابط والخصائص المرسلة من الخادم بالكامل
  */
 export function normalizeSidebarItems(items: Partial<SidebarNavItemConfig>[]): SidebarNavItemConfig[] {
   if (!Array.isArray(items) || items.length === 0) {
     return DEFAULT_SIDEBAR_ITEMS;
   }
 
-  const merged: SidebarNavItemConfig[] = [];
-  const seenIds = new Set<string>();
-
-  for (const item of items) {
-    const def = DEFAULT_SIDEBAR_ITEMS.find((d) => d.id === item.id);
-    if (def) {
-      merged.push({
-        ...def,
-        label: item.label || def.defaultLabel,
+  return items
+    .filter((item): item is Partial<SidebarNavItemConfig> & { id: string; path: string } => !!item && !!item.id && !!item.path)
+    .map((item, idx) => {
+      const def = DEFAULT_SIDEBAR_ITEMS.find((d) => d.id === item.id);
+      return {
+        id: item.id,
+        path: item.path,
+        label: item.label || item.defaultLabel || def?.label || item.id,
+        defaultLabel: item.defaultLabel || item.label || def?.defaultLabel || item.id,
+        iconName: item.iconName || def?.iconName || 'LayoutDashboard',
         visible: item.visible ?? true,
-        order: typeof item.order === 'number' ? item.order : def.order,
-      });
-      seenIds.add(def.id);
-    }
-  }
-
-  for (const def of DEFAULT_SIDEBAR_ITEMS) {
-    if (!seenIds.has(def.id)) {
-      merged.push(def);
-    }
-  }
-
-  return merged.sort((a, b) => a.order - b.order);
+        order: typeof item.order === 'number' ? item.order : idx,
+      };
+    })
+    .sort((a, b) => a.order - b.order);
 }
 
 /**

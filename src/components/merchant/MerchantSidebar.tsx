@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  CreditCard,
-  BarChart2,
-  Store,
   LogOut,
   X,
   ShieldCheck,
+  Store,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import {
+  fetchSidebarConfigFromApi,
+  normalizeSidebarItems,
+  ICON_MAP,
+  SidebarNavItemConfig,
+} from '../../utils/sidebarConfig';
 
 export interface MerchantSidebarProps {
   onLinkClick?: () => void;
@@ -30,12 +33,32 @@ export const MerchantSidebar: React.FC<MerchantSidebarProps> = ({
   const diffDays = subEndDate ? Math.ceil((subEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
   const endDateFormatted = subEndDate ? subEndDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
 
-  const navLinks = [
-    { to: '/merchant', label: 'الرئيسية للمتجر', icon: LayoutDashboard, end: true },
-    { to: '/merchant/cards', label: 'بطاقاتي الذكية', icon: CreditCard, end: false },
-    { to: '/merchant/analytics', label: 'إحصائيات وزوار المحل', icon: BarChart2, end: false },
-    { to: '/merchant/profile', label: 'إعدادات المتجر', icon: Store, end: false },
-  ];
+  // جلب روابط القائمة الجانبية مباشرة من الباك إند
+  const [navItems, setNavItems] = useState<SidebarNavItemConfig[]>(() => {
+    if (admin?.sidebar_menu && admin.sidebar_menu.length > 0) {
+      return normalizeSidebarItems(admin.sidebar_menu);
+    }
+    return [
+      { id: 'merchant_overview', path: '/merchant', label: 'الرئيسية للمتجر', defaultLabel: 'الرئيسية للمتجر', iconName: 'LayoutDashboard', visible: true, order: 0 },
+      { id: 'merchant_cards', path: '/merchant/cards', label: 'بطاقاتي الذكية', defaultLabel: 'بطاقاتي الذكية', iconName: 'CreditCard', visible: true, order: 1 },
+      { id: 'merchant_analytics', path: '/merchant/analytics', label: 'إحصائيات وزوار المحل', defaultLabel: 'إحصائيات وزوار المحل', iconName: 'BarChart2', visible: true, order: 2 },
+      { id: 'merchant_profile', path: '/merchant/profile', label: 'إعدادات المتجر', defaultLabel: 'إعدادات المتجر', iconName: 'Store', visible: true, order: 3 },
+    ];
+  });
+
+  useEffect(() => {
+    if (admin?.sidebar_menu && admin.sidebar_menu.length > 0) {
+      setNavItems(normalizeSidebarItems(admin.sidebar_menu));
+    }
+    // مزامنة الروابط دائماً ومباشرة من الـ Backend API
+    fetchSidebarConfigFromApi()
+      .then((items) => {
+        if (items && items.length > 0) {
+          setNavItems(items.filter((it) => it.visible));
+        }
+      })
+      .catch(() => {});
+  }, [admin?.sidebar_menu]);
 
   return (
     <aside className="merchant-sidebar" dir="rtl" style={{
@@ -116,13 +139,14 @@ export const MerchantSidebar: React.FC<MerchantSidebarProps> = ({
 
       {/* Nav List */}
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-        {navLinks.map((item) => {
-          const Icon = item.icon;
+        {navItems.map((item) => {
+          const Icon = ICON_MAP[item.iconName] || Store;
+          const isExact = item.path === '/merchant';
           return (
             <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
+              key={item.id || item.path}
+              to={item.path}
+              end={isExact}
               onClick={onLinkClick}
               className={({ isActive }) => `sb-link${isActive ? ' active' : ''}`}
               style={{
