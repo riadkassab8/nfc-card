@@ -6,6 +6,7 @@ import {
   TelegramIcon,
   WhatsAppIcon,
   PhoneIcon,
+  GoogleMapsIcon,
   VerifiedCheckIcon,
 } from './BrandIcons';
 import {
@@ -17,13 +18,17 @@ import {
   ExternalLink,
   PhoneCall,
   MessageCircle,
-  Sparkles,
   ShieldCheck,
   ArrowUpRight,
   Smartphone,
   Eye,
   Info,
   X,
+  Share2,
+  Moon,
+  Sun,
+  MapPin,
+  ChevronLeft,
 } from 'lucide-react';
 
 interface MobileShopTemplateProps {
@@ -34,9 +39,18 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
   const biz: BusinessData = data.business_data || {};
   const shift: ActiveShift | null = data.active_shift || null;
 
+  // System theme preference as default
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
+
   // State for copy feedback
   const [copiedInstaPay, setCopiedInstaPay] = useState(false);
   const [copiedVodafone, setCopiedVodafone] = useState(false);
+  const [shareToast, setShareToast] = useState(false);
 
   // Review gate state
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
@@ -58,6 +72,30 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
     } else {
       setCopiedVodafone(true);
       setTimeout(() => setCopiedVodafone(false), 2000);
+    }
+  };
+
+  // Handle Share Card
+  const handleShare = async () => {
+    try {
+      navigator.vibrate?.(30);
+    } catch {
+      // Ignore
+    }
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: biz.business_name || 'كاشير المحل',
+          text: `صفحة الدفع والتواصل مع ${biz.business_name || 'المحل'}`,
+          url: window.location.href,
+        });
+      } catch {
+        // User cancelled share
+      }
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 2200);
     }
   };
 
@@ -84,6 +122,16 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
     return period.toLowerCase() === 'pm' ? 'م' : 'ص';
   };
 
+  // Format Egyptian mobile numbers: 010 1234 5678
+  const formatPhoneNumber = (phoneStr?: string | null) => {
+    if (!phoneStr) return '';
+    const clean = phoneStr.replace(/\D/g, '');
+    if (clean.length === 11 && clean.startsWith('01')) {
+      return `${clean.slice(0, 3)} ${clean.slice(3, 7)} ${clean.slice(7)}`;
+    }
+    return phoneStr;
+  };
+
   const cleanPhoneForWa = (phoneStr?: string | null) => {
     if (!phoneStr) return '';
     const digits = phoneStr.replace(/\D/g, '');
@@ -104,31 +152,48 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
       )}`
     : '';
 
+  // Theme palettes (designed with human product design principles, zero tacky neon)
+  const theme = {
+    bg: isDark ? '#0b0f17' : '#f8fafc',
+    cardBg: isDark ? '#141d2b' : '#ffffff',
+    cardBorder: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+    cardShadow: isDark ? '0 10px 30px -10px rgba(0, 0, 0, 0.5)' : '0 4px 20px -2px rgba(15, 23, 42, 0.05)',
+    textPrimary: isDark ? '#f8fafc' : '#0f172a',
+    textSecondary: isDark ? '#94a3b8' : '#64748b',
+    subtleBg: isDark ? '#1a2436' : '#f1f5f9',
+    subtleBorder: isDark ? 'rgba(255, 255, 255, 0.06)' : '#e2e8f0',
+    itemHoverBg: isDark ? '#1e293b' : '#f8fafc',
+  };
+
   return (
     <div
       dir="rtl"
       style={{
         minHeight: '100vh',
-        backgroundColor: '#0b0f19',
-        color: '#f8fafc',
-        fontFamily: "'Tajawal', system-ui, -apple-system, sans-serif",
+        backgroundColor: theme.bg,
+        color: theme.textPrimary,
+        fontFamily: "'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '24px 16px 60px',
+        padding: '18px 16px 64px',
         position: 'relative',
-        overflowX: 'hidden',
+        transition: 'background-color 0.3s ease, color 0.3s ease',
       }}
     >
-      {/* CSS Keyframes for smooth animations */}
+      {/* Dynamic Keyframes */}
       <style>{`
         @keyframes fadeInBackdrop {
           from { opacity: 0; }
           to { opacity: 1; }
         }
         @keyframes slideUpModal {
-          from { opacity: 0; transform: translateY(24px) scale(0.96); }
+          from { opacity: 0; transform: translateY(20px) scale(0.97); }
           to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes pulseDot {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.3); opacity: 0.6; }
         }
         .feedback-backdrop {
           animation: fadeInBackdrop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -136,69 +201,149 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
         .feedback-modal-content {
           animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
+        .live-dot {
+          animation: pulseDot 2s ease-in-out infinite;
+        }
+        .touch-action-btn:active {
+          transform: scale(0.98);
+        }
       `}</style>
 
-      {/* Background ambient lighting */}
-      <div
-        style={{
-          position: 'fixed',
-          top: '-120px',
-          right: '50%',
-          transform: 'translateX(50%)',
-          width: '500px',
-          height: '500px',
-          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 50%, transparent 70%)',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
-      <div
-        style={{
-          position: 'fixed',
-          bottom: '-150px',
-          left: '-50px',
-          width: '400px',
-          height: '400px',
-          background: 'radial-gradient(circle, rgba(230, 0, 0, 0.08) 0%, transparent 60%)',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
-
+      {/* Main Single-Column Mobile Container */}
       <main
         style={{
-          position: 'relative',
-          zIndex: 1,
           width: '100%',
-          maxWidth: '420px',
+          maxWidth: '440px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px',
+          gap: '16px',
         }}
       >
-        {/* ── 1. Top Bar / Business Header ───────────────────────── */}
+        {/* ── Top Utility Bar (Quick status & Actions) ── */}
         <div
           style={{
-            background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '2px 4px',
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 12px',
+              borderRadius: '999px',
+              backgroundColor: isDark ? 'rgba(30, 41, 59, 0.8)' : '#ffffff',
+              border: `1px solid ${theme.cardBorder}`,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: isDark ? '#94a3b8' : '#475569',
+            }}
+          >
+            <ShieldCheck size={14} color="#10b981" />
+            <span>نقطة دفع رسمية ومعتمدة</span>
+          </div>
+
+          {/* Theme & Share controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={handleShare}
+              title="مشاركة الكارت"
+              className="touch-action-btn"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                backgroundColor: theme.cardBg,
+                border: `1px solid ${theme.cardBorder}`,
+                color: theme.textSecondary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Share2 size={16} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsDark((prev) => !prev)}
+              title={isDark ? 'الوضع الفاتح' : 'الوضع الليلي'}
+              className="touch-action-btn"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                backgroundColor: theme.cardBg,
+                border: `1px solid ${theme.cardBorder}`,
+                color: theme.textSecondary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {isDark ? <Sun size={17} color="#fbbf24" /> : <Moon size={17} color="#64748b" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Share Toast Notification */}
+        {shareToast && (
+          <div
+            style={{
+              padding: '10px 16px',
+              borderRadius: '12px',
+              backgroundColor: '#10b981',
+              color: '#ffffff',
+              fontSize: '13px',
+              fontWeight: 700,
+              textAlign: 'center',
+              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            <Check size={16} />
+            <span>تم نسخ رابط الكارت لمشاركته بنجاح ✓</span>
+          </div>
+        )}
+
+        {/* ── 1. Store Header & Identity Card ── */}
+        <div
+          style={{
+            backgroundColor: theme.cardBg,
+            border: `1px solid ${theme.cardBorder}`,
             borderRadius: '24px',
             padding: '24px 20px',
             textAlign: 'center',
-            boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.5)',
+            boxShadow: theme.cardShadow,
+            position: 'relative',
+            transition: 'background-color 0.3s ease, border-color 0.3s ease',
           }}
         >
-          {/* Logo */}
+          {/* Logo with clean squircle frame */}
           <div style={{ position: 'relative', display: 'inline-block', marginBottom: '16px' }}>
             <div
               style={{
-                width: '90px',
-                height: '90px',
+                width: '88px',
+                height: '88px',
                 borderRadius: '22px',
                 padding: '3px',
-                background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)',
-                boxShadow: '0 10px 25px rgba(59, 130, 246, 0.25)',
+                backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+                border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`,
+                boxShadow: '0 8px 20px -4px rgba(0, 0, 0, 0.08)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -214,9 +359,8 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                   style={{
                     width: '100%',
                     height: '100%',
-                    borderRadius: '19px',
+                    borderRadius: '18px',
                     objectFit: 'cover',
-                    backgroundColor: '#1e293b',
                   }}
                 />
               ) : (
@@ -224,55 +368,53 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                   style={{
                     width: '100%',
                     height: '100%',
-                    borderRadius: '19px',
-                    backgroundColor: '#1e293b',
+                    borderRadius: '18px',
+                    backgroundColor: isDark ? '#1e293b' : '#e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#94a3b8',
+                    color: '#64748b',
                   }}
                 >
-                  <Smartphone size={40} color="#38bdf8" />
+                  <Smartphone size={38} />
                 </div>
               )}
             </div>
             <span
               style={{
                 position: 'absolute',
-                bottom: '-4px',
-                right: '-4px',
-                background: '#0f172a',
+                bottom: '-3px',
+                right: '-3px',
+                backgroundColor: theme.cardBg,
                 borderRadius: '50%',
                 padding: '2px',
                 display: 'flex',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
               }}
             >
-              <VerifiedCheckIcon size={22} />
+              <VerifiedCheckIcon size={20} />
             </span>
           </div>
 
-          {/* Business Title */}
+          {/* Business Name */}
           <h1
             style={{
-              fontSize: '1.45rem',
+              fontSize: '22px',
               fontWeight: 800,
-              color: '#ffffff',
-              margin: '0 0 8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
+              color: theme.textPrimary,
+              margin: '0 0 6px',
+              letterSpacing: '-0.3px',
             }}
           >
-            {biz.business_name || 'كاشير الفرع'}
+            {biz.business_name || 'كاشير المحل'}
           </h1>
 
           {/* Description */}
           {biz.description && (
             <p
               style={{
-                fontSize: '0.92rem',
-                color: '#94a3b8',
+                fontSize: '13.5px',
+                color: theme.textSecondary,
                 lineHeight: 1.6,
                 margin: '0 0 16px',
                 fontWeight: 500,
@@ -282,74 +424,98 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
             </p>
           )}
 
-          {/* Badges / Quick Status */}
+          {/* Quick Contact Action Pills */}
           <div
             style={{
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '8px',
-              backgroundColor: 'rgba(56, 189, 248, 0.1)',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
-              padding: '6px 14px',
-              borderRadius: '999px',
-              fontSize: '0.82rem',
-              color: '#38bdf8',
-              fontWeight: 600,
+              flexWrap: 'wrap',
             }}
           >
-            <ShieldCheck size={15} />
-            <span>نقطة دفع رسمية ومعتمدة</span>
+            {biz.phone && (
+              <a
+                href={`tel:${biz.phone}`}
+                className="touch-action-btn"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '12px',
+                  backgroundColor: theme.subtleBg,
+                  border: `1px solid ${theme.subtleBorder}`,
+                  color: theme.textPrimary,
+                  textDecoration: 'none',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  transition: 'background-color 0.15s ease',
+                }}
+              >
+                <PhoneCall size={14} color="#2563eb" />
+                <span dir="ltr">{formatPhoneNumber(biz.phone)}</span>
+              </a>
+            )}
+
+            {biz.google_maps && (
+              <a
+                href={biz.google_maps}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="touch-action-btn"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '12px',
+                  backgroundColor: theme.subtleBg,
+                  border: `1px solid ${theme.subtleBorder}`,
+                  color: theme.textPrimary,
+                  textDecoration: 'none',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  transition: 'background-color 0.15s ease',
+                }}
+              >
+                <MapPin size={14} color="#ea4335" />
+                <span>موقع الفرع</span>
+              </a>
+            )}
           </div>
         </div>
 
-        {/* ── 2. Active Shift Card (الشيفت الحالي والكاشير) ───────────── */}
+        {/* ── 2. Active Shift Pass (كاشير الشيفت الحالي) ── */}
         {shift && (
           <div
             style={{
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 78, 59, 0.25) 100%)',
-              border: '1px solid rgba(16, 185, 129, 0.35)',
+              backgroundColor: theme.cardBg,
+              border: isDark ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.3)',
               borderRadius: '20px',
               padding: '16px 18px',
-              boxShadow: '0 8px 24px rgba(16, 185, 129, 0.1)',
+              boxShadow: isDark
+                ? '0 6px 20px -4px rgba(16, 185, 129, 0.15)'
+                : '0 4px 16px -2px rgba(16, 185, 129, 0.08)',
               display: 'flex',
               flexDirection: 'column',
               gap: '12px',
             }}
           >
+            {/* Shift Header Bar */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span
+                  className="live-dot"
                   style={{
-                    position: 'relative',
-                    display: 'inline-flex',
-                    height: '10px',
-                    width: '10px',
+                    display: 'inline-block',
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: '#10b981',
                   }}
-                >
-                  <span
-                    style={{
-                      position: 'absolute',
-                      display: 'inline-flex',
-                      height: '100%',
-                      width: '100%',
-                      borderRadius: '50%',
-                      backgroundColor: '#34d399',
-                      opacity: 0.75,
-                      animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
-                    }}
-                  />
-                  <span
-                    style={{
-                      position: 'relative',
-                      display: 'inline-flex',
-                      borderRadius: '50%',
-                      height: '10px',
-                      width: '10px',
-                      backgroundColor: '#10b981',
-                    }}
-                  />
-                </span>
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#34d399' }}>
+                />
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#10b981' }}>
                   شيفت نشط الآن
                 </span>
               </div>
@@ -357,11 +523,11 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
               {shift.label && (
                 <span
                   style={{
-                    backgroundColor: 'rgba(52, 211, 153, 0.15)',
-                    color: '#6ee7b7',
+                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
+                    color: isDark ? '#6ee7b7' : '#047857',
                     padding: '3px 10px',
                     borderRadius: '8px',
-                    fontSize: '0.78rem',
+                    fontSize: '12px',
                     fontWeight: 700,
                   }}
                 >
@@ -370,43 +536,56 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
               )}
             </div>
 
+            {/* Cashier Info Row */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                paddingTop: '6px',
-                borderTop: '1px solid rgba(16, 185, 129, 0.2)',
+                paddingTop: '10px',
+                borderTop: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9'}`,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div
                   style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '10px',
-                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5',
+                    color: '#059669',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#34d399',
                   }}
                 >
-                  <UserCheck size={18} />
+                  <UserCheck size={19} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>الكاشير المسؤول:</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <div style={{ fontSize: '11.5px', color: theme.textSecondary }}>الكاشير المسؤول:</div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: theme.textPrimary }}>
                     {shift.cashier_name || 'مسؤول الصالة'}
                   </div>
                 </div>
               </div>
 
               {(shift.hour_from !== undefined || shift.hour_to !== undefined) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1' }}>
-                  <Clock size={15} color="#94a3b8" />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
-                    {shift.hour_from} {formatPeriod(shift.period_from)} - {shift.hour_to}{' '}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    color: theme.textSecondary,
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    backgroundColor: theme.subtleBg,
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                  }}
+                >
+                  <Clock size={13} style={{ color: '#10b981' }} />
+                  <span>
+                    {shift.hour_from} {formatPeriod(shift.period_from)} — {shift.hour_to}{' '}
                     {formatPeriod(shift.period_to)}
                   </span>
                 </div>
@@ -415,78 +594,70 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
           </div>
         )}
 
-        {/* ── 3. Fast Payment Section (الدفع الفوري) ────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0 4px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(234, 179, 8, 0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#eab308',
-                }}
-              >
-                <Sparkles size={16} />
-              </div>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
-                الدفع والتحويل السريع
-              </h2>
-            </div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>انقر للنسخ والتحويل فوراً</span>
+        {/* ── 3. Fast Payment Cards (بوابات الدفع والتحويل اللحظي) ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ padding: '0 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h2
+              style={{
+                fontSize: '15px',
+                fontWeight: 800,
+                color: theme.textPrimary,
+                margin: 0,
+                letterSpacing: '-0.2px',
+              }}
+            >
+              الدفع والتحويل اللحظي
+            </h2>
+            <span style={{ fontSize: '12px', color: theme.textSecondary }}>
+              انقر لنسخ الحساب والتحويل فوراً
+            </span>
           </div>
 
-          {/* InstaPay Tile */}
+          {/* InstaPay Card */}
           {biz.instapay && (
             <div
               style={{
-                background: 'linear-gradient(135deg, #2b114d 0%, #17092b 100%)',
-                border: '1px solid rgba(168, 85, 247, 0.35)',
-                borderRadius: '20px',
-                padding: '16px',
-                boxShadow: '0 10px 25px rgba(72, 37, 131, 0.25)',
+                background: 'linear-gradient(135deg, #482583 0%, #30135c 100%)',
+                borderRadius: '22px',
+                padding: '18px 20px',
+                color: '#ffffff',
+                boxShadow: '0 10px 25px -4px rgba(72, 37, 131, 0.35)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
                 position: 'relative',
                 overflow: 'hidden',
               }}
             >
+              {/* Subtle card sheen */}
               <div
                 style={{
                   position: 'absolute',
-                  top: '-30px',
-                  left: '-30px',
-                  width: '100px',
-                  height: '100px',
-                  background: 'radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, transparent 70%)',
+                  top: '-40px',
+                  left: '-40px',
+                  width: '130px',
+                  height: '130px',
+                  background: 'radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 70%)',
                   pointerEvents: 'none',
                 }}
               />
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <InstaPayIcon size={46} style={{ borderRadius: '12px' }} />
+                  <InstaPayIcon size={46} style={{ borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }} />
                   <div>
-                    <div style={{ fontSize: '0.8rem', color: '#c084fc', fontWeight: 600 }}>
-                      حساب إنستاباي
+                    <div style={{ fontSize: '12px', color: '#e9d5ff', fontWeight: 600 }}>
+                      حساب إنستاباي الرسمي
                     </div>
                     <div
                       style={{
-                        fontSize: '1.05rem',
+                        fontSize: '17px',
                         fontWeight: 800,
                         color: '#ffffff',
                         direction: 'ltr',
                         textAlign: 'right',
                         fontFamily: 'monospace, sans-serif',
+                        letterSpacing: '0.2px',
                       }}
                     >
                       {biz.instapay}
@@ -494,41 +665,43 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                   </div>
                 </div>
 
-                <div
+                <span
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.14)',
                     borderRadius: '8px',
-                    padding: '4px 8px',
-                    fontSize: '0.72rem',
-                    color: '#e9d5ff',
-                    fontWeight: 600,
+                    padding: '3px 8px',
+                    fontSize: '11px',
+                    color: '#ffffff',
+                    fontWeight: 700,
                   }}
                 >
                   فوري مجاناً
-                </div>
+                </span>
               </div>
 
-              {/* Action buttons */}
+              {/* Action Buttons */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <button
                   type="button"
                   onClick={() => handleCopy(biz.instapay || '', 'instapay')}
+                  className="touch-action-btn"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    padding: '10px 14px',
+                    padding: '11px 16px',
                     borderRadius: '12px',
-                    backgroundColor: copiedInstaPay ? '#059669' : 'rgba(255, 255, 255, 0.12)',
-                    color: '#ffffff',
-                    border: copiedInstaPay ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.18)',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
+                    backgroundColor: copiedInstaPay ? '#10b981' : '#ffffff',
+                    color: copiedInstaPay ? '#ffffff' : '#30135c',
+                    border: 'none',
+                    fontSize: '13.5px',
+                    fontWeight: 800,
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
-                    boxShadow: copiedInstaPay ? '0 4px 14px rgba(16, 185, 129, 0.4)' : 'none',
-                    fontFamily: 'inherit',
+                    boxShadow: copiedInstaPay
+                      ? '0 4px 12px rgba(16, 185, 129, 0.4)'
+                      : '0 4px 12px rgba(0, 0, 0, 0.1)',
                   }}
                 >
                   {copiedInstaPay ? (
@@ -545,115 +718,122 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 </button>
 
                 <a
-                  href={`https://ipn.eg`}
+                  href="https://ipn.eg"
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="touch-action-btn"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    padding: '10px 14px',
+                    padding: '11px 16px',
                     borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.16)',
                     color: '#ffffff',
                     textDecoration: 'none',
-                    fontSize: '0.85rem',
+                    fontSize: '13.5px',
                     fontWeight: 700,
-                    boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)',
-                    transition: 'all 0.2s ease',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <ArrowUpRight size={16} />
-                  <span>فتح التطبيق</span>
+                  <span>فتح إنستاباي</span>
                 </a>
               </div>
             </div>
           )}
 
-          {/* Vodafone Cash Tile */}
+          {/* Vodafone Cash Card */}
           {biz.vodafone_cash && (
             <div
               style={{
-                background: 'linear-gradient(135deg, #3d0c0c 0%, #1f0505 100%)',
-                border: '1px solid rgba(239, 68, 68, 0.35)',
-                borderRadius: '20px',
-                padding: '16px',
-                boxShadow: '0 10px 25px rgba(230, 0, 0, 0.2)',
+                background: 'linear-gradient(135deg, #e60000 0%, #b80000 100%)',
+                borderRadius: '22px',
+                padding: '18px 20px',
+                color: '#ffffff',
+                boxShadow: '0 10px 25px -4px rgba(230, 0, 0, 0.35)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
                 position: 'relative',
                 overflow: 'hidden',
               }}
             >
+              {/* Subtle card sheen */}
               <div
                 style={{
                   position: 'absolute',
-                  top: '-30px',
-                  left: '-30px',
-                  width: '100px',
-                  height: '100px',
-                  background: 'radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, transparent 70%)',
+                  top: '-40px',
+                  left: '-40px',
+                  width: '130px',
+                  height: '130px',
+                  background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
                   pointerEvents: 'none',
                 }}
               />
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <VodafoneCashIcon size={46} style={{ borderRadius: '12px' }} />
+                  <VodafoneCashIcon size={46} style={{ borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }} />
                   <div>
-                    <div style={{ fontSize: '0.8rem', color: '#f87171', fontWeight: 600 }}>
+                    <div style={{ fontSize: '12px', color: '#fee2e2', fontWeight: 600 }}>
                       محفظة فودافون كاش
                     </div>
                     <div
                       style={{
-                        fontSize: '1.15rem',
+                        fontSize: '18px',
                         fontWeight: 800,
                         color: '#ffffff',
                         direction: 'ltr',
                         textAlign: 'right',
-                        letterSpacing: '0.5px',
                         fontFamily: 'monospace, sans-serif',
+                        letterSpacing: '0.4px',
                       }}
                     >
-                      {biz.vodafone_cash}
+                      {formatPhoneNumber(biz.vodafone_cash)}
                     </div>
                   </div>
                 </div>
 
-                <div
+                <span
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.16)',
                     borderRadius: '8px',
-                    padding: '4px 8px',
-                    fontSize: '0.72rem',
-                    color: '#fecaca',
-                    fontWeight: 600,
+                    padding: '3px 8px',
+                    fontSize: '11px',
+                    color: '#ffffff',
+                    fontWeight: 700,
                   }}
                 >
                   كاش فوري
-                </div>
+                </span>
               </div>
 
-              {/* Action buttons */}
+              {/* Action Buttons */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <button
                   type="button"
                   onClick={() => handleCopy(biz.vodafone_cash || '', 'vodafone')}
+                  className="touch-action-btn"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    padding: '10px 14px',
+                    padding: '11px 16px',
                     borderRadius: '12px',
-                    backgroundColor: copiedVodafone ? '#059669' : 'rgba(255, 255, 255, 0.12)',
-                    color: '#ffffff',
-                    border: copiedVodafone ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.18)',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
+                    backgroundColor: copiedVodafone ? '#10b981' : '#ffffff',
+                    color: copiedVodafone ? '#ffffff' : '#b80000',
+                    border: 'none',
+                    fontSize: '13.5px',
+                    fontWeight: 800,
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
-                    boxShadow: copiedVodafone ? '0 4px 14px rgba(16, 185, 129, 0.4)' : 'none',
-                    fontFamily: 'inherit',
+                    boxShadow: copiedVodafone
+                      ? '0 4px 12px rgba(16, 185, 129, 0.4)'
+                      : '0 4px 12px rgba(0, 0, 0, 0.1)',
                   }}
                 >
                   {copiedVodafone ? (
@@ -671,20 +851,21 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
 
                 <a
                   href={`tel:${biz.vodafone_cash}`}
+                  className="touch-action-btn"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    padding: '10px 14px',
+                    padding: '11px 16px',
                     borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.18)',
                     color: '#ffffff',
                     textDecoration: 'none',
-                    fontSize: '0.85rem',
+                    fontSize: '13.5px',
                     fontWeight: 700,
-                    boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)',
-                    transition: 'all 0.2s ease',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <PhoneCall size={16} />
@@ -694,31 +875,39 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
             </div>
           )}
 
-          {/* Cashier payment reminder note */}
+          {/* Cashier payment reminder notice */}
           {(biz.instapay || biz.vodafone_cash) && (
             <div
               style={{
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 gap: '8px',
                 padding: '10px 14px',
                 borderRadius: '12px',
-                backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                border: '1px solid rgba(245, 158, 11, 0.25)',
-                color: '#fbbf24',
-                fontSize: '0.78rem',
+                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : '#fffbeb',
+                border: isDark ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid #fde68a',
+                color: isDark ? '#fcd34d' : '#b45309',
+                fontSize: '12px',
                 lineHeight: 1.5,
               }}
             >
-              <Info size={16} style={{ flexShrink: 0 }} />
-              <span>يرجى إظهار رسالة أو إشعار التحويل لمسؤول الكاشير فور إتمام الدفع.</span>
+              <Info size={15} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span>بعد إتمام التحويل، يُرجى إظهار إشعار العملية للكاشير لتأكيد استلام الفاتورة.</span>
             </div>
           )}
         </div>
 
-        {/* ── 4. Store Services & Quick Channels ─────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f8fafc', margin: '4px 4px 0' }}>
+        {/* ── 4. Store Services & Direct Communication (خدمات وتواصل المحل) ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <h2
+            style={{
+              fontSize: '15px',
+              fontWeight: 800,
+              color: theme.textPrimary,
+              margin: '6px 4px 2px',
+              letterSpacing: '-0.2px',
+            }}
+          >
             خدمات وتواصل المحل
           </h2>
 
@@ -729,112 +918,157 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 href={waMaintenanceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="touch-action-btn"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '14px 16px',
-                  borderRadius: '16px',
-                  backgroundColor: 'rgba(30, 41, 59, 0.65)',
-                  border: '1px solid rgba(37, 211, 102, 0.25)',
+                  borderRadius: '18px',
+                  backgroundColor: theme.cardBg,
+                  border: `1px solid ${theme.cardBorder}`,
+                  boxShadow: theme.cardShadow,
                   textDecoration: 'none',
-                  color: '#ffffff',
-                  transition: 'all 0.2s ease',
+                  color: theme.textPrimary,
+                  transition: 'transform 0.15s ease',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <WhatsAppIcon size={40} style={{ borderRadius: '10px' }} />
+                  <WhatsAppIcon size={42} style={{ borderRadius: '12px' }} />
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8fafc' }}>
+                    <div style={{ fontSize: '14.5px', fontWeight: 800, color: theme.textPrimary }}>
                       واتساب الصيانة والاستفسار
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                    <div style={{ fontSize: '12px', color: theme.textSecondary, marginTop: '2px' }}>
                       تواصل مباشر بخصوص فحص وصيانة جهازك
                     </div>
                   </div>
                 </div>
-                <ArrowUpRight size={18} color="#25d366" />
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
+                    backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#25d366',
+                  }}
+                >
+                  <ChevronLeft size={18} />
+                </div>
               </a>
             )}
 
-            {/* Daily Offers Telegram / Channel */}
+            {/* Daily Offers Telegram / Link */}
             {biz.offers_url && (
               <a
                 href={biz.offers_url}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="touch-action-btn"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '14px 16px',
-                  borderRadius: '16px',
-                  backgroundColor: 'rgba(30, 41, 59, 0.65)',
-                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  borderRadius: '18px',
+                  backgroundColor: theme.cardBg,
+                  border: `1px solid ${theme.cardBorder}`,
+                  boxShadow: theme.cardShadow,
                   textDecoration: 'none',
-                  color: '#ffffff',
-                  transition: 'all 0.2s ease',
+                  color: theme.textPrimary,
+                  transition: 'transform 0.15s ease',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <TelegramIcon size={40} style={{ borderRadius: '10px' }} />
+                  <TelegramIcon size={42} style={{ borderRadius: '12px' }} />
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8fafc' }}>
+                    <div style={{ fontSize: '14.5px', fontWeight: 800, color: theme.textPrimary }}>
                       قناة العروض والأسعار اليومية
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                      تابع أحدث أسعار الهواتف، الإكسسوارات والعروض
+                    <div style={{ fontSize: '12px', color: theme.textSecondary, marginTop: '2px' }}>
+                      تابع أحدث أسعار الهواتف والإكسسوارات
                     </div>
                   </div>
                 </div>
-                <ArrowUpRight size={18} color="#38bdf8" />
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
+                    backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#229ed9',
+                  }}
+                >
+                  <ChevronLeft size={18} />
+                </div>
               </a>
             )}
 
-            {/* Telegram Community / Group */}
+            {/* Telegram Community */}
             {biz.telegram_group && (
               <a
                 href={biz.telegram_group}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="touch-action-btn"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '14px 16px',
-                  borderRadius: '16px',
-                  backgroundColor: 'rgba(30, 41, 59, 0.65)',
-                  border: '1px solid rgba(139, 92, 246, 0.25)',
+                  borderRadius: '18px',
+                  backgroundColor: theme.cardBg,
+                  border: `1px solid ${theme.cardBorder}`,
+                  boxShadow: theme.cardShadow,
                   textDecoration: 'none',
-                  color: '#ffffff',
-                  transition: 'all 0.2s ease',
+                  color: theme.textPrimary,
+                  transition: 'transform 0.15s ease',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div
                     style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '12px',
+                      backgroundColor: isDark ? 'rgba(139, 92, 246, 0.15)' : '#f3e8ff',
+                      color: '#7c3aed',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#a78bfa',
                     }}
                   >
                     <MessageCircle size={22} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8fafc' }}>
+                    <div style={{ fontSize: '14.5px', fontWeight: 800, color: theme.textPrimary }}>
                       جروب عملاء المحل
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                      انضم لمجتمع عملائنا للنقاش والتبادل
+                    <div style={{ fontSize: '12px', color: theme.textSecondary, marginTop: '2px' }}>
+                      مجتمع العملاء لتبادل الأجهزة والاستفسارات
                     </div>
                   </div>
                 </div>
-                <ArrowUpRight size={18} color="#a78bfa" />
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
+                    backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#7c3aed',
+                  }}
+                >
+                  <ChevronLeft size={18} />
+                </div>
               </a>
             )}
 
@@ -842,64 +1076,80 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
             {biz.phone && (
               <a
                 href={`tel:${biz.phone}`}
+                className="touch-action-btn"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '14px 16px',
-                  borderRadius: '16px',
-                  backgroundColor: 'rgba(30, 41, 59, 0.65)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '18px',
+                  backgroundColor: theme.cardBg,
+                  border: `1px solid ${theme.cardBorder}`,
+                  boxShadow: theme.cardShadow,
                   textDecoration: 'none',
-                  color: '#ffffff',
-                  transition: 'all 0.2s ease',
+                  color: theme.textPrimary,
+                  transition: 'transform 0.15s ease',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <PhoneIcon size={40} style={{ borderRadius: '10px' }} />
+                  <PhoneIcon size={42} style={{ borderRadius: '12px' }} />
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8fafc' }}>
+                    <div style={{ fontSize: '14.5px', fontWeight: 800, color: theme.textPrimary }}>
                       اتصال مباشر بالفرع
                     </div>
                     <div
                       style={{
-                        fontSize: '0.8rem',
-                        color: '#94a3b8',
+                        fontSize: '12px',
+                        color: theme.textSecondary,
                         direction: 'ltr',
                         textAlign: 'right',
+                        marginTop: '2px',
                       }}
                     >
-                      {biz.phone}
+                      {formatPhoneNumber(biz.phone)}
                     </div>
                   </div>
                 </div>
-                <PhoneCall size={18} color="#3b82f6" />
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
+                    backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#2563eb',
+                  }}
+                >
+                  <ChevronLeft size={18} />
+                </div>
               </a>
             )}
           </div>
         </div>
 
-        {/* ── 5. Google Review Gate (تقييم التجربة) ──────────────────── */}
+        {/* ── 5. Google Review Gate Card (تقييم التجربة) ── */}
         {biz.google_review_url && (
           <div
             style={{
-              background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '20px',
-              padding: '20px 18px',
+              backgroundColor: theme.cardBg,
+              border: `1px solid ${theme.cardBorder}`,
+              borderRadius: '24px',
+              padding: '22px 20px',
               textAlign: 'center',
-              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+              boxShadow: theme.cardShadow,
+              transition: 'background-color 0.3s ease, border-color 0.3s ease',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '6px' }}>
-              <Star size={18} color="#eab308" fill="#eab308" />
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-                تقييم تجربتك اليوم
+              <GoogleMapsIcon size={24} />
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: theme.textPrimary, margin: 0 }}>
+                تقييم تجربتك معنا اليوم
               </h3>
-              <Star size={18} color="#eab308" fill="#eab308" />
             </div>
 
-            <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '0 0 16px' }}>
+            <p style={{ fontSize: '12.5px', color: theme.textSecondary, margin: '0 0 16px' }}>
               كيف كانت سرعة الخدمة وتجربتك مع الكاشير؟
             </p>
 
@@ -911,7 +1161,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '10px',
+                    gap: '12px',
                     direction: 'ltr',
                     marginBottom: '14px',
                   }}
@@ -933,14 +1183,14 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                           border: 'none',
                           cursor: 'pointer',
                           padding: '4px',
-                          transform: isFilled ? 'scale(1.18)' : 'scale(1)',
+                          transform: isFilled ? 'scale(1.2)' : 'scale(1)',
                           transition: 'transform 0.15s ease',
                         }}
                         title={`${star} من 5`}
                       >
                         <Star
                           size={32}
-                          color={isFilled ? '#eab308' : '#475569'}
+                          color={isFilled ? '#eab308' : isDark ? '#475569' : '#cbd5e1'}
                           fill={isFilled ? '#eab308' : 'none'}
                         />
                       </button>
@@ -948,38 +1198,43 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                   })}
                 </div>
 
-                {/* Rating Response Gate in-page feedback */}
+                {/* Rating Feedback Response Area */}
                 {selectedRating !== null && (
                   <div style={{ marginTop: '14px' }}>
                     {selectedRating >= 4 ? (
-                      /* High rating (4-5) -> Google Maps direct */
+                      /* High rating (4-5) -> Google Maps */
                       <div
                         style={{
-                          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
-                          borderRadius: '14px',
-                          padding: '14px',
+                          backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ecfdf5',
+                          border: isDark ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid #a7f3d0',
+                          borderRadius: '16px',
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px',
+                          alignItems: 'center',
                         }}
                       >
-                        <p style={{ fontSize: '0.85rem', color: '#6ee7b7', margin: '0 0 10px', fontWeight: 600 }}>
+                        <p style={{ fontSize: '13.5px', color: isDark ? '#6ee7b7' : '#047857', margin: 0, fontWeight: 700 }}>
                           شكراً لتقييمك الرائع! يسعدنا توثيق رأيك على خرائط Google ⭐
                         </p>
                         <a
                           href={biz.google_review_url}
                           target="_blank"
                           rel="noopener noreferrer"
+                          className="touch-action-btn"
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '8px',
                             backgroundColor: '#2563eb',
                             color: '#ffffff',
-                            padding: '10px 20px',
+                            padding: '11px 22px',
                             borderRadius: '12px',
                             textDecoration: 'none',
-                            fontSize: '0.85rem',
-                            fontWeight: 700,
-                            boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
+                            fontSize: '13.5px',
+                            fontWeight: 800,
+                            boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
                           }}
                         >
                           <ExternalLink size={16} />
@@ -987,21 +1242,26 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                         </a>
                       </div>
                     ) : (
-                      /* Low rating (1-3) button to re-open feedback modal */
+                      /* Low rating (1-3) -> Direct Management WhatsApp */
                       <div
                         style={{
-                          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                          border: '1px solid rgba(239, 68, 68, 0.25)',
-                          borderRadius: '14px',
-                          padding: '14px',
+                          backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#fef2f2',
+                          border: isDark ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid #fecaca',
+                          borderRadius: '16px',
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px',
+                          alignItems: 'center',
                         }}
                       >
-                        <p style={{ fontSize: '0.85rem', color: '#fca5a5', margin: '0 0 10px', fontWeight: 600 }}>
+                        <p style={{ fontSize: '13.5px', color: isDark ? '#fca5a5' : '#b91c1c', margin: 0, fontWeight: 700 }}>
                           نعتذر عن أي تقصير! نود سماع ملاحظاتك لنطور الخدمة فوراً:
                         </p>
                         <button
                           type="button"
                           onClick={() => setShowFeedbackModal(true)}
+                          className="touch-action-btn"
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -1009,10 +1269,10 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                             backgroundColor: '#dc2626',
                             color: '#ffffff',
                             border: 'none',
-                            padding: '10px 20px',
+                            padding: '11px 22px',
                             borderRadius: '12px',
-                            fontSize: '0.85rem',
-                            fontWeight: 700,
+                            fontSize: '13.5px',
+                            fontWeight: 800,
                             cursor: 'pointer',
                             boxShadow: '0 4px 14px rgba(220, 38, 38, 0.35)',
                           }}
@@ -1026,22 +1286,23 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 )}
               </div>
             ) : (
-              /* Review gate disabled: direct Google review link */
+              /* Review gate disabled: Direct Google review link */
               <a
                 href={biz.google_review_url}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="touch-action-btn"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
                   backgroundColor: '#2563eb',
                   color: '#ffffff',
-                  padding: '10px 20px',
+                  padding: '11px 24px',
                   borderRadius: '12px',
                   textDecoration: 'none',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
+                  fontSize: '13.5px',
+                  fontWeight: 800,
                   boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
                 }}
               >
@@ -1052,15 +1313,15 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
           </div>
         )}
 
-        {/* ── 6. Footer & Scan Counter ───────────────────────────────── */}
+        {/* ── 6. Clean Footer ── */}
         <footer
           style={{
             textAlign: 'center',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            gap: '10px',
             alignItems: 'center',
-            paddingTop: '10px',
+            paddingTop: '8px',
           }}
         >
           {data.visit_count !== undefined && (
@@ -1069,11 +1330,11 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                fontSize: '0.75rem',
-                color: '#64748b',
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                padding: '4px 10px',
-                borderRadius: '8px',
+                fontSize: '11.5px',
+                color: theme.textSecondary,
+                backgroundColor: theme.subtleBg,
+                padding: '4px 12px',
+                borderRadius: '999px',
               }}
             >
               <Eye size={13} />
@@ -1083,17 +1344,17 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
 
           <div
             style={{
-              fontSize: '0.75rem',
-              color: '#475569',
+              fontSize: '11.5px',
+              color: isDark ? '#475569' : '#94a3b8',
               direction: 'ltr',
             }}
           >
-            &copy; {new Date().getFullYear()} k2rty NFC Solutions. All rights reserved.
+            &copy; {new Date().getFullYear()} k2rty NFC Solutions.
           </div>
         </footer>
       </main>
 
-      {/* ── Internal Feedback Modal for 1-3 Stars (Fade-in & Slide-up) ── */}
+      {/* ── Internal Feedback Modal for 1-3 Stars (Smooth Fade & Slide) ── */}
       {showFeedbackModal && (
         <div
           className="feedback-backdrop"
@@ -1102,9 +1363,9 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
             position: 'fixed',
             inset: 0,
             zIndex: 9999,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1117,11 +1378,11 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
             style={{
               width: '100%',
               maxWidth: '380px',
-              backgroundColor: '#131b2e',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              backgroundColor: theme.cardBg,
+              border: `1px solid ${theme.cardBorder}`,
               borderRadius: '24px',
-              padding: '24px 20px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+              padding: '26px 22px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
               textAlign: 'center',
               position: 'relative',
             }}
@@ -1134,9 +1395,9 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 position: 'absolute',
                 top: '16px',
                 left: '16px',
-                background: 'rgba(255, 255, 255, 0.08)',
+                backgroundColor: theme.subtleBg,
                 border: 'none',
-                color: '#94a3b8',
+                color: theme.textSecondary,
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
@@ -1146,16 +1407,16 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 cursor: 'pointer',
               }}
             >
-              <X size={18} />
+              <X size={17} />
             </button>
 
             {/* Icon */}
             <div
               style={{
-                width: '56px',
-                height: '56px',
+                width: '52px',
+                height: '52px',
                 borderRadius: '16px',
-                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fee2e2',
                 color: '#ef4444',
                 display: 'flex',
                 alignItems: 'center',
@@ -1163,15 +1424,15 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 margin: '0 auto 16px',
               }}
             >
-              <MessageCircle size={28} />
+              <MessageCircle size={26} />
             </div>
 
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ffffff', margin: '0 0 8px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 800, color: theme.textPrimary, margin: '0 0 8px' }}>
               رأيك يهمنا جداً!
             </h3>
 
-            <p style={{ fontSize: '0.88rem', color: '#94a3b8', lineHeight: 1.6, margin: '0 0 20px' }}>
-              نأسف جداً إذا لم تكن تجربتك بالشكل المطلوب اليوم. يسعدنا الاستماع لملاحظتك مباشرة لحلها فوراً وتطوير الخدمة.
+            <p style={{ fontSize: '13px', color: theme.textSecondary, lineHeight: 1.6, margin: '0 0 20px' }}>
+              نعتذر جداً إذا لم تكن تجربتك بالشكل المطلوب اليوم. يسعدنا الاستماع لملاحظتك مباشرة لحلها وتطوير الخدمة.
             </p>
 
             {complaintsWaUrl ? (
@@ -1180,6 +1441,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setShowFeedbackModal(false)}
+                className="touch-action-btn"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -1187,10 +1449,10 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                   gap: '8px',
                   backgroundColor: '#25d366',
                   color: '#ffffff',
-                  padding: '12px 20px',
+                  padding: '13px 20px',
                   borderRadius: '14px',
                   textDecoration: 'none',
-                  fontSize: '0.95rem',
+                  fontSize: '14px',
                   fontWeight: 800,
                   boxShadow: '0 4px 16px rgba(37, 211, 102, 0.35)',
                   marginBottom: '10px',
@@ -1200,7 +1462,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 <span>إرسال ملاحظة للإدارة عبر واتساب</span>
               </a>
             ) : (
-              <div style={{ fontSize: '0.85rem', color: '#fca5a5', marginBottom: '14px' }}>
+              <div style={{ fontSize: '12.5px', color: '#ef4444', marginBottom: '14px' }}>
                 يرجى إبلاغ مسؤول الكاشير في الفرع مباشرة.
               </div>
             )}
@@ -1211,8 +1473,8 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#64748b',
-                fontSize: '0.85rem',
+                color: theme.textSecondary,
+                fontSize: '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 padding: '6px',
