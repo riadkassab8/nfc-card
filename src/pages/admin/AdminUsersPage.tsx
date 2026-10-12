@@ -299,8 +299,8 @@ export const AdminUsersPage: React.FC = () => {
           role: formRole,
           status: formStatus,
           permissions: {
-            pages: formPages,
-            actions: formRole === 'super_admin' ? ['*'] : formActions,
+            pages: formRole === 'merchant' ? ['cards', 'overview'] : (formRole === 'super_admin' ? AVAILABLE_PAGES.map((p) => p.id) : formPages),
+            actions: formRole === 'super_admin' ? ['*'] : (formRole === 'merchant' ? ['cards:view', 'cards:edit'] : formActions),
           },
           assigned_cards: formRole === 'merchant' ? formAssignedCards : [],
           ...subPayload,
@@ -323,8 +323,8 @@ export const AdminUsersPage: React.FC = () => {
           role: formRole,
           status: formStatus,
           permissions: {
-            pages: formPages,
-            actions: formRole === 'super_admin' ? ['*'] : formActions,
+            pages: formRole === 'merchant' ? ['cards', 'overview'] : (formRole === 'super_admin' ? AVAILABLE_PAGES.map((p) => p.id) : formPages),
+            actions: formRole === 'super_admin' ? ['*'] : (formRole === 'merchant' ? ['cards:view', 'cards:edit'] : formActions),
           },
           assigned_cards: formRole === 'merchant' ? formAssignedCards : [],
           ...subPayload,
@@ -1881,8 +1881,8 @@ export const AdminUsersPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* 5. Granular Permissions (Only for Staff or custom) */}
-                {formRole !== 'super_admin' && (
+                {/* 5. Granular Permissions (Only for Staff / الموظف فقط) */}
+                {formRole === 'staff' && (
                   <div>
                     <h4 style={{ margin: '0 0 10px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
                       5. مصفوفة الصلاحيات الدقيقة والصفحات المسموحة
