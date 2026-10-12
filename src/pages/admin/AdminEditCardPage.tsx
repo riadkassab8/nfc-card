@@ -767,7 +767,7 @@ export const AdminEditCardPage: React.FC = () => {
           boxShadow: 'var(--shadow-xs)',
         }}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${STEPS.length}, 1fr)`, gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${STEPS.length}, 1fr)`, gap: '10px' , overflow: 'auto' }}>
           {STEPS.map((s) => {
             const isCurrent = currentStep === s.id;
             const isPassed = currentStep > s.id;
@@ -1232,7 +1232,7 @@ export const AdminEditCardPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setCustomerModalOpen(true)}
-                    className="btn-secondary"
+                    className="btn-primary"
                     style={{ fontSize: '12.5px', padding: '6px 14px', fontWeight: 700 }}
                   >
                     {selectedCustomer ? 'تغيير العميل' : 'ربط بعميل'}
