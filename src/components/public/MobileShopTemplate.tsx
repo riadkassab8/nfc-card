@@ -23,6 +23,7 @@ import {
   Smartphone,
   Eye,
   Info,
+  X,
 } from 'lucide-react';
 
 interface MobileShopTemplateProps {
@@ -40,17 +41,40 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
   // Review gate state
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [hoveredRating, setHoveredRating] = useState<number | null>(null);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
-  // Copy helper
+  // Copy helper with Haptic Feedback
   const handleCopy = (text: string, type: 'instapay' | 'vodafone') => {
     if (!text) return;
+    try {
+      navigator.vibrate?.(50);
+    } catch {
+      // Ignore vibration error on unsupported devices
+    }
     navigator.clipboard.writeText(text);
     if (type === 'instapay') {
       setCopiedInstaPay(true);
-      setTimeout(() => setCopiedInstaPay(false), 2200);
+      setTimeout(() => setCopiedInstaPay(false), 2000);
     } else {
       setCopiedVodafone(true);
-      setTimeout(() => setCopiedVodafone(false), 2200);
+      setTimeout(() => setCopiedVodafone(false), 2000);
+    }
+  };
+
+  // Handle rating click with Google Review Gate Logic
+  const handleRatingClick = (star: number) => {
+    try {
+      navigator.vibrate?.(40);
+    } catch {
+      // Ignore
+    }
+    setSelectedRating(star);
+    if (star >= 4) {
+      if (biz.google_review_url) {
+        window.open(biz.google_review_url, '_blank', 'noopener,noreferrer');
+      }
+    } else {
+      setShowFeedbackModal(true);
     }
   };
 
@@ -96,6 +120,24 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
         overflowX: 'hidden',
       }}
     >
+      {/* CSS Keyframes for smooth animations */}
+      <style>{`
+        @keyframes fadeInBackdrop {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUpModal {
+          from { opacity: 0; transform: translateY(24px) scale(0.96); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .feedback-backdrop {
+          animation: fadeInBackdrop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .feedback-modal-content {
+          animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
+
       {/* Background ambient lighting */}
       <div
         style={{
@@ -128,7 +170,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
           position: 'relative',
           zIndex: 1,
           width: '100%',
-          maxWidth: '440px',
+          maxWidth: '420px',
           display: 'flex',
           flexDirection: 'column',
           gap: '20px',
@@ -167,6 +209,8 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 <img
                   src={biz.logo}
                   alt={biz.business_name || 'Logo'}
+                  loading="lazy"
+                  decoding="async"
                   style={{
                     width: '100%',
                     height: '100%',
@@ -476,20 +520,21 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                     gap: '6px',
                     padding: '10px 14px',
                     borderRadius: '12px',
-                    backgroundColor: copiedInstaPay ? '#10b981' : 'rgba(255, 255, 255, 0.12)',
+                    backgroundColor: copiedInstaPay ? '#059669' : 'rgba(255, 255, 255, 0.12)',
                     color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.18)',
+                    border: copiedInstaPay ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.18)',
                     fontSize: '0.85rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
+                    boxShadow: copiedInstaPay ? '0 4px 14px rgba(16, 185, 129, 0.4)' : 'none',
                     fontFamily: 'inherit',
                   }}
                 >
                   {copiedInstaPay ? (
                     <>
                       <Check size={16} />
-                      <span>تم النسخ بنجاح!</span>
+                      <span>تم النسخ! ✓</span>
                     </>
                   ) : (
                     <>
@@ -600,20 +645,21 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                     gap: '6px',
                     padding: '10px 14px',
                     borderRadius: '12px',
-                    backgroundColor: copiedVodafone ? '#10b981' : 'rgba(255, 255, 255, 0.12)',
+                    backgroundColor: copiedVodafone ? '#059669' : 'rgba(255, 255, 255, 0.12)',
                     color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.18)',
+                    border: copiedVodafone ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.18)',
                     fontSize: '0.85rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
+                    boxShadow: copiedVodafone ? '0 4px 14px rgba(16, 185, 129, 0.4)' : 'none',
                     fontFamily: 'inherit',
                   }}
                 >
                   {copiedVodafone ? (
                     <>
                       <Check size={16} />
-                      <span>تم النسخ بنجاح!</span>
+                      <span>تم النسخ! ✓</span>
                     </>
                   ) : (
                     <>
@@ -879,7 +925,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                       <button
                         key={star}
                         type="button"
-                        onClick={() => setSelectedRating(star)}
+                        onClick={() => handleRatingClick(star)}
                         onMouseEnter={() => setHoveredRating(star)}
                         onMouseLeave={() => setHoveredRating(null)}
                         style={{
@@ -887,9 +933,10 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                           border: 'none',
                           cursor: 'pointer',
                           padding: '4px',
-                          transform: isFilled ? 'scale(1.15)' : 'scale(1)',
+                          transform: isFilled ? 'scale(1.18)' : 'scale(1)',
                           transition: 'transform 0.15s ease',
                         }}
+                        title={`${star} من 5`}
                       >
                         <Star
                           size={32}
@@ -901,7 +948,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                   })}
                 </div>
 
-                {/* Rating Response Gate */}
+                {/* Rating Response Gate in-page feedback */}
                 {selectedRating !== null && (
                   <div style={{ marginTop: '14px' }}>
                     {selectedRating >= 4 ? (
@@ -936,11 +983,11 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                           }}
                         >
                           <ExternalLink size={16} />
-                          <span>كتابة التقييم على Google Maps</span>
+                          <span>فتح التقييم على Google Maps</span>
                         </a>
                       </div>
                     ) : (
-                      /* Low rating (1-3) -> Internal complaints/management */
+                      /* Low rating (1-3) button to re-open feedback modal */
                       <div
                         style={{
                           backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -950,34 +997,29 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                         }}
                       >
                         <p style={{ fontSize: '0.85rem', color: '#fca5a5', margin: '0 0 10px', fontWeight: 600 }}>
-                          نعتذر عن أي تقصير! شاركنا ملاحظاتك فوراً مع الإدارة لنطور الخدمة:
+                          نعتذر عن أي تقصير! نود سماع ملاحظاتك لنطور الخدمة فوراً:
                         </p>
-                        {complaintsWaUrl ? (
-                          <a
-                            href={complaintsWaUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              backgroundColor: '#dc2626',
-                              color: '#ffffff',
-                              padding: '10px 20px',
-                              borderRadius: '12px',
-                              textDecoration: 'none',
-                              fontSize: '0.85rem',
-                              fontWeight: 700,
-                            }}
-                          >
-                            <MessageCircle size={16} />
-                            <span>مراسلة الإدارة عبر واتساب</span>
-                          </a>
-                        ) : (
-                          <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                            يرجى إبلاغ الكاشير مباشرة أو التواصل هاتفياً.
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setShowFeedbackModal(true)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            backgroundColor: '#dc2626',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '10px 20px',
+                            borderRadius: '12px',
+                            fontSize: '0.85rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 14px rgba(220, 38, 38, 0.35)',
+                          }}
+                        >
+                          <MessageCircle size={16} />
+                          <span>توضيح الملاحظة للإدارة</span>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1050,6 +1092,137 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
           </div>
         </footer>
       </main>
+
+      {/* ── Internal Feedback Modal for 1-3 Stars (Fade-in & Slide-up) ── */}
+      {showFeedbackModal && (
+        <div
+          className="feedback-backdrop"
+          onClick={() => setShowFeedbackModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            className="feedback-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '380px',
+              backgroundColor: '#131b2e',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '24px',
+              padding: '24px 20px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+              textAlign: 'center',
+              position: 'relative',
+            }}
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowFeedbackModal(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                left: '16px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: 'none',
+                color: '#94a3b8',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <X size={18} />
+            </button>
+
+            {/* Icon */}
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                color: '#ef4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+              }}
+            >
+              <MessageCircle size={28} />
+            </div>
+
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ffffff', margin: '0 0 8px' }}>
+              رأيك يهمنا جداً!
+            </h3>
+
+            <p style={{ fontSize: '0.88rem', color: '#94a3b8', lineHeight: 1.6, margin: '0 0 20px' }}>
+              نأسف جداً إذا لم تكن تجربتك بالشكل المطلوب اليوم. يسعدنا الاستماع لملاحظتك مباشرة لحلها فوراً وتطوير الخدمة.
+            </p>
+
+            {complaintsWaUrl ? (
+              <a
+                href={complaintsWaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowFeedbackModal(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  backgroundColor: '#25d366',
+                  color: '#ffffff',
+                  padding: '12px 20px',
+                  borderRadius: '14px',
+                  textDecoration: 'none',
+                  fontSize: '0.95rem',
+                  fontWeight: 800,
+                  boxShadow: '0 4px 16px rgba(37, 211, 102, 0.35)',
+                  marginBottom: '10px',
+                }}
+              >
+                <WhatsAppIcon size={22} />
+                <span>إرسال ملاحظة للإدارة عبر واتساب</span>
+              </a>
+            ) : (
+              <div style={{ fontSize: '0.85rem', color: '#fca5a5', marginBottom: '14px' }}>
+                يرجى إبلاغ مسؤول الكاشير في الفرع مباشرة.
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowFeedbackModal(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: '6px',
+              }}
+            >
+              إغلاق
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

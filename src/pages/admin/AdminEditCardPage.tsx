@@ -14,6 +14,7 @@ import {
   CARD_TYPES,
   BusinessData,
   PaymentShift,
+  PaymentShiftFormItem,
 } from '../../types';
 import {
   ArrowRight,
@@ -42,6 +43,8 @@ import {
   Edit2,
   Building2,
   ChevronLeft,
+  Plus,
+  UserCheck,
 } from 'lucide-react';
 
 /* ── Field definitions ─────────────────────────────────────────── */
@@ -146,14 +149,32 @@ export const AdminEditCardPage: React.FC = () => {
   const [categoryId, setCategoryId] = useState('');
   const [requiresSubscription, setRequiresSubscription] = useState<boolean>(true);
 
-  /* Template & Active Shift state */
+  /* Template & Payment Shifts state */
   const [template, setTemplate] = useState<string>('default');
-  const [shiftLabel, setShiftLabel] = useState<string>('شيفت المساء');
-  const [cashierName, setCashierName] = useState<string>('');
-  const [hourFrom, setHourFrom] = useState<number | ''>(6);
-  const [periodFrom, setPeriodFrom] = useState<'am' | 'pm'>('pm');
-  const [hourTo, setHourTo] = useState<number | ''>(2);
-  const [periodTo, setPeriodTo] = useState<'am' | 'pm'>('am');
+  const [shifts, setShifts] = useState<PaymentShiftFormItem[]>([
+    {
+      label: 'شيفت الصباح',
+      cashier_name: '',
+      hour_from: 10,
+      period_from: 'am',
+      hour_to: 6,
+      period_to: 'pm',
+      instapay: '',
+      vodafone_cash: '',
+      is_active: true,
+    },
+    {
+      label: 'شيفت المساء',
+      cashier_name: '',
+      hour_from: 6,
+      period_from: 'pm',
+      hour_to: 2,
+      period_to: 'am',
+      instapay: '',
+      vodafone_cash: '',
+      is_active: true,
+    },
+  ]);
   const [enableReviewGate, setEnableReviewGate] = useState<boolean>(true);
 
   /* Customer link state */
@@ -191,6 +212,44 @@ export const AdminEditCardPage: React.FC = () => {
 
   const updateBiz = (key: string, val: string) => {
     setBizData((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const updateShift = (index: number, field: keyof PaymentShiftFormItem, value: any) => {
+    setShifts((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
+  const addShift = () => {
+    setShifts((prev) => [
+      ...prev,
+      {
+        label: `شيفت ${prev.length + 1}`,
+        cashier_name: '',
+        hour_from: 10,
+        period_from: 'am',
+        hour_to: 6,
+        period_to: 'pm',
+        instapay: '',
+        vodafone_cash: '',
+        is_active: true,
+      },
+    ]);
+  };
+
+  const removeShift = (index: number) => {
+    if (shifts.length <= 1) {
+      Swal.fire({
+        icon: 'info',
+        title: 'تنبيه',
+        text: 'يجب الإبقاء على شيفت عمل واحد على الأقل لكاشير المحل',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
+    setShifts((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleLogoFile = async (file: File) => {
@@ -254,16 +313,65 @@ export const AdminEditCardPage: React.FC = () => {
     setRedirectUrl(card.current_redirect_url || '');
     setCategoryId(getCategoryId(card.category_id) || '');
     setRequiresSubscription(card.requires_subscription ?? true);
-
-    const shift = card.payment_shifts?.[0] || (card as any)?.active_shift;
     setTemplate(card.template || 'default');
-    if (shift) {
-      setShiftLabel(shift.label || 'شيفت المساء');
-      setCashierName(shift.cashier_name || '');
-      setHourFrom(shift.hour_from ?? 6);
-      setPeriodFrom(shift.period_from || 'pm');
-      setHourTo(shift.hour_to ?? 2);
-      setPeriodTo(shift.period_to || 'am');
+
+    // Populate shifts
+    if (card.payment_shifts && card.payment_shifts.length > 0) {
+      setShifts(
+        card.payment_shifts.map((s) => ({
+          label: s.label || 'شيفت الكاشير',
+          cashier_name: s.cashier_name || '',
+          hour_from: s.hour_from ?? '',
+          period_from: s.period_from || 'pm',
+          hour_to: s.hour_to ?? '',
+          period_to: s.period_to || 'am',
+          instapay: s.instapay || '',
+          vodafone_cash: s.vodafone_cash || '',
+          is_active: s.is_active ?? true,
+        }))
+      );
+    } else {
+      const legacyShift = (card as any)?.active_shift;
+      if (legacyShift) {
+        setShifts([
+          {
+            label: legacyShift.label || 'شيفت المساء',
+            cashier_name: legacyShift.cashier_name || '',
+            hour_from: legacyShift.hour_from ?? 6,
+            period_from: legacyShift.period_from || 'pm',
+            hour_to: legacyShift.hour_to ?? 2,
+            period_to: legacyShift.period_to || 'am',
+            instapay: card.business_data?.instapay || '',
+            vodafone_cash: card.business_data?.vodafone_cash || '',
+            is_active: true,
+          },
+        ]);
+      } else {
+        setShifts([
+          {
+            label: 'شيفت الصباح',
+            cashier_name: '',
+            hour_from: 10,
+            period_from: 'am',
+            hour_to: 6,
+            period_to: 'pm',
+            instapay: '',
+            vodafone_cash: '',
+            is_active: true,
+          },
+          {
+            label: 'شيفت المساء',
+            cashier_name: '',
+            hour_from: 6,
+            period_from: 'pm',
+            hour_to: 2,
+            period_to: 'am',
+            instapay: '',
+            vodafone_cash: '',
+            is_active: true,
+          },
+        ]);
+      }
     }
 
     const b = card.business_data || {};
@@ -280,8 +388,8 @@ export const AdminEditCardPage: React.FC = () => {
       tiktok: b.tiktok || '',
       google_maps: b.google_maps || '',
       website: b.website || '',
-      instapay: shift?.instapay || b.instapay || '',
-      vodafone_cash: shift?.vodafone_cash || b.vodafone_cash || '',
+      instapay: b.instapay || '',
+      vodafone_cash: b.vodafone_cash || '',
       maintenance_whatsapp: b.maintenance_whatsapp || '',
       offers_url: b.offers_url || '',
       telegram_group: b.telegram_group || '',
@@ -399,6 +507,29 @@ export const AdminEditCardPage: React.FC = () => {
       }
     }
 
+    if (stepNumber === 3 && template === 'mobile_shop') {
+      if (shifts.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'شيفت مطلوب',
+          text: 'يرجى إضافة شيفت عمل واحد على الأقل لكاشير المحل',
+          confirmButtonColor: '#3b82f6',
+        });
+        return false;
+      }
+      for (let i = 0; i < shifts.length; i++) {
+        if (!shifts[i].label.trim()) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'بيانات غير مكتملة',
+            text: `يرجى تحديد مسمى للشيفت رقم ${i + 1}`,
+            confirmButtonColor: '#3b82f6',
+          });
+          return false;
+        }
+      }
+    }
+
     return true;
   };
 
@@ -424,7 +555,7 @@ export const AdminEditCardPage: React.FC = () => {
     if (e) e.preventDefault();
     if (!currentCard || !id) return;
 
-    if (!validateStep(1) || !validateStep(2)) return;
+    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) return;
 
     const trimmedSlug = customSlug.trim().toLowerCase();
 
@@ -448,20 +579,18 @@ export const AdminEditCardPage: React.FC = () => {
     // Payment shifts packaging for backend
     let paymentShiftsList: PaymentShift[] | undefined = undefined;
     if (template === 'mobile_shop') {
-      paymentShiftsList = [
-        {
-          label: shiftLabel.trim() || 'شيفت الكاشير',
-          cashier_name: cashierName.trim() || undefined,
-          hour_from: hourFrom !== '' ? Number(hourFrom) : undefined,
-          period_from: periodFrom,
-          hour_to: hourTo !== '' ? Number(hourTo) : undefined,
-          period_to: periodTo,
-          instapay: bizData.instapay?.trim() || undefined,
-          vodafone_cash: bizData.vodafone_cash?.trim() || undefined,
-          priority: 0,
-          is_active: true,
-        },
-      ];
+      paymentShiftsList = shifts.map((s, index) => ({
+        label: s.label.trim() || `شيفت ${index + 1}`,
+        cashier_name: s.cashier_name.trim() || undefined,
+        hour_from: s.hour_from !== '' ? Number(s.hour_from) : undefined,
+        period_from: s.period_from,
+        hour_to: s.hour_to !== '' ? Number(s.hour_to) : undefined,
+        period_to: s.period_to,
+        instapay: s.instapay.trim() || undefined,
+        vodafone_cash: s.vodafone_cash.trim() || undefined,
+        priority: index,
+        is_active: s.is_active,
+      }));
     }
 
     // Handle redirect URL
@@ -1343,272 +1472,405 @@ export const AdminEditCardPage: React.FC = () => {
         {/* ── STEP 3: Cashier, Shifts & Fast Payments ───────────── */}
         {currentStep === 3 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Shifts & Cashier Box */}
-            <div
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: '16px',
-                border: '1px solid var(--bdr-light)',
-                padding: '24px',
-                boxShadow: 'var(--shadow-xs)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                <Clock size={20} style={{ color: '#0284c7' }} />
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--txt-heading)' }}>
-                  إعدادات الشيفت وساعات عمل الكاشير
-                </h3>
-              </div>
-              <p style={{ margin: '0 0 20px', fontSize: '12.5px', color: 'var(--txt-muted)' }}>
-                تحديد مواعيد الشيفت النشط واسم الكاشير المسؤول في بطاقة المحل
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                {/* Shift Label with Quick Pills */}
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '6px' }}>
-                    مسمى الشيفت
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                    {['شيفت الصباح', 'شيفت المساء', 'شيفت السهرة'].map((pill) => (
-                      <button
-                        key={pill}
-                        type="button"
-                        onClick={() => setShiftLabel(pill)}
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: '8px',
-                          border: shiftLabel === pill ? '1.5px solid var(--clr-primary-500)' : '1px solid var(--bdr-light)',
-                          backgroundColor: shiftLabel === pill ? 'var(--clr-primary-50)' : '#f8fafc',
-                          color: shiftLabel === pill ? 'var(--clr-primary-800)' : 'var(--txt-secondary)',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {pill}
-                      </button>
-                    ))}
+            {/* Multi-Shift Payment Builder (For Mobile Shop Template) */}
+            {template === 'mobile_shop' && (
+              <div
+                style={{
+                  backgroundColor: '#fff',
+                  borderRadius: '16px',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  padding: '24px',
+                  boxShadow: 'var(--shadow-xs)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '18px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'rgba(139, 92, 246, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
+                      <UserCheck size={20} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                        إدارة شيفتات العمل وحسابات الكاشير (Multi-Shift Builder)
+                      </h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '12.5px', color: 'var(--txt-muted)' }}>
+                        أضف شيفتات العمل (صباحي، مسائي، ليلي) مع تخصيص اسم الكاشير وساعاته وحسابات إنستاباي وفودافون كاش لكل شيفت
+                      </p>
+                    </div>
                   </div>
-                  <input
-                    className="form-input"
-                    value={shiftLabel}
-                    onChange={(e) => setShiftLabel(e.target.value)}
-                    placeholder="مثال: شيفت المساء"
-                    style={{ fontSize: '13.5px' }}
-                  />
+                  <button
+                    type="button"
+                    onClick={addShift}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 16px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: '#7c3aed',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)',
+                    }}
+                  >
+                    <Plus size={16} />
+                    إضافة شيفت جديد
+                  </button>
                 </div>
 
-                {/* Cashier Name */}
-                <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                    اسم الكاشير أو المسؤول الحالي
-                  </label>
-                  <input
-                    className="form-input"
-                    value={cashierName}
-                    onChange={(e) => setCashierName(e.target.value)}
-                    placeholder="مثال: أحمد أو م/ محمود"
-                    style={{ fontSize: '13.5px' }}
-                  />
-                </div>
-
-                {/* Working Hours From */}
-                <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                    يبدأ الشيفت من الساعة
-                  </label>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <input
-                      className="form-input"
-                      type="number"
-                      min={1}
-                      max={12}
-                      value={hourFrom}
-                      onChange={(e) => setHourFrom(e.target.value ? Number(e.target.value) : '')}
-                      placeholder="6"
-                      style={{ width: '80px', textAlign: 'center', fontWeight: 800 }}
-                    />
-                    <select
-                      className="form-input"
-                      value={periodFrom}
-                      onChange={(e) => setPeriodFrom(e.target.value as 'am' | 'pm')}
-                      style={{ flex: 1, fontWeight: 700 }}
+                {/* List of Shifts */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {shifts.map((shift, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '14px',
+                        padding: '18px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '14px',
+                      }}
                     >
-                      <option value="pm">مساءً (PM)</option>
-                      <option value="am">صباحاً (AM)</option>
-                    </select>
-                  </div>
-                </div>
+                      {/* Shift Card Header */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 800, backgroundColor: 'rgba(139, 92, 246, 0.15)', color: '#7c3aed', padding: '3px 10px', borderRadius: '8px' }}>
+                            شيفت #{idx + 1}
+                          </span>
+                          <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#1e293b' }}>
+                            {shift.label || `شيفت ${idx + 1}`}
+                          </span>
+                        </div>
+                        {shifts.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeShift(idx)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '4px 10px',
+                              borderRadius: '8px',
+                              border: '1px solid #fee2e2',
+                              backgroundColor: '#fff5f5',
+                              color: '#ef4444',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                            title="حذف هذا الشيفت"
+                          >
+                            <Trash2 size={13} />
+                            حذف الشيفت
+                          </button>
+                        )}
+                      </div>
 
-                {/* Working Hours To */}
-                <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                    ينتهي الشيفت في الساعة
-                  </label>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <input
-                      className="form-input"
-                      type="number"
-                      min={1}
-                      max={12}
-                      value={hourTo}
-                      onChange={(e) => setHourTo(e.target.value ? Number(e.target.value) : '')}
-                      placeholder="2"
-                      style={{ width: '80px', textAlign: 'center', fontWeight: 800 }}
-                    />
-                    <select
-                      className="form-input"
-                      value={periodTo}
-                      onChange={(e) => setPeriodTo(e.target.value as 'am' | 'pm')}
-                      style={{ flex: 1, fontWeight: 700 }}
-                    >
-                      <option value="am">صباحاً (AM)</option>
-                      <option value="pm">مساءً (PM)</option>
-                    </select>
-                  </div>
+                      {/* Shift Inputs Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+                        {/* Shift Label */}
+                        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>
+                            مسمى الشيفت
+                          </label>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                            {['شيفت الصباح', 'شيفت المساء', 'شيفت السهرة'].map((pill) => (
+                              <button
+                                key={pill}
+                                type="button"
+                                onClick={() => updateShift(idx, 'label', pill)}
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  border: shift.label === pill ? '1.5px solid #7c3aed' : '1px solid #cbd5e1',
+                                  backgroundColor: shift.label === pill ? '#f3e8ff' : '#fff',
+                                  color: shift.label === pill ? '#6b21a8' : '#475569',
+                                  fontSize: '11.5px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {pill}
+                              </button>
+                            ))}
+                          </div>
+                          <input
+                            className="form-input"
+                            type="text"
+                            value={shift.label}
+                            onChange={(e) => updateShift(idx, 'label', e.target.value)}
+                            placeholder="مثال: شيفت الصباح"
+                            style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                          />
+                        </div>
+
+                        {/* Cashier Name */}
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>
+                            اسم الكاشير أو المسؤول
+                          </label>
+                          <input
+                            className="form-input"
+                            type="text"
+                            value={shift.cashier_name}
+                            onChange={(e) => updateShift(idx, 'cashier_name', e.target.value)}
+                            placeholder="مثال: أحمد"
+                            style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                          />
+                        </div>
+
+                        {/* Working Hours From */}
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Clock size={14} style={{ color: '#7c3aed' }} />
+                            يبدأ الشيفت من الساعة
+                          </label>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <input
+                              className="form-input"
+                              type="number"
+                              min={1}
+                              max={12}
+                              value={shift.hour_from}
+                              onChange={(e) => updateShift(idx, 'hour_from', e.target.value ? Number(e.target.value) : '')}
+                              placeholder="10"
+                              style={{ width: '75px', textAlign: 'center', fontWeight: 800, backgroundColor: '#fff' }}
+                            />
+                            <select
+                              className="form-input"
+                              value={shift.period_from}
+                              onChange={(e) => updateShift(idx, 'period_from', e.target.value as 'am' | 'pm')}
+                              style={{ flex: 1, fontWeight: 700, backgroundColor: '#fff' }}
+                            >
+                              <option value="am">صباحاً (ص)</option>
+                              <option value="pm">مساءً (م)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Working Hours To */}
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>
+                            ينتهي الشيفت في الساعة
+                          </label>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <input
+                              className="form-input"
+                              type="number"
+                              min={1}
+                              max={12}
+                              value={shift.hour_to}
+                              onChange={(e) => updateShift(idx, 'hour_to', e.target.value ? Number(e.target.value) : '')}
+                              placeholder="6"
+                              style={{ width: '75px', textAlign: 'center', fontWeight: 800, backgroundColor: '#fff' }}
+                            />
+                            <select
+                              className="form-input"
+                              value={shift.period_to}
+                              onChange={(e) => updateShift(idx, 'period_to', e.target.value as 'am' | 'pm')}
+                              style={{ flex: 1, fontWeight: 700, backgroundColor: '#fff' }}
+                            >
+                              <option value="pm">مساءً (م)</option>
+                              <option value="am">صباحاً (ص)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* InstaPay */}
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <CreditCard size={14} style={{ color: '#7c3aed' }} />
+                            حساب إنستاباي لهذا الشيفت
+                          </label>
+                          <input
+                            className="form-input"
+                            type="text"
+                            dir="ltr"
+                            value={shift.instapay}
+                            onChange={(e) => updateShift(idx, 'instapay', e.target.value)}
+                            placeholder="username@instapay أو رابط الحساب"
+                            style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                          />
+                          <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>
+                            يتم نسخه تلقائياً عند الضغط أثناء هذا الشيفت
+                          </span>
+                        </div>
+
+                        {/* Vodafone Cash */}
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Smartphone size={14} style={{ color: '#ef4444' }} />
+                            رقم فودافون كاش لهذا الشيفت
+                          </label>
+                          <input
+                            className="form-input"
+                            type="tel"
+                            dir="ltr"
+                            value={shift.vodafone_cash}
+                            onChange={(e) => updateShift(idx, 'vodafone_cash', e.target.value)}
+                            placeholder="01012345678"
+                            style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                          />
+                          <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>
+                            يتم نسخه فوراً للدفع عبر فودافون كاش
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Fast Payment Wallets */}
-            <div
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: '16px',
-                border: '1px solid var(--bdr-light)',
-                padding: '24px',
-                boxShadow: 'var(--shadow-xs)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                <Smartphone size={20} style={{ color: '#16a34a' }} />
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--txt-heading)' }}>
-                  محافظ الدفع الفوري (InstaPay & كاش)
-                </h3>
-              </div>
-              <p style={{ margin: '0 0 20px', fontSize: '12.5px', color: 'var(--txt-muted)' }}>
-                تظهر في قالب المحل كبطاقات دفع سريعة مع زر نسخ بنقرة واحدة لتسهيل تحويل الحساب
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                {/* InstaPay */}
-                <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                    عنوان الدفع اللحظي إنستاباي (InstaPay GPA)
-                  </label>
-                  <input
-                    className="form-input"
-                    dir="ltr"
-                    value={bizData.instapay || ''}
-                    onChange={(e) => updateBiz('instapay', e.target.value)}
-                    placeholder="ahmed@instapay أو رقم التليفون"
-                    style={{ fontSize: '13.5px', fontWeight: 600 }}
-                  />
-                  <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
-                    يُمكّن العميل من نسخ الحساب فورياً بلمسة واحدة
-                  </span>
+            {/* Fast Payment Wallets (Only for default template) */}
+            {template !== 'mobile_shop' && (
+              <div
+                style={{
+                  backgroundColor: '#fff',
+                  borderRadius: '16px',
+                  border: '1px solid var(--bdr-light)',
+                  padding: '24px',
+                  boxShadow: 'var(--shadow-xs)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                  <Smartphone size={20} style={{ color: '#16a34a' }} />
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                    محافظ الدفع الفوري (InstaPay & كاش)
+                  </h3>
                 </div>
+                <p style={{ margin: '0 0 20px', fontSize: '12.5px', color: 'var(--txt-muted)' }}>
+                  تظهر في صفحة البطاقة كبطاقات دفع سريعة مع زر نسخ بنقرة واحدة لتسهيل تحويل الحساب
+                </p>
 
-                {/* Vodafone Cash */}
-                <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                    رقم المحفظة الإلكترونية (فودافون كاش / اتصالات / أورنج / وي)
-                  </label>
-                  <input
-                    className="form-input"
-                    dir="ltr"
-                    value={bizData.vodafone_cash || ''}
-                    onChange={(e) => updateBiz('vodafone_cash', e.target.value)}
-                    placeholder="01012345678"
-                    style={{ fontSize: '13.5px', fontWeight: 600 }}
-                  />
-                  <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
-                    زر نسخ مباشر وفتح تطبيق المحفظة لتحويل الفاتورة
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Shop Dedicated Channels */}
-            <div
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: '16px',
-                border: '1px solid var(--bdr-light)',
-                padding: '24px',
-                boxShadow: 'var(--shadow-xs)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                <Store size={20} style={{ color: 'var(--clr-primary-600)' }} />
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--txt-heading)' }}>
-                  قنوات وبوابات محلات الموبايل المتخصصة
-                </h3>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                {MOBILE_SHOP_CHANNELS.map((f) => (
-                  <div className="form-group" key={f.key}>
-                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {f.icon}
-                      <span>{f.label}</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                  {/* InstaPay */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
+                      عنوان الدفع اللحظي إنستاباي (InstaPay GPA)
                     </label>
                     <input
                       className="form-input"
-                      type={f.type || 'text'}
-                      dir={f.dir || 'ltr'}
-                      value={bizData[f.key] || ''}
-                      onChange={(e) => updateBiz(f.key, e.target.value)}
-                      placeholder={f.placeholder}
-                      style={{ fontSize: '13.5px' }}
+                      dir="ltr"
+                      value={bizData.instapay || ''}
+                      onChange={(e) => updateBiz('instapay', e.target.value)}
+                      placeholder="ahmed@instapay أو رقم التليفون"
+                      style={{ fontSize: '13.5px', fontWeight: 600 }}
                     />
-                    {f.hint && (
-                      <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
-                        {f.hint}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Review Gate Toggle */}
-              <div
-                style={{
-                  marginTop: '16px',
-                  padding: '14px 18px',
-                  borderRadius: '12px',
-                  backgroundColor: '#fefce8',
-                  border: '1px solid #fef08a',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Star size={20} style={{ color: '#ca8a04', fill: '#ca8a04' }} />
-                  <div>
-                    <span style={{ fontWeight: 800, fontSize: '13.5px', color: '#854d0e', display: 'block' }}>
-                      بوابة التقييمات الذكية (Google Review Gate)
+                    <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
+                      يُمكّن العميل من نسخ الحساب فورياً بلمسة واحدة
                     </span>
-                    <span style={{ fontSize: '12px', color: '#a16207' }}>
-                      التقييم 4 أو 5 نجوم يوجّه مباشرة لجوجل مابس، بينما 1 إلى 3 نجوم يحوّل العميل للواتساب لحل الشكوى داخلياً!
+                  </div>
+
+                  {/* Vodafone Cash */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
+                      رقم المحفظة الإلكترونية (فودافون كاش / اتصالات / أورنج / وي)
+                    </label>
+                    <input
+                      className="form-input"
+                      dir="ltr"
+                      value={bizData.vodafone_cash || ''}
+                      onChange={(e) => updateBiz('vodafone_cash', e.target.value)}
+                      placeholder="01012345678"
+                      style={{ fontSize: '13.5px', fontWeight: 600 }}
+                    />
+                    <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
+                      زر نسخ مباشر وفتح تطبيق المحفظة لتحويل الفاتورة
                     </span>
                   </div>
                 </div>
-
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 800, fontSize: '13px', color: '#854d0e' }}>
-                  <input
-                    type="checkbox"
-                    checked={enableReviewGate}
-                    onChange={(e) => setEnableReviewGate(e.target.checked)}
-                    style={{ accentColor: '#ca8a04', width: '18px', height: '18px' }}
-                  />
-                  <span>مفعّلة</span>
-                </label>
               </div>
-            </div>
+            )}
+
+            {/* Mobile Shop Dedicated Channels */}
+            {template === 'mobile_shop' && (
+              <div
+                style={{
+                  backgroundColor: '#fff',
+                  borderRadius: '16px',
+                  border: '1px solid var(--bdr-light)',
+                  padding: '24px',
+                  boxShadow: 'var(--shadow-xs)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                  <Store size={20} style={{ color: 'var(--clr-primary-600)' }} />
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+                    قنوات وبوابات محلات الموبايل المتخصصة
+                  </h3>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                  {MOBILE_SHOP_CHANNELS.map((f) => (
+                    <div className="form-group" key={f.key}>
+                      <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {f.icon}
+                        <span>{f.label}</span>
+                      </label>
+                      <input
+                        className="form-input"
+                        type={f.type || 'text'}
+                        dir={f.dir || 'ltr'}
+                        value={bizData[f.key] || ''}
+                        onChange={(e) => updateBiz(f.key, e.target.value)}
+                        placeholder={f.placeholder}
+                        style={{ fontSize: '13.5px' }}
+                      />
+                      {f.hint && (
+                        <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
+                          {f.hint}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Review Gate Toggle */}
+                <div
+                  style={{
+                    marginTop: '16px',
+                    padding: '14px 18px',
+                    borderRadius: '12px',
+                    backgroundColor: '#fefce8',
+                    border: '1px solid #fef08a',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Star size={20} style={{ color: '#ca8a04', fill: '#ca8a04' }} />
+                    <div>
+                      <span style={{ fontWeight: 800, fontSize: '13.5px', color: '#854d0e', display: 'block' }}>
+                        بوابة التقييمات الذكية (Google Review Gate)
+                      </span>
+                      <span style={{ fontSize: '12px', color: '#a16207' }}>
+                        التقييم 4 أو 5 نجوم يوجّه مباشرة لجوجل مابس، بينما 1 إلى 3 نجوم يحوّل العميل للواتساب لحل الشكوى داخلياً!
+                      </span>
+                    </div>
+                  </div>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 800, fontSize: '13px', color: '#854d0e' }}>
+                    <input
+                      type="checkbox"
+                      checked={enableReviewGate}
+                      onChange={(e) => setEnableReviewGate(e.target.checked)}
+                      style={{ accentColor: '#ca8a04', width: '18px', height: '18px' }}
+                    />
+                    <span>مفعّلة</span>
+                  </label>
+                </div>
+              </div>
+            )}
 
             {/* Direct Redirect Override URL */}
             <div
@@ -1725,7 +1987,7 @@ export const AdminEditCardPage: React.FC = () => {
                 </div>
 
                 {/* Cashier & Shift Summary Box */}
-                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--bdr-light)', backgroundColor: '#f8fafc' }}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--bdr-light)', backgroundColor: '#f8fafc', gridColumn: '1 / -1' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                     <span style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Smartphone size={16} /> الكاشير والدفع
@@ -1734,12 +1996,35 @@ export const AdminEditCardPage: React.FC = () => {
                       <Edit2 size={12} /> تعديل
                     </button>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12.5px' }}>
-                    <div>الشيفت: <strong>{shiftLabel}</strong> {cashierName ? `(${cashierName})` : ''}</div>
-                    <div>المواعيد: <strong>من {hourFrom} {periodFrom === 'pm' ? 'م' : 'ص'} إلى {hourTo} {periodTo === 'pm' ? 'م' : 'ص'}</strong></div>
-                    <div>إنستاباي: <strong style={{ direction: 'ltr' }}>{bizData.instapay || '—'}</strong></div>
-                    <div>فودافون كاش: <strong style={{ direction: 'ltr' }}>{bizData.vodafone_cash || '—'}</strong></div>
-                    <div>فلتر تقييمات جوجل: <strong>{enableReviewGate ? 'مفعّل ✓' : 'معطل'}</strong></div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', fontSize: '12.5px' }}>
+                    {template === 'mobile_shop' ? (
+                      shifts.map((s, idx) => (
+                        <div key={idx} style={{ backgroundColor: '#fff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div style={{ fontWeight: 800, color: '#7c3aed', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>{s.label || `شيفت ${idx + 1}`}</span>
+                            <span style={{ fontSize: '11px', color: '#64748b' }}>#{idx + 1}</span>
+                          </div>
+                          <div>الكاشير: <strong>{s.cashier_name || '—'}</strong></div>
+                          <div>ساعات العمل: <strong>{s.hour_from ? `${s.hour_from} ${s.period_from === 'pm' ? 'م' : 'ص'}` : '—'} إلى {s.hour_to ? `${s.hour_to} ${s.period_to === 'pm' ? 'م' : 'ص'}` : '—'}</strong></div>
+                          <div style={{ marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #e2e8f0', fontSize: '11.5px' }}>
+                            <div>إنستاباي: <strong style={{ direction: 'ltr' }}>{s.instapay || '—'}</strong></div>
+                            <div>فودافون كاش: <strong style={{ direction: 'ltr' }}>{s.vodafone_cash || '—'}</strong></div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ backgroundColor: '#fff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <div>إنستاباي: <strong style={{ direction: 'ltr' }}>{bizData.instapay || '—'}</strong></div>
+                        <div>فودافون كاش: <strong style={{ direction: 'ltr' }}>{bizData.vodafone_cash || '—'}</strong></div>
+                      </div>
+                    )}
+                    {template === 'mobile_shop' && (
+                      <div style={{ backgroundColor: '#fff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a' }}>الخدمات وبوابة التقييم:</div>
+                        <div>واتساب الصيانة: <strong>{bizData.maintenance_whatsapp ? 'موجود ✓' : '—'}</strong></div>
+                        <div>فلتر تقييمات جوجل: <strong>{enableReviewGate ? 'مفعّل ✓' : 'معطل'}</strong></div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

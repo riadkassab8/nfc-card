@@ -10,6 +10,7 @@ import {
   CardType,
   BusinessData,
   PaymentShift,
+  PaymentShiftFormItem,
   getCategoryId,
   CUSTOM_SLUG_REGEX,
   ApiCustomer,
@@ -212,15 +213,64 @@ export const AdminAddCardPage: React.FC = () => {
     editCard ? (editCard.requires_subscription ?? true) : true
   );
 
-  /* Template & Active Shift state */
-  const initialShift = editCard?.payment_shifts?.[0] || (editCard as any)?.active_shift;
+  /* Template & Payment Shifts State */
   const [template, setTemplate] = useState<string>(editCard?.template || 'default');
-  const [shiftLabel, setShiftLabel] = useState<string>(initialShift?.label || 'شيفت المساء');
-  const [cashierName, setCashierName] = useState<string>(initialShift?.cashier_name || '');
-  const [hourFrom, setHourFrom] = useState<number | ''>(initialShift?.hour_from ?? 6);
-  const [periodFrom, setPeriodFrom] = useState<'am' | 'pm'>(initialShift?.period_from || 'pm');
-  const [hourTo, setHourTo] = useState<number | ''>(initialShift?.hour_to ?? 2);
-  const [periodTo, setPeriodTo] = useState<'am' | 'pm'>(initialShift?.period_to || 'am');
+  const [shifts, setShifts] = useState<PaymentShiftFormItem[]>(() => {
+    if (editCard?.payment_shifts && editCard.payment_shifts.length > 0) {
+      return editCard.payment_shifts.map((s) => ({
+        label: s.label || 'شيفت الكاشير',
+        cashier_name: s.cashier_name || '',
+        hour_from: s.hour_from ?? '',
+        period_from: s.period_from || 'pm',
+        hour_to: s.hour_to ?? '',
+        period_to: s.period_to || 'am',
+        instapay: s.instapay || '',
+        vodafone_cash: s.vodafone_cash || '',
+        is_active: s.is_active ?? true,
+      }));
+    }
+    const legacyShift = (editCard as any)?.active_shift;
+    if (legacyShift) {
+      return [
+        {
+          label: legacyShift.label || 'شيفت المساء',
+          cashier_name: legacyShift.cashier_name || '',
+          hour_from: legacyShift.hour_from ?? 6,
+          period_from: legacyShift.period_from || 'pm',
+          hour_to: legacyShift.hour_to ?? 2,
+          period_to: legacyShift.period_to || 'am',
+          instapay: editCard?.business_data?.instapay || '',
+          vodafone_cash: editCard?.business_data?.vodafone_cash || '',
+          is_active: true,
+        },
+      ];
+    }
+    return [
+      {
+        label: 'شيفت الصباح',
+        cashier_name: '',
+        hour_from: 10,
+        period_from: 'am',
+        hour_to: 6,
+        period_to: 'pm',
+        instapay: '',
+        vodafone_cash: '',
+        is_active: true,
+      },
+      {
+        label: 'شيفت المساء',
+        cashier_name: '',
+        hour_from: 6,
+        period_from: 'pm',
+        hour_to: 2,
+        period_to: 'am',
+        instapay: '',
+        vodafone_cash: '',
+        is_active: true,
+      },
+    ];
+  });
+
   const [enableReviewGate, setEnableReviewGate] = useState<boolean>(editCard?.business_data?.enable_review_gate ?? true);
 
   /* Customer link state */
@@ -386,6 +436,44 @@ export const AdminAddCardPage: React.FC = () => {
     setBizData((prev) => ({ ...prev, [key]: val }));
   };
 
+  const updateShift = (index: number, field: keyof PaymentShiftFormItem, value: any) => {
+    setShifts((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
+  const addShift = () => {
+    setShifts((prev) => [
+      ...prev,
+      {
+        label: `شيفت ${prev.length + 1}`,
+        cashier_name: '',
+        hour_from: 10,
+        period_from: 'am',
+        hour_to: 6,
+        period_to: 'pm',
+        instapay: '',
+        vodafone_cash: '',
+        is_active: true,
+      },
+    ]);
+  };
+
+  const removeShift = (index: number) => {
+    if (shifts.length <= 1) {
+      Swal.fire({
+        icon: 'info',
+        title: 'تنبيه',
+        text: 'يجب الإبقاء على شيفت عمل واحد على الأقل لكاشير المحل',
+        confirmButtonColor: '#3b82f6',
+      });
+      return;
+    }
+    setShifts((prev) => prev.filter((_, i) => i !== index));
+  };
+
   /* Category ID for Business Profile */
   const BUSINESS_PROFILE_CATEGORY_ID = '6ac46e143883b08344234133';
   const isBusinessProfileCategory = Boolean(
@@ -439,6 +527,29 @@ export const AdminAddCardPage: React.FC = () => {
       }
     }
 
+    if (stepNumber === 3 && template === 'mobile_shop') {
+      if (shifts.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'شيفت مطلوب',
+          text: 'يرجى إضافة شيفت عمل واحد على الأقل لكاشير المحل',
+          confirmButtonColor: '#3b82f6',
+        });
+        return false;
+      }
+      for (let i = 0; i < shifts.length; i++) {
+        if (!shifts[i].label.trim()) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'بيانات غير مكتملة',
+            text: `يرجى تحديد مسمى للشيفت رقم ${i + 1}`,
+            confirmButtonColor: '#3b82f6',
+          });
+          return false;
+        }
+      }
+    }
+
     return true;
   };
 
@@ -468,7 +579,7 @@ export const AdminAddCardPage: React.FC = () => {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    if (!validateStep(1) || !validateStep(2)) return;
+    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) return;
 
     const trimmedSlug = customSlug.trim().toLowerCase();
 
@@ -492,20 +603,18 @@ export const AdminAddCardPage: React.FC = () => {
     // Payment shifts packaging for backend
     let paymentShiftsList: PaymentShift[] | undefined = undefined;
     if (template === 'mobile_shop') {
-      paymentShiftsList = [
-        {
-          label: shiftLabel.trim() || 'شيفت الكاشير',
-          cashier_name: cashierName.trim() || undefined,
-          hour_from: hourFrom !== '' ? Number(hourFrom) : undefined,
-          period_from: periodFrom,
-          hour_to: hourTo !== '' ? Number(hourTo) : undefined,
-          period_to: periodTo,
-          instapay: bizData.instapay?.trim() || undefined,
-          vodafone_cash: bizData.vodafone_cash?.trim() || undefined,
-          priority: 0,
-          is_active: true,
-        },
-      ];
+      paymentShiftsList = shifts.map((s, index) => ({
+        label: s.label.trim() || `شيفت ${index + 1}`,
+        cashier_name: s.cashier_name.trim() || undefined,
+        hour_from: s.hour_from !== '' ? Number(s.hour_from) : undefined,
+        period_from: s.period_from,
+        hour_to: s.hour_to !== '' ? Number(s.hour_to) : undefined,
+        period_to: s.period_to,
+        instapay: s.instapay.trim() || undefined,
+        vodafone_cash: s.vodafone_cash.trim() || undefined,
+        priority: index,
+        is_active: s.is_active,
+      }));
     }
 
     // Handle redirect URL
@@ -615,6 +724,30 @@ export const AdminAddCardPage: React.FC = () => {
               vodafone_cash: '', maintenance_whatsapp: '', offers_url: '',
               telegram_group: '', google_review_url: '',
             });
+            setShifts([
+              {
+                label: 'شيفت الصباح',
+                cashier_name: '',
+                hour_from: 10,
+                period_from: 'am',
+                hour_to: 6,
+                period_to: 'pm',
+                instapay: '',
+                vodafone_cash: '',
+                is_active: true,
+              },
+              {
+                label: 'شيفت المساء',
+                cashier_name: '',
+                hour_from: 6,
+                period_from: 'pm',
+                hour_to: 2,
+                period_to: 'am',
+                instapay: '',
+                vodafone_cash: '',
+                is_active: true,
+              },
+            ]);
             setSelectedCustomer(null);
             setCurrentStep(1);
             loadData();
@@ -1463,182 +1596,297 @@ export const AdminAddCardPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Active Shift Settings (For Mobile Shop Template) */}
+            {/* Multi-Shift Payment Builder (For Mobile Shop Template) */}
             {template === 'mobile_shop' && (
               <div
                 style={{
-                  backgroundColor: 'rgba(139, 92, 246, 0.05)',
-                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  backgroundColor: 'rgba(139, 92, 246, 0.04)',
+                  border: '1px solid rgba(139, 92, 246, 0.25)',
                   borderRadius: '16px',
-                  padding: '18px 20px',
+                  padding: '20px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '14px',
+                  gap: '16px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(139, 92, 246, 0.15)', paddingBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'rgba(139, 92, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
-                      <UserCheck size={18} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(139, 92, 246, 0.15)', paddingBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(139, 92, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
+                      <UserCheck size={20} />
                     </div>
                     <div>
-                      <h4 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: '#581c87' }}>
-                        إعدادات الشيفت الحالي والكاشير المسؤول (Active Shift)
+                      <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#581c87' }}>
+                        إدارة شيفتات العمل وحسابات الكاشير (Multi-Shift Builder)
                       </h4>
                       <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#7c3aed' }}>
-                        يظهر هذا الكاشير في شريط الشيفت النشط أعلى واجهة الكارت للعملاء
+                        أضف شيفتات العمل (صباحي، مسائي، ليلي) مع تخصيص اسم الكاشير وساعاته وحسابات إنستاباي وفودافون كاش لكل شيفت
                       </p>
                     </div>
                   </div>
-                  <span style={{ fontSize: '11px', fontWeight: 700, backgroundColor: '#10b981', color: '#fff', padding: '3px 8px', borderRadius: '6px' }}>
-                    ● شيفت نشط
-                  </span>
+                  <button
+                    type="button"
+                    onClick={addShift}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: '#7c3aed',
+                      color: '#ffffff',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)',
+                    }}
+                  >
+                    <Plus size={16} />
+                    إضافة شيفت جديد
+                  </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '14px' }}>
-                  {/* Shift Label */}
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>
-                      مسمى الشيفت
-                    </label>
-                    <input
-                      className="form-input"
-                      type="text"
-                      value={shiftLabel}
-                      onChange={(e) => setShiftLabel(e.target.value)}
-                      placeholder="مثال: شيفت المساء"
-                      style={{ fontSize: '13px', backgroundColor: '#fff' }}
-                    />
-                    <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
-                      {['شيفت الصباح', 'شيفت المساء', 'شيفت الليل'].map((lbl) => (
-                        <button
-                          key={lbl}
-                          type="button"
-                          onClick={() => setShiftLabel(lbl)}
-                          style={{
-                            fontSize: '11px',
-                            padding: '2px 8px',
-                            borderRadius: '6px',
-                            border: '1px solid rgba(139, 92, 246, 0.25)',
-                            backgroundColor: shiftLabel === lbl ? '#8b5cf6' : '#fff',
-                            color: shiftLabel === lbl ? '#fff' : '#6b21a8',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {lbl}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                {/* List of Shifts */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {shifts.map((shift, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '14px',
+                        padding: '16px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '14px',
+                      }}
+                    >
+                      {/* Shift Card Header */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 800, backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#7c3aed', padding: '3px 10px', borderRadius: '8px' }}>
+                            شيفت #{idx + 1}
+                          </span>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>
+                            {shift.label || `شيفت ${idx + 1}`}
+                          </span>
+                        </div>
+                        {shifts.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeShift(idx)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '4px 8px',
+                              borderRadius: '8px',
+                              border: '1px solid #fee2e2',
+                              backgroundColor: '#fff5f5',
+                              color: '#ef4444',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                            title="حذف هذا الشيفت"
+                          >
+                            <Trash2 size={13} />
+                            حذف الشيفت
+                          </button>
+                        )}
+                      </div>
 
-                  {/* Cashier Name */}
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>
-                      اسم الكاشير المسؤول
-                    </label>
-                    <input
-                      className="form-input"
-                      type="text"
-                      value={cashierName}
-                      onChange={(e) => setCashierName(e.target.value)}
-                      placeholder="مثال: أحمد"
-                      style={{ fontSize: '13px', backgroundColor: '#fff' }}
-                    />
-                    <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
-                      يظهر اسمه للعميل لتأكيد التحويلات النقدية
-                    </span>
-                  </div>
+                      {/* Shift Inputs Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '14px' }}>
+                        {/* Shift Label */}
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>
+                            مسمى الشيفت
+                          </label>
+                          <input
+                            className="form-input"
+                            type="text"
+                            value={shift.label}
+                            onChange={(e) => updateShift(idx, 'label', e.target.value)}
+                            placeholder="مثال: شيفت الصباح"
+                            style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                          />
+                          <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+                            {['شيفت الصباح', 'شيفت المساء', 'شيفت الليل'].map((lbl) => (
+                              <button
+                                key={lbl}
+                                type="button"
+                                onClick={() => updateShift(idx, 'label', lbl)}
+                                style={{
+                                  fontSize: '11px',
+                                  padding: '2px 8px',
+                                  borderRadius: '6px',
+                                  border: '1px solid rgba(139, 92, 246, 0.25)',
+                                  backgroundColor: shift.label === lbl ? '#8b5cf6' : '#fff',
+                                  color: shift.label === lbl ? '#fff' : '#6b21a8',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {lbl}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
-                  {/* Hours From */}
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={14} style={{ color: '#8b5cf6' }} />
-                      من الساعة
-                    </label>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <input
-                        className="form-input"
-                        type="number"
-                        min={1}
-                        max={12}
-                        value={hourFrom}
-                        onChange={(e) => setHourFrom(e.target.value ? Number(e.target.value) : '')}
-                        placeholder="6"
-                        style={{ width: '70px', textAlign: 'center', fontWeight: 700, fontSize: '13px', backgroundColor: '#fff' }}
-                      />
-                      <select
-                        className="form-input"
-                        value={periodFrom}
-                        onChange={(e) => setPeriodFrom(e.target.value as 'am' | 'pm')}
-                        style={{ flex: 1, fontWeight: 700, fontSize: '13px', backgroundColor: '#fff' }}
-                      >
-                        <option value="pm">مساءً (م)</option>
-                        <option value="am">صباحاً (ص)</option>
-                      </select>
-                    </div>
-                  </div>
+                        {/* Cashier Name */}
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>
+                            اسم الكاشير المسؤول
+                          </label>
+                          <input
+                            className="form-input"
+                            type="text"
+                            value={shift.cashier_name}
+                            onChange={(e) => updateShift(idx, 'cashier_name', e.target.value)}
+                            placeholder="مثال: أحمد"
+                            style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                          />
+                          <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
+                            يظهر اسمه للعملاء في هذا الشيفت
+                          </span>
+                        </div>
 
-                  {/* Hours To */}
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>
-                      إلى الساعة
-                    </label>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <input
-                        className="form-input"
-                        type="number"
-                        min={1}
-                        max={12}
-                        value={hourTo}
-                        onChange={(e) => setHourTo(e.target.value ? Number(e.target.value) : '')}
-                        placeholder="2"
-                        style={{ width: '70px', textAlign: 'center', fontWeight: 700, fontSize: '13px', backgroundColor: '#fff' }}
-                      />
-                      <select
-                        className="form-input"
-                        value={periodTo}
-                        onChange={(e) => setPeriodTo(e.target.value as 'am' | 'pm')}
-                        style={{ flex: 1, fontWeight: 700, fontSize: '13px', backgroundColor: '#fff' }}
-                      >
-                        <option value="am">صباحاً (ص)</option>
-                        <option value="pm">مساءً (م)</option>
-                      </select>
+                        {/* Hours From */}
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Clock size={14} style={{ color: '#8b5cf6' }} />
+                            من الساعة
+                          </label>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <input
+                              className="form-input"
+                              type="number"
+                              min={1}
+                              max={12}
+                              value={shift.hour_from}
+                              onChange={(e) => updateShift(idx, 'hour_from', e.target.value ? Number(e.target.value) : '')}
+                              placeholder="10"
+                              style={{ width: '70px', textAlign: 'center', fontWeight: 700, fontSize: '13px', backgroundColor: '#fff' }}
+                            />
+                            <select
+                              className="form-input"
+                              value={shift.period_from}
+                              onChange={(e) => updateShift(idx, 'period_from', e.target.value as 'am' | 'pm')}
+                              style={{ flex: 1, fontWeight: 700, fontSize: '13px', backgroundColor: '#fff' }}
+                            >
+                              <option value="am">صباحاً (ص)</option>
+                              <option value="pm">مساءً (م)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Hours To */}
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>
+                            إلى الساعة
+                          </label>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <input
+                              className="form-input"
+                              type="number"
+                              min={1}
+                              max={12}
+                              value={shift.hour_to}
+                              onChange={(e) => updateShift(idx, 'hour_to', e.target.value ? Number(e.target.value) : '')}
+                              placeholder="6"
+                              style={{ width: '70px', textAlign: 'center', fontWeight: 700, fontSize: '13px', backgroundColor: '#fff' }}
+                            />
+                            <select
+                              className="form-input"
+                              value={shift.period_to}
+                              onChange={(e) => updateShift(idx, 'period_to', e.target.value as 'am' | 'pm')}
+                              style={{ flex: 1, fontWeight: 700, fontSize: '13px', backgroundColor: '#fff' }}
+                            >
+                              <option value="pm">مساءً (م)</option>
+                              <option value="am">صباحاً (ص)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Shift InstaPay */}
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <CreditCard size={14} style={{ color: '#7c3aed' }} />
+                            حساب إنستاباي لهذا الشيفت
+                          </label>
+                          <input
+                            className="form-input"
+                            type="text"
+                            dir="ltr"
+                            value={shift.instapay}
+                            onChange={(e) => updateShift(idx, 'instapay', e.target.value)}
+                            placeholder="username@instapay أو رابط الحساب"
+                            style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                          />
+                          <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
+                            يتم نسخه تلقائياً عند الضغط أثناء هذا الشيفت
+                          </span>
+                        </div>
+
+                        {/* Shift Vodafone Cash */}
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Smartphone size={14} style={{ color: '#ef4444' }} />
+                            رقم فودافون كاش لهذا الشيفت
+                          </label>
+                          <input
+                            className="form-input"
+                            type="tel"
+                            dir="ltr"
+                            value={shift.vodafone_cash}
+                            onChange={(e) => updateShift(idx, 'vodafone_cash', e.target.value)}
+                            placeholder="01012345678"
+                            style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                          />
+                          <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
+                            يتم نسخه فوراً للدفع عبر فودافون كاش
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* Fast Payment Options */}
-            <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>
-              <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CreditCard size={16} style={{ color: '#7c3aed' }} />
-                طرق الدفع والتحويل المالي السريع
-              </h3>
+            {/* Fast Payment Options (Only for default template) */}
+            {template !== 'mobile_shop' && (
+              <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>
+                <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CreditCard size={16} style={{ color: '#7c3aed' }} />
+                  طرق الدفع والتحويل المالي السريع
+                </h3>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: '16px' }}>
-                {PAYMENT_FIELDS.map((f) => (
-                  <div key={f.key} className="form-group">
-                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {f.icon}
-                        {f.label}
-                      </span>
-                    </label>
-                    <input
-                      className="form-input"
-                      type={f.type || 'text'}
-                      dir={f.type === 'tel' || f.type === 'url' ? 'ltr' : undefined}
-                      value={bizData[f.key] || ''}
-                      onChange={(e) => updateBiz(f.key, e.target.value)}
-                      placeholder={f.placeholder}
-                      style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
-                    />
-                    {f.hint && <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>{f.hint}</span>}
-                  </div>
-                ))}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: '16px' }}>
+                  {PAYMENT_FIELDS.map((f) => (
+                    <div key={f.key} className="form-group">
+                      <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {f.icon}
+                          {f.label}
+                        </span>
+                      </label>
+                      <input
+                        className="form-input"
+                        type={f.type || 'text'}
+                        dir={f.type === 'tel' || f.type === 'url' ? 'ltr' : undefined}
+                        value={bizData[f.key] || ''}
+                        onChange={(e) => updateBiz(f.key, e.target.value)}
+                        placeholder={f.placeholder}
+                        style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
+                      />
+                      {f.hint && <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>{f.hint}</span>}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Mobile Shop Services and Review Gate */}
             {template === 'mobile_shop' && (
@@ -1864,20 +2112,28 @@ export const AdminAddCardPage: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '12px', fontSize: '12.5px' }}>
-                  {template === 'mobile_shop' && (
+                  {template === 'mobile_shop' ? (
+                    shifts.map((s, idx) => (
+                      <div key={idx} style={{ backgroundColor: '#fff', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--bdr-light)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ fontWeight: 800, color: '#7c3aed', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>{s.label || `شيفت ${idx + 1}`}</span>
+                          <span style={{ fontSize: '11px', backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#7c3aed', padding: '2px 8px', borderRadius: '6px' }}>#{idx + 1}</span>
+                        </div>
+                        <div>الكاشير: <strong>{s.cashier_name || '—'}</strong></div>
+                        <div>ساعات العمل: <strong>{s.hour_from ? `${s.hour_from} ${s.period_from === 'pm' ? 'م' : 'ص'}` : '—'} إلى {s.hour_to ? `${s.hour_to} ${s.period_to === 'pm' ? 'م' : 'ص'}` : '—'}</strong></div>
+                        <div style={{ marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #e2e8f0', fontSize: '11.5px', color: '#475569' }}>
+                          <div>إنستاباي: <strong dir="ltr">{s.instapay || '—'}</strong></div>
+                          <div>فودافون كاش: <strong dir="ltr">{s.vodafone_cash || '—'}</strong></div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
                     <div style={{ backgroundColor: '#fff', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--bdr-light)' }}>
-                      <div style={{ fontWeight: 700, color: '#7c3aed', marginBottom: '4px' }}>الشيفت والكاشير:</div>
-                      <div>الشيفت: <strong>{shiftLabel || '—'}</strong></div>
-                      <div>الكاشير: <strong>{cashierName || '—'}</strong></div>
-                      <div>ساعات العمل: <strong>{hourFrom} {periodFrom === 'pm' ? 'م' : 'ص'} - {hourTo} {periodTo === 'pm' ? 'م' : 'ص'}</strong></div>
+                      <div style={{ fontWeight: 700, color: 'var(--txt-heading)', marginBottom: '4px' }}>بوابات الدفع الفوري:</div>
+                      <div>إنستاباي: <strong>{bizData.instapay || 'غير محدد'}</strong></div>
+                      <div>فودافون كاش: <strong>{bizData.vodafone_cash || 'غير محدد'}</strong></div>
                     </div>
                   )}
-
-                  <div style={{ backgroundColor: '#fff', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--bdr-light)' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--txt-heading)', marginBottom: '4px' }}>بوابات الدفع الفوري:</div>
-                    <div>إنستاباي: <strong>{bizData.instapay || 'غير محدد'}</strong></div>
-                    <div>فودافون كاش: <strong>{bizData.vodafone_cash || 'غير محدد'}</strong></div>
-                  </div>
 
                   {template === 'mobile_shop' && (
                     <div style={{ backgroundColor: '#fff', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--bdr-light)' }}>

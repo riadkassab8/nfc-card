@@ -130,6 +130,18 @@ export interface PaymentShift {
   is_active?: boolean;
 }
 
+export interface PaymentShiftFormItem {
+  label: string;          // مثلاً "شيفت الصباح"
+  cashier_name: string;   // مثلاً "أحمد"
+  hour_from: number | ''; // 1-12
+  period_from: 'am' | 'pm';
+  hour_to: number | '';   // 1-12
+  period_to: 'am' | 'pm';
+  instapay: string;       // معرف إنستاباي الخاص بهذا الشيفت
+  vodafone_cash: string;  // رقم فودافون كاش الخاص بهذا الشيفت
+  is_active: boolean;
+}
+
 export interface BusinessData {
   business_name?: string | null;
   logo?: string | null;
