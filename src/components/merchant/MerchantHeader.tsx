@@ -1,5 +1,6 @@
-import React from 'react';
-import { Menu, Store, LogOut, User, Clock, Sparkles, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Menu, Store, LogOut, User, Clock, Sparkles, AlertCircle, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -10,7 +11,17 @@ export interface MerchantHeaderProps {
 
 export const MerchantHeader: React.FC<MerchantHeaderProps> = ({ title, onOpenMobileMenu }) => {
   const { admin, logout } = useAuth();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const storeTitle = admin?.store_name || admin?.name || 'متجري الذكي';
+
+  useEffect(() => {
+    if (!confirmOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setConfirmOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [confirmOpen]);
 
   // حساب تفاصيل الاشتراك
   const isPermanent = !admin?.requires_subscription || admin?.subscription_type === 'permanent';
@@ -151,7 +162,7 @@ export const MerchantHeader: React.FC<MerchantHeaderProps> = ({ title, onOpenMob
 
         <button
           type="button"
-          onClick={logout}
+          onClick={() => setConfirmOpen(true)}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -165,10 +176,39 @@ export const MerchantHeader: React.FC<MerchantHeaderProps> = ({ title, onOpenMob
             cursor: 'pointer',
           }}
           title="تسجيل الخروج"
+          aria-label="تسجيل الخروج"
         >
           <LogOut size={17} />
         </button>
       </div>
+
+      {/* Logout confirmation — portalled */}
+      {confirmOpen && createPortal(
+        <div className="modal-overlay" onClick={() => setConfirmOpen(false)} role="dialog" aria-modal="true">
+          <div className="modal-panel" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()} dir="rtl">
+            <div className="modal-header">
+              <h2 className="modal-title">تسجيل الخروج</h2>
+              <button type="button" className="modal-close" onClick={() => setConfirmOpen(false)} aria-label="إغلاق">
+                <X size={17} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ margin: '0 0 8px', color: 'var(--txt-body)' }}>
+                هل أنت متأكد من رغبتك في تسجيل الخروج من لوحة تحكم المتجر؟
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn-secondary" onClick={() => setConfirmOpen(false)}>
+                إلغاء
+              </button>
+              <button type="button" className="btn-danger" onClick={logout}>
+                تأكيد الخروج
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </header>
   );
 };

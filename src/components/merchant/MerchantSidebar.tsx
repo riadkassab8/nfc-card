@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { NavLink } from 'react-router-dom';
 import {
   LogOut,
@@ -24,7 +25,17 @@ export const MerchantSidebar: React.FC<MerchantSidebarProps> = ({
   onClose,
 }) => {
   const { admin, logout } = useAuth();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const storeTitle = admin?.store_name || admin?.name || 'متجري الذكي';
+
+  useEffect(() => {
+    if (!confirmOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setConfirmOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [confirmOpen]);
 
   // حساب تفاصيل الاشتراك
   const isPermanent = !admin?.requires_subscription || admin?.subscription_type === 'permanent';
