@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ApiSocialPageResponse, ActiveShift, BusinessData, PaymentShift } from '../../types';
+import { ApiSocialPageResponse, BusinessData, PaymentShift } from '../../types';
 import {
   InstaPayIcon,
   VodafoneCashIcon,
@@ -28,7 +28,6 @@ import {
   Sun,
   MapPin,
   ChevronLeft,
-  Sparkles,
 } from 'lucide-react';
 
 interface MobileShopTemplateProps {

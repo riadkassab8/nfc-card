@@ -4,4 +4,4 @@ export { authApi } from './authApi';
 export { cardsApi } from './cardsApi';
 export { categoriesApi } from './categoriesApi';
 export { customersApi } from './customersApi';
-
+export { notificationsApi } from './notificationsApi';

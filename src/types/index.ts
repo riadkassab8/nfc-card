@@ -666,5 +666,24 @@ export interface BroadcastEmailResponse {
   message: string;
 }
 
+// ── Admin In-App Notifications ────────────────────────────────────────────
+
+export interface ApiNotification {
+  _id: string;
+  title: string;
+  message: string;
+  type: 'warning' | 'danger' | 'info' | 'success';
+  link?: string | null;
+  is_read: boolean;
+  card_id?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ApiNotificationsResponse {
+  notifications: ApiNotification[];
+  unread_count: number;
+}
+
 
 

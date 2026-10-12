@@ -78,7 +78,7 @@ export class ApiError extends Error {
 // ── Request options ───────────────────────────────────────────────────────
 
 export interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   body?: unknown;
   params?: Record<string, string | number | boolean | undefined | null>;
   headers?: Record<string, string>;
