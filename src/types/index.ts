@@ -12,6 +12,16 @@ export interface AdminSettings {
   enable_email_alerts?: boolean;
 }
 
+export interface SidebarNavItemConfig {
+  id: string;
+  path: string;
+  label: string;
+  defaultLabel: string;
+  iconName: string;
+  visible: boolean;
+  order: number;
+}
+
 export interface ApiAdmin {
   _id?: string;
   id?: string;
@@ -20,6 +30,7 @@ export interface ApiAdmin {
   email?: string;
   avatar?: string;
   settings?: AdminSettings;
+  sidebar_menu?: SidebarNavItemConfig[];
   createdAt?: string;
   updatedAt?: string;
 }

@@ -1,9 +1,18 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, CreditCard, Tags, Scan, Zap, BarChart2, Users,
-  ChevronsRight, X, UserCog, Bell,
+  Zap,
+  ChevronsRight,
+  X,
+  UserCog,
 } from 'lucide-react';
+import {
+  getSidebarConfig,
+  fetchSidebarConfigFromApi,
+  SIDEBAR_CONFIG_EVENT,
+  ICON_MAP,
+  SidebarNavItemConfig,
+} from '../../utils/sidebarConfig';
 
 export interface AdminSidebarProps {
   onLinkClick?: () => void;
@@ -14,37 +23,76 @@ export interface AdminSidebarProps {
   onClose?: () => void;
 }
 
-const NAV = [
-  { path: '/admin',               label: 'نظرة عامة',       icon: LayoutDashboard, exact: true },
-  { path: '/admin/customers',     label: 'العملاء (CRM)',   icon: Users },
-  { path: '/admin/cards',         label: 'إدارة البطاقات',   icon: CreditCard },
-  { path: '/admin/notifications', label: 'الإشعارات',       icon: Bell },
-  { path: '/admin/analytics',     label: 'الإحصائيات',       icon: BarChart2 },
-  { path: '/admin/categories',    label: 'التصنيفات',        icon: Tags },
-  { path: '/admin/scan',          label: 'فحص وتجهيز',       icon: Scan },
-];
-
 const ACCOUNT_NAV = [
   { path: '/admin/profile', label: 'الملف الشخصي', icon: UserCog },
 ];
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({
-  onLinkClick, collapsed = false, onToggleCollapse, onClose,
+  onLinkClick,
+  collapsed = false,
+  onToggleCollapse,
+  onClose,
 }) => {
-  const renderLink = (
-    { path, label, icon: Icon, exact }: { path: string; label: string; icon: React.ElementType; exact?: boolean },
+  const [navItems, setNavItems] = useState<SidebarNavItemConfig[]>(() => {
+    return getSidebarConfig().filter((i) => i.visible);
+  });
+
+  useEffect(() => {
+    // مزامنة القائمة من الـ Backend API في الخلفية
+    fetchSidebarConfigFromApi()
+      .then((items) => {
+        setNavItems(items.filter((i) => i.visible));
+      })
+      .catch(() => {});
+
+    const handleConfigChange = () => {
+      setNavItems(getSidebarConfig().filter((i) => i.visible));
+    };
+
+    window.addEventListener(SIDEBAR_CONFIG_EVENT, handleConfigChange);
+    window.addEventListener('storage', handleConfigChange);
+    return () => {
+      window.removeEventListener(SIDEBAR_CONFIG_EVENT, handleConfigChange);
+      window.removeEventListener('storage', handleConfigChange);
+    };
+  }, []);
+
+  const renderDynamicLink = (item: SidebarNavItemConfig, index: number) => {
+    const Icon = ICON_MAP[item.iconName] || Zap;
+    const isExact = item.path === '/admin';
+    return (
+      <NavLink
+        key={item.id}
+        to={item.path}
+        end={isExact}
+        onClick={onLinkClick}
+        title={collapsed ? item.label : undefined}
+        className={({ isActive }) => `sb-link${isActive ? ' active' : ''}`}
+        style={{ animationDelay: `${80 + index * 45}ms` }}
+      >
+        <span className="sb-link-icon">
+          <Icon size={18} />
+        </span>
+        <span className="sb-label">{item.label}</span>
+      </NavLink>
+    );
+  };
+
+  const renderAccountLink = (
+    { path, label, icon: Icon }: { path: string; label: string; icon: React.ElementType },
     index: number,
   ) => (
     <NavLink
       key={path}
       to={path}
-      end={exact}
       onClick={onLinkClick}
       title={collapsed ? label : undefined}
       className={({ isActive }) => `sb-link${isActive ? ' active' : ''}`}
       style={{ animationDelay: `${80 + index * 45}ms` }}
     >
-      <span className="sb-link-icon"><Icon size={18} /></span>
+      <span className="sb-link-icon">
+        <Icon size={18} />
+      </span>
       <span className="sb-label">{label}</span>
     </NavLink>
   );
@@ -53,7 +101,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     <aside className={`admin-sidebar${collapsed ? ' collapsed' : ''}`}>
       {/* Brand */}
       <div className="sb-brand">
-        <div className="sb-logo"><Zap size={21} color="#fff" /></div>
+        <div className="sb-logo">
+          <Zap size={21} color="#fff" />
+        </div>
         <div className="sb-brand-text" style={{ flex: 1 }}>
           <div className="sb-brand-name">k2rty</div>
           <div className="sb-brand-sub">لوحة الإدارة</div>
@@ -74,10 +124,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       {/* Nav */}
       <nav className="sb-nav">
         <div className="sb-section">القائمة الرئيسية</div>
-        {NAV.map((item, i) => renderLink(item, i))}
+        {navItems.map((item, i) => renderDynamicLink(item, i))}
 
-        <div className="sb-section" style={{ marginTop: 10 }}>الحساب</div>
-        {ACCOUNT_NAV.map((item, i) => renderLink(item, NAV.length + i))}
+        <div className="sb-section" style={{ marginTop: '16px' }}>الحساب</div>
+        {ACCOUNT_NAV.map((item, i) => renderAccountLink(item, i))}
       </nav>
 
       {/* Collapse toggle (desktop) */}

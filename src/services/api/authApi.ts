@@ -14,6 +14,7 @@ import {
   UpdateSettingsDto,
   ForgotPasswordResponse,
   ResetPasswordResponse,
+  SidebarNavItemConfig,
 } from '../../types';
 
 export const authApi = {
@@ -106,6 +107,34 @@ export const authApi = {
     apiClient<AdminSettings>('/auth/settings', {
       method: 'PUT',
       body: dto,
+      requiresAuth: true,
+    }),
+
+  /**
+   * GET /api/auth/sidebar-menu
+   * Returns dynamic sidebar menu configuration.
+   */
+  getSidebarMenu: async (): Promise<SidebarNavItemConfig[]> =>
+    apiClient<SidebarNavItemConfig[]>('/auth/sidebar-menu', { requiresAuth: true }),
+
+  /**
+   * PUT /api/auth/sidebar-menu
+   * Updates dynamic sidebar menu configuration.
+   */
+  updateSidebarMenu: async (items: SidebarNavItemConfig[]): Promise<SidebarNavItemConfig[]> =>
+    apiClient<SidebarNavItemConfig[]>('/auth/sidebar-menu', {
+      method: 'PUT',
+      body: items,
+      requiresAuth: true,
+    }),
+
+  /**
+   * POST /api/auth/sidebar-menu/reset
+   * Resets dynamic sidebar menu configuration to defaults.
+   */
+  resetSidebarMenu: async (): Promise<SidebarNavItemConfig[]> =>
+    apiClient<SidebarNavItemConfig[]>('/auth/sidebar-menu/reset', {
+      method: 'POST',
       requiresAuth: true,
     }),
 
