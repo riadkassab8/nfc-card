@@ -53,6 +53,8 @@ const AVAILABLE_ACTIONS = [
   { id: 'customers:create', label: 'إضافة عملاء', group: 'العملاء' },
   { id: 'customers:edit', label: 'تعديل العملاء', group: 'العملاء' },
   { id: 'customers:delete', label: 'حذف العملاء', group: 'العملاء' },
+  { id: 'categories:manage', label: 'إدارة وتعديل التصنيفات', group: 'التصنيفات' },
+  { id: 'analytics:view', label: 'عرض سجلات وإحصائيات المسح', group: 'الإحصائيات' },
   { id: 'export', label: 'تصدير ملفات إكسل وتقارير', group: 'عام' },
 ];
 

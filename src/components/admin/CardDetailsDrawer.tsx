@@ -16,6 +16,7 @@ import {
 import { DeleteCardModal } from './DeleteCardModal';
 import QRCode from 'qrcode';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 
 type ToastType = 'success' | 'error' | 'info';
@@ -153,6 +154,7 @@ const emptyRule = (): DraftRule => ({
 const HOURS_12 = Array.from({ length: 12 }, (_, i) => i + 1); // 1..12
 
 const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToast: (m: string, t?: ToastType) => void }> = ({ card, onUpdated, onToast }) => {
+  const { can } = useAuth();
   const [rules, setRules] = useState<DraftRule[]>([]);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -292,12 +294,14 @@ const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToa
             </label>
 
             {/* Delete */}
-            <button
-              onClick={() => removeRule(rule._key)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: 'var(--r-sm)', border: 'none', backgroundColor: 'var(--clr-error-bg)', color: 'var(--clr-error)', cursor: 'pointer', flexShrink: 0 }}
-            >
-              <Trash2 size={13} />
-            </button>
+            {can('cards:edit') && (
+              <button
+                onClick={() => removeRule(rule._key)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: 'var(--r-sm)', border: 'none', backgroundColor: 'var(--clr-error-bg)', color: 'var(--clr-error)', cursor: 'pointer', flexShrink: 0 }}
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
           </div>
 
           {/* Rule fields */}
@@ -398,25 +402,27 @@ const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToa
       ))}
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '4px' }}>
-        <button className="btn-outline" onClick={addRule} style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px' }}>
-          <Plus size={14} /> إضافة rule
-        </button>
-        {dirty && (
-          <button className="btn-primary" onClick={save} disabled={saving} style={{ fontSize: 'var(--fs-sm)', padding: '8px 18px' }}>
-            {saving ? <><RefreshCw size={13} className="spin" /> حفظ...</> : <><Save size={13} /> حفظ القواعد</>}
+      {can('cards:edit') && (
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '4px' }}>
+          <button className="btn-outline" onClick={addRule} style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px' }}>
+            <Plus size={14} /> إضافة rule
           </button>
-        )}
-        {rules.length > 0 && !dirty && (
-          <button
-            className="btn-outline"
-            style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px', borderColor: 'var(--clr-error-bdr)', color: 'var(--clr-error)', marginInlineStart: 'auto' }}
-            onClick={clearAll} disabled={saving}
-          >
-            <Trash2 size={13} /> مسح الكل
-          </button>
-        )}
-      </div>
+          {dirty && (
+            <button className="btn-primary" onClick={save} disabled={saving} style={{ fontSize: 'var(--fs-sm)', padding: '8px 18px' }}>
+              {saving ? <><RefreshCw size={13} className="spin" /> حفظ...</> : <><Save size={13} /> حفظ القواعد</>}
+            </button>
+          )}
+          {rules.length > 0 && !dirty && (
+            <button
+              className="btn-outline"
+              style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px', borderColor: 'var(--clr-error-bdr)', color: 'var(--clr-error)', marginInlineStart: 'auto' }}
+              onClick={clearAll} disabled={saving}
+            >
+              <Trash2 size={13} /> مسح الكل
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Hour hint */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '10px 13px', border: '1px solid var(--bdr-light)' }}>
@@ -437,6 +443,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
   card, onClose, onUpdated, onDeleted, onToast,
 }) => {
   const navigate = useNavigate();
+  const { can } = useAuth();
   const [tab, setTab]               = useState<Tab>('info');
   const [newUrl, setNewUrl]         = useState('');
   const [savingUrl, setSavingUrl]   = useState(false);
@@ -689,11 +696,13 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
               {/* Edit button */}
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <button className="btn-outline" style={{ fontSize: 'var(--fs-sm)', padding: '7px 14px' }} onClick={handleSaveEdit}>
-                  <Edit2 size={13} /> تعديل
-                </button>
-              </div>
+              {can('cards:edit') && (
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <button className="btn-outline" style={{ fontSize: 'var(--fs-sm)', padding: '7px 14px' }} onClick={handleSaveEdit}>
+                    <Edit2 size={13} /> تعديل
+                  </button>
+                </div>
+              )}
 
               {/* Linked Customer Card (CRM) */}
               <div
@@ -944,25 +953,31 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
 
               {/* Action buttons */}
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '10px', borderTop: '1px solid var(--bdr-light)' }}>
-                <button
-                  className="btn-outline"
-                  style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px', borderColor: isActive ? 'var(--clr-warning-bdr)' : 'var(--clr-success-bdr)', color: isActive ? 'var(--clr-warning)' : 'var(--clr-success)' }}
-                  onClick={handleToggle} disabled={toggling}
-                >
-                  {toggling ? <RefreshCw size={13} className="spin" /> : <Power size={13} />}
-                  {isActive ? 'تعطيل' : 'تفعيل'}
-                </button>
-                <button className="btn-outline" style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px' }} onClick={handleRenew} disabled={renewing || !card.requires_subscription} title={!card.requires_subscription ? 'الكارت دائم — لا يحتاج تجديد' : undefined}>
-                  {renewing ? <RefreshCw size={13} className="spin" /> : <RefreshCw size={13} />}
-                  تجديد الاشتراك
-                </button>
-                <button
-                  className="btn-outline"
-                  style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px', borderColor: 'var(--clr-error-bdr)', color: 'var(--clr-error)' }}
-                  onClick={() => setShowDeleteModal(true)}
-                >
-                  <Trash2 size={13} /> حذف الكارت
-                </button>
+                {can('cards:edit') && (
+                  <button
+                    className="btn-outline"
+                    style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px', borderColor: isActive ? 'var(--clr-warning-bdr)' : 'var(--clr-success-bdr)', color: isActive ? 'var(--clr-warning)' : 'var(--clr-success)' }}
+                    onClick={handleToggle} disabled={toggling}
+                  >
+                    {toggling ? <RefreshCw size={13} className="spin" /> : <Power size={13} />}
+                    {isActive ? 'تعطيل' : 'تفعيل'}
+                  </button>
+                )}
+                {can('cards:edit') && (
+                  <button className="btn-outline" style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px' }} onClick={handleRenew} disabled={renewing || !card.requires_subscription} title={!card.requires_subscription ? 'الكارت دائم — لا يحتاج تجديد' : undefined}>
+                    {renewing ? <RefreshCw size={13} className="spin" /> : <RefreshCw size={13} />}
+                    تجديد الاشتراك
+                  </button>
+                )}
+                {can('cards:delete') && (
+                  <button
+                    className="btn-outline"
+                    style={{ fontSize: 'var(--fs-sm)', padding: '8px 14px', borderColor: 'var(--clr-error-bdr)', color: 'var(--clr-error)' }}
+                    onClick={() => setShowDeleteModal(true)}
+                  >
+                    <Trash2 size={13} /> حذف الكارت
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -990,14 +1005,16 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                   style={{ width: '100%', boxSizing: 'border-box' }}
                 />
               </div>
-              <button
-                className="btn-primary"
-                onClick={handleSaveUrl}
-                disabled={savingUrl || !newUrl.trim()}
-                style={{ justifyContent: 'center', opacity: !newUrl.trim() ? 0.5 : 1 }}
-              >
-                {savingUrl ? <><RefreshCw size={14} className="spin" /> جاري الحفظ...</> : <><Save size={14} /> تغيير الرابط</>}
-              </button>
+              {can('cards:edit') && (
+                <button
+                  className="btn-primary"
+                  onClick={handleSaveUrl}
+                  disabled={savingUrl || !newUrl.trim()}
+                  style={{ justifyContent: 'center', opacity: !newUrl.trim() ? 0.5 : 1 }}
+                >
+                  {savingUrl ? <><RefreshCw size={14} className="spin" /> جاري الحفظ...</> : <><Save size={14} /> تغيير الرابط</>}
+                </button>
+              )}
             </div>
           )}
 

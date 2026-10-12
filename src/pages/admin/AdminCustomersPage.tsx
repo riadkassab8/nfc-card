@@ -505,25 +505,27 @@ export const AdminCustomersPage: React.FC = () => {
             </button>
           </div>
 
-          <button
-            onClick={() => setBroadcastModalOpen(true)}
-            style={{
-              padding: '7px 18px',
-              borderRadius: '10px',
-              fontSize: '13px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: '#ea580c',
-              border: 'none',
-              color: '#ffffff',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(234, 88, 12, 0.25)',
-            }}
-          >
-            <Mail size={14} /> إرسال بريد للمحددين ({selectedIds.size})
-          </button>
+          {can('customers:edit') && (
+            <button
+              onClick={() => setBroadcastModalOpen(true)}
+              style={{
+                padding: '7px 18px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: '#ea580c',
+                border: 'none',
+                color: '#ffffff',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(234, 88, 12, 0.25)',
+              }}
+            >
+              <Mail size={14} /> إرسال بريد للمحددين ({selectedIds.size})
+            </button>
+          )}
         </div>
       )}
 

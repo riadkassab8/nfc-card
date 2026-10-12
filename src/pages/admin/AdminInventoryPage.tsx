@@ -912,49 +912,77 @@ export const AdminInventoryPage: React.FC = () => {
             {selected.size} بطاقة محددة
           </span>
           <div style={{ display: 'flex', gap: '7px', marginInlineStart: 'auto', flexWrap: 'wrap', alignItems: 'center' }}>
-            <button
-              onClick={() => {
-                const selCards = cards.filter(c => selected.has(c._id));
-                setAssignCustomerTarget({
-                  ids: selCards.map(c => c._id),
-                  codes: selCards.map(c => c.card_code),
-                });
-              }}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '6px 14px', borderRadius: 'var(--r-sm)', border: 'none',
-                backgroundColor: 'var(--clr-primary-500)', color: '#fff',
-                fontFamily: 'var(--font)', fontWeight: 800, fontSize: 'var(--fs-xs)',
-                cursor: 'pointer', boxShadow: 'var(--shadow-blue)',
-              }}
-            >
-              <UserCheck size={14} />
-              <span>ربط بعميل (Assign Cards)</span>
-            </button>
+            {can('cards:edit') && (
+              <button
+                onClick={() => {
+                  const selCards = cards.filter(c => selected.has(c._id));
+                  setAssignCustomerTarget({
+                    ids: selCards.map(c => c._id),
+                    codes: selCards.map(c => c.card_code),
+                  });
+                }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '6px 14px', borderRadius: 'var(--r-sm)', border: 'none',
+                  backgroundColor: 'var(--clr-primary-500)', color: '#fff',
+                  fontFamily: 'var(--font)', fontWeight: 800, fontSize: 'var(--fs-xs)',
+                  cursor: 'pointer', boxShadow: 'var(--shadow-blue)',
+                }}
+              >
+                <UserCheck size={14} />
+                <span>ربط بعميل (Assign Cards)</span>
+              </button>
+            )}
 
-            {(() => {
+            {can('cards:edit') && (() => {
               const selCards = cards.filter(c => selected.has(c._id));
               const hasInactive = selCards.some(c => c.status !== 'active');
-              const toggleBtn = hasInactive
-                ? { label: 'تفعيل', action: () => bulkToggle('active'), bg: 'var(--clr-success-bg)', color: 'var(--clr-success)' }
-                : { label: 'تعطيل', action: () => bulkToggle('inactive'), bg: 'var(--clr-warning-bg)', color: 'var(--clr-warning)' };
+              return (
+                <button
+                  onClick={() => bulkToggle(hasInactive ? 'active' : 'inactive')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '5px',
+                    padding: '6px 13px', borderRadius: 'var(--r-sm)', border: 'none',
+                    backgroundColor: hasInactive ? 'var(--clr-success-bg)' : 'var(--clr-warning-bg)',
+                    color: hasInactive ? 'var(--clr-success)' : 'var(--clr-warning)',
+                    fontFamily: 'var(--font)', fontWeight: 700, fontSize: 'var(--fs-xs)',
+                    cursor: 'pointer', transition: 'all 0.2s ease',
+                  }}
+                >
+                  {hasInactive ? 'تفعيل' : 'تعطيل'}
+                </button>
+              );
+            })()}
 
-              return [
-                toggleBtn,
-                { label: 'حذف', action: bulkDelete, bg: 'var(--clr-error-bg)', color: 'var(--clr-error)' },
-                { label: 'إلغاء التحديد', action: () => setSelected(new Set()), bg: 'var(--bg-hover)', color: 'var(--txt-secondary)' },
-              ].map(b => (
-                <button key={b.label} onClick={b.action} style={{
+            {can('cards:delete') && (
+              <button
+                onClick={bulkDelete}
+                style={{
                   display: 'inline-flex', alignItems: 'center', gap: '5px',
                   padding: '6px 13px', borderRadius: 'var(--r-sm)', border: 'none',
-                  backgroundColor: b.bg, color: b.color,
+                  backgroundColor: 'var(--clr-error-bg)',
+                  color: 'var(--clr-error)',
                   fontFamily: 'var(--font)', fontWeight: 700, fontSize: 'var(--fs-xs)',
                   cursor: 'pointer', transition: 'all 0.2s ease',
-                }}>
-                  {b.label}
-                </button>
-              ));
-            })()}
+                }}
+              >
+                حذف
+              </button>
+            )}
+
+            <button
+              onClick={() => setSelected(new Set())}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                padding: '6px 13px', borderRadius: 'var(--r-sm)', border: 'none',
+                backgroundColor: 'var(--bg-hover)',
+                color: 'var(--txt-secondary)',
+                fontFamily: 'var(--font)', fontWeight: 700, fontSize: 'var(--fs-xs)',
+                cursor: 'pointer', transition: 'all 0.2s ease',
+              }}
+            >
+              إلغاء التحديد
+            </button>
           </div>
         </div>
       )}

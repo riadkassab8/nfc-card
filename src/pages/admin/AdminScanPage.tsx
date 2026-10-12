@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cardsApi, categoriesApi } from '../../services';
 import { ApiCard, ApiCategory, BusinessData, fmtDate, isSubscriptionExpired, parseCategoryMeta } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 import {
   Search, Save, RefreshCw, XCircle, ExternalLink, QrCode, X, Camera,
   CreditCard, Copy, Download, Sparkles,
@@ -189,6 +190,7 @@ const QRScannerModal: React.FC<{ onScan: (data: string) => void; onClose: () => 
 
 /* ── Main ─────────────────────────────────────────────────────── */
 export const AdminScanPage: React.FC = () => {
+  const { can } = useAuth();
   const [query, setQuery]       = useState('');
   const [searching, setSearching] = useState(false);
   const [card, setCard]         = useState<ApiCard | null>(null);
@@ -740,16 +742,18 @@ export const AdminScanPage: React.FC = () => {
                 >
                   <RefreshCw size={14} /> إعادة تعيين
                 </button>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={saving}
-                  style={{ minWidth: '160px', padding: '10px 22px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 800, justifyContent: 'center' }}
-                >
-                  {saving
-                    ? <><RefreshCw size={15} className="spin" /> جاري الحفظ...</>
-                    : <><Save size={15} /> حفظ البيانات</>}
-                </button>
+                {can('cards:edit') && (
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={saving}
+                    style={{ minWidth: '160px', padding: '10px 22px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 800, justifyContent: 'center' }}
+                  >
+                    {saving
+                      ? <><RefreshCw size={15} className="spin" /> جاري الحفظ...</>
+                      : <><Save size={15} /> حفظ البيانات</>}
+                  </button>
+                )}
               </div>
             </form>
           </div>

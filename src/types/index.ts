@@ -123,6 +123,8 @@ export interface UpdateProfileDto {
   email?: string;
   username?: string;
   avatar?: string;
+  phone?: string;
+  store_name?: string;
 }
 
 export interface ChangePasswordDto {

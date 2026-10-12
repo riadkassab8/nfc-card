@@ -18,7 +18,7 @@ export const FullPageLoader: React.FC<{ label?: string }> = ({ label = 'جاري
 export const getDefaultAdminPath = (admin: any): string => {
   if (!admin) return '/login';
   if (admin.role === 'super_admin') return '/admin';
-  if (admin.role === 'merchant') return '/admin/cards';
+  if (admin.role === 'merchant') return '/merchant';
 
   const pages: string[] = admin.permissions?.pages || [];
   if (pages.includes('overview')) return '/admin';
@@ -55,6 +55,11 @@ export const ProtectedRoute: React.FC<{
 
   if (loading) return <FullPageLoader />;
 
+  // Merchants must strictly stay inside /merchant portal and never access /admin routes
+  if (admin?.role === 'merchant' && location.pathname.startsWith('/admin')) {
+    return <Navigate to="/merchant" replace />;
+  }
+
   // Super Admin has unrestricted access to everything
   if (isSuperAdmin) {
     return <>{children}</>;
@@ -62,7 +67,12 @@ export const ProtectedRoute: React.FC<{
 
   const fallbackPath = getDefaultAdminPath(admin);
 
-  // Check required role if specified (e.g. only super_admin)
+  // Non-merchants (e.g. staff) should not access merchant portal
+  if (admin?.role !== 'merchant' && location.pathname.startsWith('/merchant')) {
+    return <Navigate to={fallbackPath} replace />;
+  }
+
+  // Check required role if specified (e.g. only super_admin or only merchant)
   if (requiredRole && admin?.role !== requiredRole) {
     return <Navigate to={fallbackPath} replace />;
   }
@@ -86,6 +96,9 @@ export const GuestRoute: React.FC<{ children: React.ReactNode }> = ({ children }
   const location = useLocation();
 
   if (isAuthenticated) {
+    if (admin?.role === 'merchant') {
+      return <Navigate to="/merchant" replace />;
+    }
     const from = (location.state as any)?.from;
     const target = from?.pathname && from.pathname.startsWith('/admin')
       ? `${from.pathname}${from.search || ''}${from.hash || ''}`

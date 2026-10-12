@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { categoriesApi } from '../../services';
 import { ApiCategory, ApiCreateCategoryDto, ApiUpdateCategoryDto } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 import {
   Plus, Edit2, RefreshCw, Tags,
   CheckCircle2, XCircle, X, Save, Search
@@ -127,6 +128,7 @@ const Modal: React.FC<{ existing?: ApiCategory | null; onClose: () => void; onSa
 
 /* ── Main Component ─────────────────────────────────────────── */
 export const AdminCategoriesPage: React.FC = () => {
+  const { can } = useAuth();
   const [cats, setCats]             = useState<ApiCategory[]>([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState<string | null>(null);
@@ -213,26 +215,28 @@ export const AdminCategoriesPage: React.FC = () => {
           </p>
         </div>
         <div style={{ zIndex: 1, display: 'flex', gap: '10px' }}>
-          <button
-            onClick={() => { setEditing(null); setModalOpen(true); }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 22px',
-              borderRadius: '12px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              color: '#ffffff',
-              fontSize: '14px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <Plus size={18} /> إضافة تصنيف جديد
-          </button>
+          {can('categories:manage') && (
+            <button
+              onClick={() => { setEditing(null); setModalOpen(true); }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 22px',
+                borderRadius: '12px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                color: '#ffffff',
+                fontSize: '14px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <Plus size={18} /> إضافة تصنيف جديد
+            </button>
+          )}
         </div>
       </div>
 
@@ -417,22 +421,24 @@ export const AdminCategoriesPage: React.FC = () => {
 
                         {/* Actions (تعديل فقط - بدون حذف) */}
                         <td style={{ textAlign: 'center' }}>
-                          <button
-                            title="تعديل التصنيف"
-                            onClick={() => { setEditing(cat); setModalOpen(true); }}
-                            style={{
-                              display: 'inline-flex', alignItems: 'center', gap: '6px',
-                              padding: '7px 16px', borderRadius: '10px',
-                              border: '1px solid var(--clr-primary-200)',
-                              backgroundColor: 'var(--clr-primary-50)',
-                              color: 'var(--clr-primary-700)',
-                              cursor: 'pointer', fontSize: '13px', fontWeight: 700,
-                              fontFamily: 'var(--font)', transition: 'all 0.15s ease',
-                            }}
-                          >
-                            <Edit2 size={14} />
-                            <span>تعديل</span>
-                          </button>
+                          {can('categories:manage') && (
+                            <button
+                              title="تعديل التصنيف"
+                              onClick={() => { setEditing(cat); setModalOpen(true); }}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                padding: '7px 16px', borderRadius: '10px',
+                                border: '1px solid var(--clr-primary-200)',
+                                backgroundColor: 'var(--clr-primary-50)',
+                                color: 'var(--clr-primary-700)',
+                                cursor: 'pointer', fontSize: '13px', fontWeight: 700,
+                                fontFamily: 'var(--font)', transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <Edit2 size={14} />
+                              <span>تعديل</span>
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

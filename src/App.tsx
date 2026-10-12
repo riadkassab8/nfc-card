@@ -23,6 +23,12 @@ import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { PublicCardLandingPage } from './pages/PublicCardLandingPage';
 import { SocialPage } from './pages/SocialPage';
 
+import { MerchantShell } from './components/merchant/MerchantShell';
+import { MerchantOverviewPage } from './pages/merchant/MerchantOverviewPage';
+import { MerchantCardsPage } from './pages/merchant/MerchantCardsPage';
+import { MerchantAnalyticsPage } from './pages/merchant/MerchantAnalyticsPage';
+import { MerchantProfilePage } from './pages/merchant/MerchantProfilePage';
+
 export const App: React.FC = () => (
   <AuthProvider>
     <BrowserRouter>
@@ -169,6 +175,48 @@ export const App: React.FC = () => (
               <AdminShell title="تعديل البطاقة">
                 <AdminEditCardPage />
               </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ── Merchant Portal Routes (Dedicated for Store Owners) ── */}
+        <Route
+          path="/merchant"
+          element={
+            <ProtectedRoute requiredRole="merchant">
+              <MerchantShell title="الرئيسية">
+                <MerchantOverviewPage />
+              </MerchantShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/merchant/cards"
+          element={
+            <ProtectedRoute requiredRole="merchant">
+              <MerchantShell title="بطاقاتي الذكية">
+                <MerchantCardsPage />
+              </MerchantShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/merchant/analytics"
+          element={
+            <ProtectedRoute requiredRole="merchant">
+              <MerchantShell title="إحصائيات المتجر">
+                <MerchantAnalyticsPage />
+              </MerchantShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/merchant/profile"
+          element={
+            <ProtectedRoute requiredRole="merchant">
+              <MerchantShell title="الملف الشخصي للمتجر">
+                <MerchantProfilePage />
+              </MerchantShell>
             </ProtectedRoute>
           }
         />
