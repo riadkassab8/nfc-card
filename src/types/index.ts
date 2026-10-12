@@ -24,6 +24,7 @@ export interface SidebarNavItemConfig {
 
 export type UserRole = 'super_admin' | 'staff' | 'merchant';
 export type UserStatus = 'active' | 'suspended';
+export type SubscriptionType = 'permanent' | 'yearly' | 'custom';
 
 export interface UserPermissions {
   pages?: string[];
@@ -44,6 +45,10 @@ export interface ApiAdmin {
   phone?: string;
   store_name?: string;
   created_by?: string;
+  subscription_type?: SubscriptionType;
+  requires_subscription?: boolean;
+  subscription_start_date?: string | null;
+  subscription_end_date?: string | null;
   settings?: AdminSettings;
   sidebar_menu?: SidebarNavItemConfig[];
   createdAt?: string;
@@ -61,6 +66,10 @@ export interface CreateUserPayload {
   assigned_cards?: string[];
   phone?: string;
   store_name?: string;
+  subscription_type?: SubscriptionType;
+  requires_subscription?: boolean;
+  subscription_start_date?: string | null;
+  subscription_end_date?: string | null;
 }
 
 export interface UpdateUserPayload {
@@ -74,6 +83,10 @@ export interface UpdateUserPayload {
   assigned_cards?: string[];
   phone?: string;
   store_name?: string;
+  subscription_type?: SubscriptionType;
+  requires_subscription?: boolean;
+  subscription_start_date?: string | null;
+  subscription_end_date?: string | null;
 }
 
 export interface UsersListResponse {

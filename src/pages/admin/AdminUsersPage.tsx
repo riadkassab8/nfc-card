@@ -19,6 +19,8 @@ import {
   Eye,
   EyeOff,
   Check,
+  Calendar,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { usersApi, cardsApi } from '../../services';
@@ -26,6 +28,7 @@ import {
   ApiAdmin,
   UserRole,
   UserStatus,
+  SubscriptionType,
   UserStatsSummary,
   CreateUserPayload,
   UpdateUserPayload,
@@ -97,6 +100,13 @@ export const AdminUsersPage: React.FC = () => {
   const [formActions, setFormActions] = useState<string[]>(['cards:view', 'cards:edit']);
   const [formAssignedCards, setFormAssignedCards] = useState<string[]>([]);
   const [showPassword, setShowPassword] = useState(false);
+  const [formSubType, setFormSubType] = useState<SubscriptionType>('yearly');
+  const [formSubStartDate, setFormSubStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [formSubEndDate, setFormSubEndDate] = useState<string>(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 1);
+    return d.toISOString().slice(0, 10);
+  });
 
   const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ msg, type });
@@ -158,6 +168,12 @@ export const AdminUsersPage: React.FC = () => {
     setFormActions(['cards:view', 'cards:edit', 'cards:create']);
     setFormAssignedCards([]);
     setShowPassword(false);
+    setFormSubType('yearly');
+    const today = new Date().toISOString().slice(0, 10);
+    setFormSubStartDate(today);
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+    setFormSubEndDate(nextYear.toISOString().slice(0, 10));
     setIsFormOpen(true);
   };
 
@@ -175,7 +191,43 @@ export const AdminUsersPage: React.FC = () => {
     setFormActions(user.permissions?.actions || []);
     setFormAssignedCards(user.assigned_cards || []);
     setShowPassword(false);
+
+    // Subscription
+    const subType = user.subscription_type || (!user.requires_subscription ? 'permanent' : 'yearly');
+    setFormSubType(subType);
+    setFormSubStartDate(
+      user.subscription_start_date
+        ? new Date(user.subscription_start_date).toISOString().slice(0, 10)
+        : new Date().toISOString().slice(0, 10)
+    );
+    setFormSubEndDate(
+      user.subscription_end_date
+        ? new Date(user.subscription_end_date).toISOString().slice(0, 10)
+        : ''
+    );
     setIsFormOpen(true);
+  };
+
+  const handleSubTypeChange = (type: SubscriptionType) => {
+    setFormSubType(type);
+    if (type === 'yearly') {
+      const start = formSubStartDate ? new Date(formSubStartDate) : new Date();
+      const end = new Date(start);
+      end.setFullYear(end.getFullYear() + 1);
+      setFormSubEndDate(end.toISOString().slice(0, 10));
+    } else if (type === 'permanent') {
+      setFormSubEndDate('');
+    }
+  };
+
+  const handleStartDateChange = (val: string) => {
+    setFormSubStartDate(val);
+    if (formSubType === 'yearly' && val) {
+      const start = new Date(val);
+      const end = new Date(start);
+      end.setFullYear(end.getFullYear() + 1);
+      setFormSubEndDate(end.toISOString().slice(0, 10));
+    }
   };
 
   // Preset permissions by role helper
@@ -229,6 +281,13 @@ export const AdminUsersPage: React.FC = () => {
 
     setIsSaving(true);
     try {
+      const subPayload = {
+        subscription_type: formSubType,
+        requires_subscription: formSubType !== 'permanent',
+        subscription_start_date: formSubStartDate ? new Date(formSubStartDate).toISOString() : null,
+        subscription_end_date: formSubType === 'permanent' ? null : (formSubEndDate ? new Date(formSubEndDate).toISOString() : null),
+      };
+
       if (editingUser) {
         // Update user
         const updatePayload: UpdateUserPayload = {
@@ -244,6 +303,7 @@ export const AdminUsersPage: React.FC = () => {
             actions: formRole === 'super_admin' ? ['*'] : formActions,
           },
           assigned_cards: formRole === 'merchant' ? formAssignedCards : [],
+          ...subPayload,
         };
         if (formPassword.trim()) {
           updatePayload.password = formPassword.trim();
@@ -267,6 +327,7 @@ export const AdminUsersPage: React.FC = () => {
             actions: formRole === 'super_admin' ? ['*'] : formActions,
           },
           assigned_cards: formRole === 'merchant' ? formAssignedCards : [],
+          ...subPayload,
         };
 
         await usersApi.createUser(createPayload);
@@ -385,6 +446,114 @@ export const AdminUsersPage: React.FC = () => {
           </span>
         );
     }
+  };
+
+  // Render subscription badge helper
+  const renderSubscriptionBadge = (user: ApiAdmin) => {
+    if (user.role === 'super_admin') {
+      return (
+        <span
+          style={{
+            padding: '3px 8px',
+            borderRadius: '999px',
+            backgroundColor: '#f1f5f9',
+            color: '#475569',
+            fontSize: '0.74rem',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          مدير دائم ✓
+        </span>
+      );
+    }
+
+    if (!user.requires_subscription || user.subscription_type === 'permanent') {
+      return (
+        <span
+          style={{
+            padding: '3px 8px',
+            borderRadius: '999px',
+            backgroundColor: '#ecfdf5',
+            color: '#047857',
+            border: '1px solid #a7f3d0',
+            fontSize: '0.74rem',
+            fontWeight: 800,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          اشتراك دائم ✓
+        </span>
+      );
+    }
+
+    if (user.subscription_end_date) {
+      const isExpired = new Date() > new Date(user.subscription_end_date);
+      const remainingDays = Math.ceil(
+        (new Date(user.subscription_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (isExpired) {
+        return (
+          <div>
+            <span
+              style={{
+                padding: '3px 8px',
+                borderRadius: '999px',
+                backgroundColor: '#fef2f2',
+                color: '#dc2626',
+                border: '1px solid #fecaca',
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              ⚠️ منتهي الصلاحية
+            </span>
+            <div style={{ fontSize: '0.7rem', color: '#dc2626', marginTop: '2px', fontWeight: 600 }}>
+              انتهى في {fmtDate(user.subscription_end_date)}
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          <span
+            style={{
+              padding: '3px 8px',
+              borderRadius: '999px',
+              backgroundColor: remainingDays <= 15 ? '#fefce8' : '#eff6ff',
+              color: remainingDays <= 15 ? '#ca8a04' : '#1d4ed8',
+              border: `1px solid ${remainingDays <= 15 ? '#fef08a' : '#bfdbfe'}`,
+              fontSize: '0.74rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <Clock size={11} />
+            متبقي {remainingDays} يوم
+          </span>
+          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+            حتى {fmtDate(user.subscription_end_date)}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+        غير محدد
+      </span>
+    );
   };
 
   return (
@@ -790,6 +959,9 @@ export const AdminUsersPage: React.FC = () => {
                   المحل / البطاقات
                 </th>
                 <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
+                  فترة الاشتراك
+                </th>
+                <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
                   الحالة
                 </th>
                 <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
@@ -811,14 +983,14 @@ export const AdminUsersPage: React.FC = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '48px 20px', textAlign: 'center', color: '#64748b' }}>
+                  <td colSpan={8} style={{ padding: '48px 20px', textAlign: 'center', color: '#64748b' }}>
                     <RefreshCw size={24} className="spin" style={{ margin: '0 auto 10px', color: '#4f46e5' }} />
                     <p style={{ margin: 0, fontWeight: 700 }}>جاري جلب قائمة المستخدمين...</p>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '48px 20px', textAlign: 'center', color: '#94a3b8' }}>
+                  <td colSpan={8} style={{ padding: '48px 20px', textAlign: 'center', color: '#94a3b8' }}>
                     <Users size={40} style={{ margin: '0 auto 10px', color: '#cbd5e1' }} />
                     <p style={{ margin: 0, fontWeight: 700, fontSize: '1rem', color: '#64748b' }}>
                       لا يوجد مستخدمين مطابقين للبحث أو الفلتر
@@ -939,6 +1111,11 @@ export const AdminUsersPage: React.FC = () => {
                             {user.role === 'super_admin' ? 'كافة البطاقات' : 'حسب الصلاحيات'}
                           </span>
                         )}
+                      </td>
+
+                      {/* Subscription Period */}
+                      <td style={{ padding: '16px 20px' }}>
+                        {renderSubscriptionBadge(user)}
                       </td>
 
                       {/* Status */}
@@ -1510,11 +1687,205 @@ export const AdminUsersPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* 4. Granular Permissions (Only for Staff or custom) */}
+                {/* 4. Subscription Type & Period */}
+                {formRole !== 'super_admin' && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                        4. مدة ونوع الاشتراك في السيستم
+                      </h4>
+                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                        (يتم إيقاف دخول الحساب تلقائياً فور انتهاء الاشتراك)
+                      </span>
+                    </div>
+
+                    {/* Subscription Type Selector */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
+                      {/* Permanent */}
+                      <div
+                        onClick={() => handleSubTypeChange('permanent')}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          border: formSubType === 'permanent' ? '2px solid #10b981' : '1.5px solid #e2e8f0',
+                          backgroundColor: formSubType === 'permanent' ? '#ecfdf5' : '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontWeight: 800, fontSize: '0.88rem', color: formSubType === 'permanent' ? '#065f46' : '#1e293b' }}>
+                            دائم (مفتوح)
+                          </span>
+                          <span
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '50%',
+                              border: formSubType === 'permanent' ? 'none' : '2px solid #cbd5e1',
+                              backgroundColor: formSubType === 'permanent' ? '#10b981' : 'transparent',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#fff',
+                            }}
+                          >
+                            {formSubType === 'permanent' && <Check size={11} strokeWidth={3} />}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                          صلاحية دخول دائمة مدى الحياة بدون انتهاء
+                        </span>
+                      </div>
+
+                      {/* Yearly */}
+                      <div
+                        onClick={() => handleSubTypeChange('yearly')}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          border: formSubType === 'yearly' ? '2px solid #4f46e5' : '1.5px solid #e2e8f0',
+                          backgroundColor: formSubType === 'yearly' ? '#eef2ff' : '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontWeight: 800, fontSize: '0.88rem', color: formSubType === 'yearly' ? '#3730a3' : '#1e293b' }}>
+                            سنوي (سنة كاملة)
+                          </span>
+                          <span
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '50%',
+                              border: formSubType === 'yearly' ? 'none' : '2px solid #cbd5e1',
+                              backgroundColor: formSubType === 'yearly' ? '#4f46e5' : 'transparent',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#fff',
+                            }}
+                          >
+                            {formSubType === 'yearly' && <Check size={11} strokeWidth={3} />}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                          12 شهراً تحسب تلقائياً من تاريخ البدء
+                        </span>
+                      </div>
+
+                      {/* Custom */}
+                      <div
+                        onClick={() => handleSubTypeChange('custom')}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          border: formSubType === 'custom' ? '2px solid #f59e0b' : '1.5px solid #e2e8f0',
+                          backgroundColor: formSubType === 'custom' ? '#fffbeb' : '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontWeight: 800, fontSize: '0.88rem', color: formSubType === 'custom' ? '#92400e' : '#1e293b' }}>
+                            تاريخ مخصص
+                          </span>
+                          <span
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '50%',
+                              border: formSubType === 'custom' ? 'none' : '2px solid #cbd5e1',
+                              backgroundColor: formSubType === 'custom' ? '#f59e0b' : 'transparent',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#fff',
+                            }}
+                          >
+                            {formSubType === 'custom' && <Check size={11} strokeWidth={3} />}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                          تحديد تاريخ الانتهاء يدوياً
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Dates inputs for yearly and custom */}
+                    {formSubType !== 'permanent' && (
+                      <div
+                        style={{
+                          backgroundColor: '#f8fafc',
+                          padding: '14px 16px',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: '14px',
+                        }}
+                      >
+                        <div>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
+                            <Calendar size={14} color="#64748b" />
+                            تاريخ بداية الاشتراك *
+                          </label>
+                          <input
+                            type="date"
+                            required
+                            value={formSubStartDate}
+                            onChange={(e) => handleStartDateChange(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '9px 12px',
+                              borderRadius: '10px',
+                              border: '1.5px solid #cbd5e1',
+                              fontSize: '0.85rem',
+                              fontFamily: "'Tajawal', sans-serif",
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
+                            <Clock size={14} color="#64748b" />
+                            تاريخ انتهاء الاشتراك *
+                          </label>
+                          <input
+                            type="date"
+                            required
+                            value={formSubEndDate}
+                            onChange={(e) => setFormSubEndDate(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '9px 12px',
+                              borderRadius: '10px',
+                              border: '1.5px solid #cbd5e1',
+                              fontSize: '0.85rem',
+                              fontFamily: "'Tajawal', sans-serif",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 5. Granular Permissions (Only for Staff or custom) */}
                 {formRole !== 'super_admin' && (
                   <div>
                     <h4 style={{ margin: '0 0 10px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
-                      4. مصفوفة الصلاحيات الدقيقة والصفحات المسموحة
+                      5. مصفوفة الصلاحيات الدقيقة والصفحات المسموحة
                     </h4>
 
                     {/* Pages Selection */}
