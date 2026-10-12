@@ -324,7 +324,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
                       <span>لا توجد إشعارات حالياً</span>
                     </div>
                   ) : (
-                    notifications.map((notif) => (
+                    notifications.slice(0, 3).map((notif) => (
                       <div
                         key={notif._id}
                         onClick={() => handleNotificationClick(notif)}
@@ -455,6 +455,33 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
                       </div>
                     ))
                   )}
+                </div>
+
+                {/* Footer: View all notifications */}
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    textAlign: 'center',
+                    borderTop: '1px solid var(--bdr-light, #e2e8f0)',
+                    backgroundColor: 'var(--bg-subtle, #f8fafc)',
+                  }}
+                >
+                  <Link
+                    to="/admin/notifications"
+                    onClick={() => setNotifOpen(false)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      color: 'var(--clr-primary-600, #3b82f6)',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    عرض جميع الإشعارات ({notifications.length}) <ExternalLink size={13} />
+                  </Link>
                 </div>
               </div>
             )}

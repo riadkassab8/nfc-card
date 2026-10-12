@@ -18,6 +18,7 @@ import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
 import { AdminScanPage } from './pages/admin/AdminScanPage';
 import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
 import { PublicCardLandingPage } from './pages/PublicCardLandingPage';
 import { SocialPage } from './pages/SocialPage';
 
@@ -106,6 +107,17 @@ export const App: React.FC = () => (
             <ProtectedRoute>
               <AdminShell title="الإحصائيات">
                 <AdminAnalyticsPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/notifications"
+          element={
+            <ProtectedRoute>
+              <AdminShell title="مركز الإشعارات">
+                <AdminNotificationsPage />
               </AdminShell>
             </ProtectedRoute>
           }
