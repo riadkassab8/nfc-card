@@ -13,6 +13,7 @@ import {
   BarChart2,
   Tags,
   Scan,
+  ShieldAlert,
 } from 'lucide-react';
 import { authApi } from '../services/api';
 import { SidebarNavItemConfig } from '../types';
@@ -27,6 +28,7 @@ export const ICON_MAP: Record<string, React.ElementType> = {
   BarChart2,
   Tags,
   Scan,
+  ShieldAlert,
 };
 
 export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
@@ -92,6 +94,15 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     iconName: 'Scan',
     visible: true,
     order: 6,
+  },
+  {
+    id: 'users',
+    path: '/admin/users',
+    label: 'المستخدمين والصلاحيات',
+    defaultLabel: 'المستخدمين والصلاحيات',
+    iconName: 'ShieldAlert',
+    visible: true,
+    order: 7,
   },
 ];
 

@@ -19,6 +19,7 @@ import { AdminScanPage } from './pages/admin/AdminScanPage';
 import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
+import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { PublicCardLandingPage } from './pages/PublicCardLandingPage';
 import { SocialPage } from './pages/SocialPage';
 
@@ -42,7 +43,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="overview">
               <AdminShell title="نظرة عامة">
                 <AdminOverviewPage />
               </AdminShell>
@@ -52,7 +53,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin/customers"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="customers">
               <AdminShell title="إدارة العملاء">
                 <AdminCustomersPage />
               </AdminShell>
@@ -62,7 +63,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin/customers/:id"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="customers">
               <AdminShell title="تفاصيل العميل">
                 <CustomerDetailsPage />
               </AdminShell>
@@ -72,7 +73,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin/cards"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="cards">
               <AdminShell title="إدارة البطاقات">
                 <AdminInventoryPage />
               </AdminShell>
@@ -83,7 +84,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin/categories"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="categories">
               <AdminShell title="التصنيفات">
                 <AdminCategoriesPage />
               </AdminShell>
@@ -93,7 +94,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin/scan"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="scan">
               <AdminShell title="فحص وتجهيز">
                 <AdminScanPage />
               </AdminShell>
@@ -104,7 +105,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin/analytics"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="analytics">
               <AdminShell title="الإحصائيات">
                 <AdminAnalyticsPage />
               </AdminShell>
@@ -115,9 +116,20 @@ export const App: React.FC = () => (
         <Route
           path="/admin/notifications"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="notifications">
               <AdminShell title="مركز الإشعارات">
                 <AdminNotificationsPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute requiredRole="super_admin">
+              <AdminShell title="المستخدمين والصلاحيات">
+                <AdminUsersPage />
               </AdminShell>
             </ProtectedRoute>
           }
@@ -142,7 +154,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin/add-card"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="cards" requiredAction="cards:create">
               <AdminShell title="إضافة بطاقة">
                 <AdminAddCardPage />
               </AdminShell>
@@ -153,7 +165,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin/cards/:id/edit"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="cards" requiredAction="cards:edit">
               <AdminShell title="تعديل البطاقة">
                 <AdminEditCardPage />
               </AdminShell>

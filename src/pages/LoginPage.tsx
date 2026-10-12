@@ -107,7 +107,7 @@ export const LoginPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div className="form-group">
-              <label className="form-label" htmlFor="login-username">اسم المستخدم</label>
+              <label className="form-label" htmlFor="login-username">اسم المستخدم أو البريد الإلكتروني</label>
               <div className="input-icon-wrap">
                 <User size={18} className="input-icon" />
                 <input
@@ -116,7 +116,7 @@ export const LoginPage: React.FC = () => {
                   className="form-input auth-input"
                   value={username}
                   onChange={(e) => { setUsername(e.target.value); if (error) setError(null); }}
-                  placeholder="ادخل اسم المستخدم"
+                  placeholder="ادخل اسم المستخدم أو البريد الإلكتروني"
                   autoComplete="username"
                   autoFocus
                   disabled={submitting}

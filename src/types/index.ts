@@ -22,6 +22,14 @@ export interface SidebarNavItemConfig {
   order: number;
 }
 
+export type UserRole = 'super_admin' | 'staff' | 'merchant';
+export type UserStatus = 'active' | 'suspended';
+
+export interface UserPermissions {
+  pages?: string[];
+  actions?: string[];
+}
+
 export interface ApiAdmin {
   _id?: string;
   id?: string;
@@ -29,10 +37,60 @@ export interface ApiAdmin {
   name?: string;
   email?: string;
   avatar?: string;
+  role?: UserRole;
+  status?: UserStatus;
+  permissions?: UserPermissions;
+  assigned_cards?: string[];
+  phone?: string;
+  store_name?: string;
+  created_by?: string;
   settings?: AdminSettings;
   sidebar_menu?: SidebarNavItemConfig[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface CreateUserPayload {
+  username: string;
+  password: string;
+  name?: string;
+  email?: string;
+  role?: UserRole;
+  status?: UserStatus;
+  permissions?: UserPermissions;
+  assigned_cards?: string[];
+  phone?: string;
+  store_name?: string;
+}
+
+export interface UpdateUserPayload {
+  username?: string;
+  password?: string;
+  name?: string;
+  email?: string;
+  role?: UserRole;
+  status?: UserStatus;
+  permissions?: UserPermissions;
+  assigned_cards?: string[];
+  phone?: string;
+  store_name?: string;
+}
+
+export interface UsersListResponse {
+  users: ApiAdmin[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface UserStatsSummary {
+  total: number;
+  superAdmins: number;
+  staff: number;
+  merchants: number;
+  active: number;
+  suspended: number;
 }
 
 export interface ApiAuthResponse {

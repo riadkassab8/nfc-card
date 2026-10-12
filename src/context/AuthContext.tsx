@@ -21,6 +21,11 @@ interface AuthContextType extends AuthState {
   clearError: () => void;
   updateAdmin: (admin: ApiAdmin | Partial<ApiAdmin>) => void;
   refreshProfile: () => Promise<void>;
+  isSuperAdmin: boolean;
+  isMerchant: boolean;
+  isStaff: boolean;
+  can: (action: string) => boolean;
+  canAccessPage: (pageId: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -201,8 +206,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const isSuperAdmin =
+    state.admin?.role === 'super_admin' ||
+    (!state.admin?.role && state.admin?.username === 'admin');
+
+  const isMerchant = state.admin?.role === 'merchant';
+  const isStaff = state.admin?.role === 'staff';
+
+  const can = useCallback(
+    (action: string): boolean => {
+      if (!state.isAuthenticated || !state.admin) return false;
+      // المدير الرئيسي يملك صلاحيات كاملة لكل الإجراءات
+      if (
+        state.admin.role === 'super_admin' ||
+        (!state.admin.role && state.admin.username === 'admin')
+      ) {
+        return true;
+      }
+      // التاجر / صاحب المحل: يمكنه فقط استعراض وتعديل بطاقاته الخاصة
+      if (state.admin.role === 'merchant') {
+        return ['cards:view', 'cards:edit'].includes(action);
+      }
+      // الموظف: نتحقق من مصفوفة الإجراءات
+      const actions = state.admin.permissions?.actions || [];
+      return actions.includes('*') || actions.includes(action);
+    },
+    [state.isAuthenticated, state.admin],
+  );
+
+  const canAccessPage = useCallback(
+    (pageId: string): boolean => {
+      if (!state.isAuthenticated || !state.admin) return false;
+      // المدير الرئيسي يصل لكل الصفحات
+      if (
+        state.admin.role === 'super_admin' ||
+        (!state.admin.role && state.admin.username === 'admin')
+      ) {
+        return true;
+      }
+      // صفحة إدارة المستخدمين والصلاحيات مخصصة حصرياً للمدير الرئيسي
+      if (pageId === 'users') {
+        return false;
+      }
+      // التاجر / صاحب المحل: يصل فقط للرئيسية والبطاقات
+      if (state.admin.role === 'merchant') {
+        return ['overview', 'cards'].includes(pageId);
+      }
+      // الموظف: نتحقق من مصفوفة الصفحات المسموحة
+      const pages = state.admin.permissions?.pages || [];
+      return pages.includes(pageId);
+    },
+    [state.isAuthenticated, state.admin],
+  );
+
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, clearError, updateAdmin, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        ...state,
+        login,
+        logout,
+        clearError,
+        updateAdmin,
+        refreshProfile,
+        isSuperAdmin,
+        isMerchant,
+        isStaff,
+        can,
+        canAccessPage,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

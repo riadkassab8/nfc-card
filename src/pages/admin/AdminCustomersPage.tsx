@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { customersApi } from '../../services';
 import { ApiCustomer, fmtDate, ApiPartnerStatsResponse } from '../../types';
 import { CustomerModal } from '../../components/admin/CustomerModal';
@@ -40,6 +41,7 @@ const Toast: React.FC<{ msg: string; type: ToastType; onClose: () => void }> = (
 
 export const AdminCustomersPage: React.FC = () => {
   const navigate = useNavigate();
+  const { can, isSuperAdmin } = useAuth();
 
   const [customers, setCustomers] = useState<ApiCustomer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -276,98 +278,106 @@ export const AdminCustomersPage: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '10px', zIndex: 1, flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setTrashModalOpen(true)}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '12px',
-              fontSize: '13.5px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              backgroundColor: 'rgba(239, 68, 68, 0.15)',
-              color: '#fca5a5',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              cursor: 'pointer',
-              transition: 'all 150ms ease',
-            }}
-            title="عرض العملاء المحذوفين مع إمكانية استرجاعهم"
-          >
-            <Trash2 size={16} />
-            <span> سلة المهملات</span>
-          </button>
+          {can('customers:delete') && (
+            <button
+              onClick={() => setTrashModalOpen(true)}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '12px',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                color: '#fca5a5',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                cursor: 'pointer',
+                transition: 'all 150ms ease',
+              }}
+              title="عرض العملاء المحذوفين مع إمكانية استرجاعهم"
+            >
+              <Trash2 size={16} />
+              <span> سلة المهملات</span>
+            </button>
+          )}
 
-          <button
-            onClick={handleDownloadBackup}
-            disabled={downloadingBackup}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '12px',
-              fontSize: '13.5px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              color: '#e2e8f0',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              cursor: downloadingBackup ? 'not-allowed' : 'pointer',
-              transition: 'all 150ms ease',
-            }}
-            title="تحميل ملف JSON كامل ببيانات العملاء وكروتهم"
-          >
-            {downloadingBackup ? (
-              <>
-                <RefreshCw size={15} className="spin" />
-                <span>جاري التحميل...</span>
-              </>
-            ) : (
-              <>
-                <Download size={16} />
-                <span> تحميل نسخة احتياطية (Backup)</span>
-              </>
-            )}
-          </button>
+          {isSuperAdmin && (
+            <button
+              onClick={handleDownloadBackup}
+              disabled={downloadingBackup}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '12px',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: '#e2e8f0',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                cursor: downloadingBackup ? 'not-allowed' : 'pointer',
+                transition: 'all 150ms ease',
+              }}
+              title="تحميل ملف JSON كامل ببيانات العملاء وكروتهم"
+            >
+              {downloadingBackup ? (
+                <>
+                  <RefreshCw size={15} className="spin" />
+                  <span>جاري التحميل...</span>
+                </>
+              ) : (
+                <>
+                  <Download size={16} />
+                  <span> تحميل نسخة احتياطية (Backup)</span>
+                </>
+              )}
+            </button>
+          )}
 
-          <button
-            onClick={() => setBroadcastModalOpen(true)}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '12px',
-              fontSize: '13.5px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              backgroundColor: 'rgba(234, 88, 12, 0.2)',
-              color: '#ffedd5',
-              border: '1px solid rgba(234, 88, 12, 0.45)',
-              cursor: 'pointer',
-              transition: 'all 150ms ease',
-            }}
-            title="إرسال بريد تسويقي أو عروض لجميع العملاء أو المحددين"
-          >
-            <Megaphone size={16} />
-            <span>حملة بريدية جماعية</span>
-          </button>
+          {can('customers:edit') && (
+            <button
+              onClick={() => setBroadcastModalOpen(true)}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '12px',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                backgroundColor: 'rgba(234, 88, 12, 0.2)',
+                color: '#ffedd5',
+                border: '1px solid rgba(234, 88, 12, 0.45)',
+                cursor: 'pointer',
+                transition: 'all 150ms ease',
+              }}
+              title="إرسال بريد تسويقي أو عروض لجميع العملاء أو المحددين"
+            >
+              <Megaphone size={16} />
+              <span>حملة بريدية جماعية</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setCreateModalOpen(true)}
-            className="btn-primary"
-            style={{
-              padding: '10px 20px',
-              borderRadius: '12px',
-              fontSize: '14px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: 'var(--shadow-blue)',
-            }}
-          >
-            <Plus size={18} />  إضافة عميل جديد
-          </button>
+          {can('customers:create') && (
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className="btn-primary"
+              style={{
+                padding: '10px 20px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: 'var(--shadow-blue)',
+              }}
+            >
+              <Plus size={18} />  إضافة عميل جديد
+            </button>
+          )}
         </div>
       </div>
 
@@ -892,93 +902,101 @@ export const AdminCustomersPage: React.FC = () => {
                           <span>التفاصيل</span>
                         </button>
 
-                        <button
-                          onClick={() => {
-                            if (!c.email) {
-                              showToast(`العميل "${c.name}" ليس لديه بريد إلكتروني مسجل. يرجى إضافة بريده أولاً.`, 'error');
-                            }
-                            setEmailCustomerTarget(c);
-                          }}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '6px 11px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--bdr-light)',
-                            backgroundColor: c.email ? '#eff6ff' : 'var(--bg-subtle)',
-                            color: c.email ? 'var(--clr-primary-700)' : 'var(--txt-muted)',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            fontFamily: 'var(--font)',
-                            transition: 'all 0.15s ease',
-                          }}
-                          title={c.email ? `إرسال بريد إلكتروني إلى ${c.email}` : 'العميل ليس لديه بريد إلكتروني مسجل'}
-                        >
-                          <Mail size={13} />
-                          <span>إرسال بريد</span>
-                        </button>
+                        {can('customers:edit') && (
+                          <button
+                            onClick={() => {
+                              if (!c.email) {
+                                showToast(`العميل "${c.name}" ليس لديه بريد إلكتروني مسجل. يرجى إضافة بريده أولاً.`, 'error');
+                              }
+                              setEmailCustomerTarget(c);
+                            }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '6px 11px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--bdr-light)',
+                              backgroundColor: c.email ? '#eff6ff' : 'var(--bg-subtle)',
+                              color: c.email ? 'var(--clr-primary-700)' : 'var(--txt-muted)',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              fontFamily: 'var(--font)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title={c.email ? `إرسال بريد إلكتروني إلى ${c.email}` : 'العميل ليس لديه بريد إلكتروني مسجل'}
+                          >
+                            <Mail size={13} />
+                            <span>إرسال بريد</span>
+                          </button>
+                        )}
 
-                        <button
-                          onClick={() => setChangePartnerTarget(c)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            border: '1px solid #bfdbfe',
-                            backgroundColor: '#eff6ff',
-                            color: '#1d4ed8',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                          title="نقل / تغيير الشريك المسؤول"
-                        >
-                          <ArrowRightLeft size={14} />
-                        </button>
+                        {can('customers:edit') && (
+                          <button
+                            onClick={() => setChangePartnerTarget(c)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '8px',
+                              border: '1px solid #bfdbfe',
+                              backgroundColor: '#eff6ff',
+                              color: '#1d4ed8',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="نقل / تغيير الشريك المسؤول"
+                          >
+                            <ArrowRightLeft size={14} />
+                          </button>
+                        )}
 
-                        <button
-                          onClick={() => setEditCustomer(c)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--bdr-light)',
-                            backgroundColor: 'var(--bg-subtle)',
-                            color: 'var(--txt-secondary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                          title="تعديل بيانات العميل"
-                        >
-                          <Edit2 size={14} />
-                        </button>
+                        {can('customers:edit') && (
+                          <button
+                            onClick={() => setEditCustomer(c)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--bdr-light)',
+                              backgroundColor: 'var(--bg-subtle)',
+                              color: 'var(--txt-secondary)',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="تعديل بيانات العميل"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                        )}
 
-                        <button
-                          onClick={() => setDeleteTarget(c)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--clr-error-bdr)',
-                            backgroundColor: 'var(--clr-error-bg)',
-                            color: 'var(--clr-error)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                          title="حذف العميل"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {can('customers:delete') && (
+                          <button
+                            onClick={() => setDeleteTarget(c)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--clr-error-bdr)',
+                              backgroundColor: 'var(--clr-error-bg)',
+                              color: 'var(--clr-error)',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="حذف العميل"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

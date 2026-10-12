@@ -49,11 +49,13 @@ const formatTimeAgo = (dateStr: string) => {
 };
 
 export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMenu }) => {
-  const { admin, logout } = useAuth();
+  const { admin, logout, canAccessPage } = useAuth();
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
+
+  const hasNotifAccess = canAccessPage('notifications');
 
   // Notification states
   const [notifications, setNotifications] = useState<ApiNotification[]>([]);
@@ -65,6 +67,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
   const initial = displayName.trim().charAt(0).toUpperCase();
 
   const fetchNotifications = async () => {
+    if (!hasNotifAccess) return;
     try {
       const res = await notificationsApi.getNotifications(30);
       setNotifications(res.notifications || []);
@@ -75,10 +78,11 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
   };
 
   useEffect(() => {
+    if (!hasNotifAccess) return;
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 45000);
     return () => clearInterval(interval);
-  }, []);
+  }, [hasNotifAccess]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -182,7 +186,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
         {/* End: notifications + user + logout */}
         <div className="hdr-end">
           {/* ── Notification Bell Dropdown ── */}
-          <div style={{ position: 'relative' }} ref={notifRef}>
+          {hasNotifAccess && (
+            <div style={{ position: 'relative' }} ref={notifRef}>
             <button
               type="button"
               onClick={() => {
@@ -487,13 +492,22 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
               </div>
             )}
           </div>
+        )}
 
-          {/* User profile link */}
-          <Link to="/admin/profile" className="hdr-user" title="الملف الشخصي والإعدادات">
-            <div className="hdr-user-meta" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <span className="hdr-user-name">{displayName}</span>
-              <span className="hdr-user-role">مدير النظام</span>
-            </div>
+        {/* User profile link */}
+        <Link to="/admin/profile" className="hdr-user" title="الملف الشخصي والإعدادات">
+          <div className="hdr-user-meta" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <span className="hdr-user-name">{displayName}</span>
+            <span className="hdr-user-role">
+              {admin?.role === 'super_admin'
+                ? 'المدير العام'
+                : admin?.role === 'merchant'
+                ? 'تاجر / متجر'
+                : admin?.role === 'staff'
+                ? 'موظف'
+                : 'مدير النظام'}
+            </span>
+          </div>
             <div className="hdr-avatar">
               {admin?.avatar && !avatarFailed ? (
                 <img src={admin.avatar} alt="" onError={() => setAvatarFailed(true)} />

@@ -141,13 +141,25 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
   initialTab = 'profile',
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { admin, updateAdmin, refreshProfile } = useAuth();
+  const { admin, updateAdmin, refreshProfile, isSuperAdmin } = useAuth();
 
   // Active tab state: url query param has precedence, then initialTab
   const queryTab = searchParams.get('tab') as 'profile' | 'security' | 'menu' | null;
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'menu'>(
-    queryTab === 'security' || queryTab === 'profile' || queryTab === 'menu' ? queryTab : initialTab
-  );
+  const initialActive =
+    (queryTab === 'security' || queryTab === 'profile' || (queryTab === 'menu' && isSuperAdmin))
+      ? queryTab
+      : initialTab === 'menu' && !isSuperAdmin
+      ? 'profile'
+      : initialTab;
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'menu'>(initialActive);
+
+  // Redirect away from menu tab if not super admin
+  useEffect(() => {
+    if (!isSuperAdmin && activeTab === 'menu') {
+      setActiveTab('profile');
+      setSearchParams({ tab: 'profile' });
+    }
+  }, [isSuperAdmin, activeTab, setSearchParams]);
 
   const [toast, setToast] = useState<ToastInfo | null>(null);
 
@@ -620,29 +632,31 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
           <span>كلمة المرور والأمان</span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => handleTabChange('menu')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 20px',
-            borderRadius: '10px',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            fontWeight: activeTab === 'menu' ? 700 : 600,
-            color: activeTab === 'menu' ? '#4338ca' : '#64748b',
-            backgroundColor: activeTab === 'menu' ? '#ffffff' : 'transparent',
-            boxShadow: activeTab === 'menu' ? '0 2px 8px rgba(15, 23, 42, 0.08)' : 'none',
-            transition: 'all 0.2s ease',
-            fontFamily: "'Tajawal', sans-serif",
-          }}
-        >
-          <Sliders size={17} color={activeTab === 'menu' ? '#4f46e5' : '#64748b'} />
-          <span>إعدادات القائمة</span>
-        </button>
+        {isSuperAdmin && (
+          <button
+            type="button"
+            onClick={() => handleTabChange('menu')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 20px',
+              borderRadius: '10px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: activeTab === 'menu' ? 700 : 600,
+              color: activeTab === 'menu' ? '#4338ca' : '#64748b',
+              backgroundColor: activeTab === 'menu' ? '#ffffff' : 'transparent',
+              boxShadow: activeTab === 'menu' ? '0 2px 8px rgba(15, 23, 42, 0.08)' : 'none',
+              transition: 'all 0.2s ease',
+              fontFamily: "'Tajawal', sans-serif",
+            }}
+          >
+            <Sliders size={17} color={activeTab === 'menu' ? '#4f46e5' : '#64748b'} />
+            <span>إعدادات القائمة</span>
+          </button>
+        )}
       </div>
 
       {/* ── Tab 1: Profile ── */}
@@ -1108,7 +1122,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
       )}
 
       {/* ── Tab 3: Dynamic Menu Settings ── */}
-      {activeTab === 'menu' && (
+      {isSuperAdmin && activeTab === 'menu' && (
         <div
           style={{
             backgroundColor: '#ffffff',

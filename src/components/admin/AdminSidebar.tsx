@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Zap,
@@ -13,6 +13,7 @@ import {
   ICON_MAP,
   SidebarNavItemConfig,
 } from '../../utils/sidebarConfig';
+import { useAuth } from '../../context/AuthContext';
 
 export interface AdminSidebarProps {
   onLinkClick?: () => void;
@@ -33,20 +34,32 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   onToggleCollapse,
   onClose,
 }) => {
+  const { canAccessPage } = useAuth();
+
+  const filterAccessible = useCallback(
+    (items: SidebarNavItemConfig[]): SidebarNavItemConfig[] => {
+      return items.filter((item) => item.visible && canAccessPage(item.id));
+    },
+    [canAccessPage],
+  );
+
   const [navItems, setNavItems] = useState<SidebarNavItemConfig[]>(() => {
-    return getSidebarConfig().filter((i) => i.visible);
+    return filterAccessible(getSidebarConfig());
   });
 
   useEffect(() => {
+    // تحديث فوري بالقائمة الحالية مفلترة بالصلاحيات
+    setNavItems(filterAccessible(getSidebarConfig()));
+
     // مزامنة القائمة من الـ Backend API في الخلفية
     fetchSidebarConfigFromApi()
       .then((items) => {
-        setNavItems(items.filter((i) => i.visible));
+        setNavItems(filterAccessible(items));
       })
       .catch(() => {});
 
     const handleConfigChange = () => {
-      setNavItems(getSidebarConfig().filter((i) => i.visible));
+      setNavItems(filterAccessible(getSidebarConfig()));
     };
 
     window.addEventListener(SIDEBAR_CONFIG_EVENT, handleConfigChange);
@@ -55,7 +68,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       window.removeEventListener(SIDEBAR_CONFIG_EVENT, handleConfigChange);
       window.removeEventListener('storage', handleConfigChange);
     };
-  }, []);
+  }, [filterAccessible]);
 
   const renderDynamicLink = (item: SidebarNavItemConfig, index: number) => {
     const Icon = ICON_MAP[item.iconName] || Zap;

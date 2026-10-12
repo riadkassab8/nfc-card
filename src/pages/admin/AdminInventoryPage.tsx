@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { cardsApi, categoriesApi } from '../../services';
 import {
   ApiCard, ApiCategory, isSubscriptionExpired,
@@ -145,6 +146,7 @@ const CloneCardModal: React.FC<{
 /* ── Main ─────────────────────────────────────────────────────── */
 export const AdminInventoryPage: React.FC = () => {
   const navigate = useNavigate();
+  const { can, isSuperAdmin } = useAuth();
   const [cards, setCards] = useState<ApiCard[]>([]);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -545,106 +547,118 @@ export const AdminInventoryPage: React.FC = () => {
         </div>
 
         <div style={{ zIndex: 1, display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <button
-            onClick={() => setTrashModalOpen(true)}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '12px',
-              fontSize: '13.5px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: 'rgba(239, 68, 68, 0.15)',
-              color: '#fca5a5',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              cursor: 'pointer',
-              transition: 'all 150ms ease',
-            }}
-            title="عرض البطاقات المحذوفة مع إمكانية استرجاعها"
-          >
-            <Trash2 size={16} />
-            <span>سلة المهملات</span>
-            {trashCount > 0 && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minWidth: '20px',
-                  height: '20px',
-                  padding: '0 6px',
-                  borderRadius: '10px',
-                  backgroundColor: '#ef4444',
-                  color: '#ffffff',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
-                }}
-              >
-                {trashCount}
-              </span>
-            )}
-          </button>
+          {can('cards:delete') && (
+            <button
+              onClick={() => setTrashModalOpen(true)}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '12px',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                color: '#fca5a5',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                cursor: 'pointer',
+                transition: 'all 150ms ease',
+              }}
+              title="عرض البطاقات المحذوفة مع إمكانية استرجاعها"
+            >
+              <Trash2 size={16} />
+              <span>سلة المهملات</span>
+              {trashCount > 0 && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minWidth: '20px',
+                    height: '20px',
+                    padding: '0 6px',
+                    borderRadius: '10px',
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
+                  }}
+                >
+                  {trashCount}
+                </span>
+              )}
+            </button>
+          )}
 
-          <button
-            onClick={downloadCardsBackup}
-            disabled={downloadingBackup}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '12px',
-              fontSize: '13.5px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              color: '#e2e8f0',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              cursor: downloadingBackup ? 'not-allowed' : 'pointer',
-              transition: 'all 150ms ease',
-            }}
-            title="تحميل ملف JSON كامل ببيانات البطاقات للنسخ الاحتياطي"
-          >
-            {downloadingBackup ? (
-              <>
-                <RefreshCw size={15} className="spin" />
-                <span>جاري التحميل...</span>
-              </>
-            ) : (
-              <>
-                <Download size={16} />
-                <span> نسخة احتياطية (JSON Backup)</span>
-              </>
-            )}
-          </button>
+          {isSuperAdmin && (
+            <button
+              onClick={downloadCardsBackup}
+              disabled={downloadingBackup}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '12px',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: '#e2e8f0',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                cursor: downloadingBackup ? 'not-allowed' : 'pointer',
+                transition: 'all 150ms ease',
+              }}
+              title="تحميل ملف JSON كامل ببيانات البطاقات للنسخ الاحتياطي"
+            >
+              {downloadingBackup ? (
+                <>
+                  <RefreshCw size={15} className="spin" />
+                  <span>جاري التحميل...</span>
+                </>
+              ) : (
+                <>
+                  <Download size={16} />
+                  <span> نسخة احتياطية (JSON Backup)</span>
+                </>
+              )}
+            </button>
+          )}
 
-          <button className="hero-action-btn" onClick={downloadExcel} title="تصدير Excel بحسب الفلاتر الحالية">
-            <FileDown size={16} /> تصدير Excel
-          </button>
-          <button className="hero-action-btn" onClick={() => setBatchOpen(true)}>
-            <Layers size={16} /> توليد دفعة كروت
-          </button>
-          <button
-            onClick={() => navigate('/admin/add-card')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 22px',
-              borderRadius: '12px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              color: '#ffffff',
-              fontSize: '14px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <Plus size={18} /> إضافة بطاقة جديدة
-          </button>
+          {can('export') && (
+            <button className="hero-action-btn" onClick={downloadExcel} title="تصدير Excel بحسب الفلاتر الحالية">
+              <FileDown size={16} /> تصدير Excel
+            </button>
+          )}
+
+          {can('cards:create') && (
+            <button className="hero-action-btn" onClick={() => setBatchOpen(true)}>
+              <Layers size={16} /> توليد دفعة كروت
+            </button>
+          )}
+
+          {can('cards:create') && (
+            <button
+              onClick={() => navigate('/admin/add-card')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 22px',
+                borderRadius: '12px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                color: '#ffffff',
+                fontSize: '14px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <Plus size={18} /> إضافة بطاقة جديدة
+            </button>
+          )}
         </div>
 
       </div>
@@ -1198,16 +1212,18 @@ export const AdminInventoryPage: React.FC = () => {
                 <span>تفاصيل البطاقة</span>
               </button>
 
-              <button
-                className="menu-item-btn"
-                onClick={() => {
-                  navigate(`/admin/cards/${dCard._id}/edit`);
-                  setDropdownState(null);
-                }}
-              >
-                <Edit2 size={15} style={{ color: 'var(--clr-primary-700)' }} />
-                <span>تعديل البطاقة (Edit)</span>
-              </button>
+              {can('cards:edit') && (
+                <button
+                  className="menu-item-btn"
+                  onClick={() => {
+                    navigate(`/admin/cards/${dCard._id}/edit`);
+                    setDropdownState(null);
+                  }}
+                >
+                  <Edit2 size={15} style={{ color: 'var(--clr-primary-700)' }} />
+                  <span>تعديل البطاقة (Edit)</span>
+                </button>
+              )}
 
               <button
                 className="menu-item-btn"
@@ -1222,31 +1238,34 @@ export const AdminInventoryPage: React.FC = () => {
                 <span>نسخ رابط الصفحة</span>
               </button>
 
-              <button
-                className="menu-item-btn"
-                onClick={() => {
-                  setAssignCustomerTarget({
-                    ids: [dCard._id],
-                    codes: [dCard.card_code],
-                  });
-                  setDropdownState(null);
-                }}
-              >
-                <UserCheck size={15} style={{ color: 'var(--clr-primary-600)' }} />
-                <span>ربط بالعميل (Assign)</span>
-              </button>
+              {can('cards:edit') && (
+                <button
+                  className="menu-item-btn"
+                  onClick={() => {
+                    setAssignCustomerTarget({
+                      ids: [dCard._id],
+                      codes: [dCard.card_code],
+                    });
+                    setDropdownState(null);
+                  }}
+                >
+                  <UserCheck size={15} style={{ color: 'var(--clr-primary-600)' }} />
+                  <span>ربط بالعميل (Assign)</span>
+                </button>
+              )}
 
-              <button
-                className="menu-item-btn"
-                onClick={() => {
-                  setCloneTarget(dCard);
-                  setDropdownState(null);
-                }}
-              >
-                <Copy size={15} style={{ color: '#7c3aed' }} />
-                <span>نسخ البطاقة</span>
-              </button>
-
+              {can('cards:create') && (
+                <button
+                  className="menu-item-btn"
+                  onClick={() => {
+                    setCloneTarget(dCard);
+                    setDropdownState(null);
+                  }}
+                >
+                  <Copy size={15} style={{ color: '#7c3aed' }} />
+                  <span>نسخ البطاقة</span>
+                </button>
+              )}
 
               <button
                 className="menu-item-btn"
@@ -1261,29 +1280,33 @@ export const AdminInventoryPage: React.FC = () => {
 
               <div style={{ height: '1px', backgroundColor: 'var(--bdr-light)', margin: '4px 0' }} />
 
-              <button
-                className="menu-item-btn"
-                onClick={() => {
-                  handleToggle(dCard);
-                  setDropdownState(null);
-                }}
-                style={{ color: dCard.status === 'active' ? 'var(--clr-warning)' : 'var(--clr-success)' }}
-              >
-                <Power size={15} />
-                <span>{dCard.status === 'active' ? 'تعطيل البطاقة' : 'تفعيل البطاقة'}</span>
-              </button>
+              {can('cards:edit') && (
+                <button
+                  className="menu-item-btn"
+                  onClick={() => {
+                    handleToggle(dCard);
+                    setDropdownState(null);
+                  }}
+                  style={{ color: dCard.status === 'active' ? 'var(--clr-warning)' : 'var(--clr-success)' }}
+                >
+                  <Power size={15} />
+                  <span>{dCard.status === 'active' ? 'تعطيل البطاقة' : 'تفعيل البطاقة'}</span>
+                </button>
+              )}
 
-              <button
-                className="menu-item-btn"
-                onClick={() => {
-                  setDeleteTarget(dCard);
-                  setDropdownState(null);
-                }}
-                style={{ color: 'var(--clr-error)' }}
-              >
-                <Trash2 size={15} />
-                <span>حذف البطاقة</span>
-              </button>
+              {can('cards:delete') && (
+                <button
+                  className="menu-item-btn"
+                  onClick={() => {
+                    setDeleteTarget(dCard);
+                    setDropdownState(null);
+                  }}
+                  style={{ color: 'var(--clr-error)' }}
+                >
+                  <Trash2 size={15} />
+                  <span>حذف البطاقة</span>
+                </button>
+              )}
             </div>
           </>
         );
