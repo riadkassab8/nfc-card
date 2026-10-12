@@ -168,12 +168,9 @@ export const AdminUsersPage: React.FC = () => {
     setFormActions(['cards:view', 'cards:edit', 'cards:create']);
     setFormAssignedCards([]);
     setShowPassword(false);
-    setFormSubType('yearly');
-    const today = new Date().toISOString().slice(0, 10);
-    setFormSubStartDate(today);
-    const nextYear = new Date();
-    nextYear.setFullYear(nextYear.getFullYear() + 1);
-    setFormSubEndDate(nextYear.toISOString().slice(0, 10));
+    setFormSubType('permanent');
+    setFormSubStartDate(new Date().toISOString().slice(0, 10));
+    setFormSubEndDate('');
     setIsFormOpen(true);
   };
 
@@ -236,12 +233,24 @@ export const AdminUsersPage: React.FC = () => {
     if (newRole === 'super_admin') {
       setFormPages(AVAILABLE_PAGES.map((p) => p.id));
       setFormActions(['*']);
+      setFormSubType('permanent');
+      setFormSubEndDate('');
     } else if (newRole === 'merchant') {
       setFormPages(['cards', 'overview']);
       setFormActions(['cards:view', 'cards:edit']);
+      if (formSubType === 'permanent') {
+        setFormSubType('yearly');
+        const start = formSubStartDate ? new Date(formSubStartDate) : new Date();
+        const end = new Date(start);
+        end.setFullYear(end.getFullYear() + 1);
+        setFormSubEndDate(end.toISOString().slice(0, 10));
+      }
     } else {
+      // staff: اشتراك دائم بدون انتهاء
       setFormPages(['overview', 'cards', 'customers']);
       setFormActions(['cards:view', 'cards:create', 'cards:edit', 'customers:view']);
+      setFormSubType('permanent');
+      setFormSubEndDate('');
     }
   };
 
@@ -281,12 +290,20 @@ export const AdminUsersPage: React.FC = () => {
 
     setIsSaving(true);
     try {
-      const subPayload = {
-        subscription_type: formSubType,
-        requires_subscription: formSubType !== 'permanent',
-        subscription_start_date: formSubStartDate ? new Date(formSubStartDate).toISOString() : null,
-        subscription_end_date: formSubType === 'permanent' ? null : (formSubEndDate ? new Date(formSubEndDate).toISOString() : null),
-      };
+      const isMerchant = formRole === 'merchant';
+      const subPayload = isMerchant
+        ? {
+            subscription_type: formSubType,
+            requires_subscription: formSubType !== 'permanent',
+            subscription_start_date: formSubStartDate ? new Date(formSubStartDate).toISOString() : null,
+            subscription_end_date: formSubType === 'permanent' ? null : (formSubEndDate ? new Date(formSubEndDate).toISOString() : null),
+          }
+        : {
+            subscription_type: 'permanent' as SubscriptionType,
+            requires_subscription: false,
+            subscription_start_date: null,
+            subscription_end_date: null,
+          };
 
       if (editingUser) {
         // Update user
@@ -1687,8 +1704,8 @@ export const AdminUsersPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* 4. Subscription Type & Period */}
-                {formRole !== 'super_admin' && (
+                {/* 4. Subscription Type & Period (Only for Merchant / صاحب المحل فقط) */}
+                {formRole === 'merchant' && (
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                       <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
@@ -1885,7 +1902,7 @@ export const AdminUsersPage: React.FC = () => {
                 {formRole === 'staff' && (
                   <div>
                     <h4 style={{ margin: '0 0 10px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
-                      5. مصفوفة الصلاحيات الدقيقة والصفحات المسموحة
+                      3. مصفوفة الصلاحيات الدقيقة والصفحات المسموحة للموظف
                     </h4>
 
                     {/* Pages Selection */}

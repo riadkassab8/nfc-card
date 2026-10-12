@@ -3,23 +3,16 @@ import { createPortal } from 'react-dom';
 import {
   Activity,
   Search,
-  Filter,
   RefreshCw,
   Download,
-  Trash2,
   Clock,
-  Globe,
   User,
-  Shield,
   Eye,
   CheckCircle2,
   AlertCircle,
   X,
   ChevronLeft,
   ChevronRight,
-  TrendingUp,
-  Monitor,
-  Calendar,
   Layers,
 } from 'lucide-react';
 import { userLogsApi } from '../../services';
