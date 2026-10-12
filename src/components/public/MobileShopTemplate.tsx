@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ApiSocialPageResponse, ActiveShift, BusinessData } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { ApiSocialPageResponse, ActiveShift, BusinessData, PaymentShift } from '../../types';
 import {
   InstaPayIcon,
   VodafoneCashIcon,
@@ -12,7 +12,6 @@ import {
 import {
   Copy,
   Check,
-  Clock,
   UserCheck,
   Star,
   ExternalLink,
@@ -29,6 +28,7 @@ import {
   Sun,
   MapPin,
   ChevronLeft,
+  Sparkles,
 } from 'lucide-react';
 
 interface MobileShopTemplateProps {
@@ -37,7 +37,6 @@ interface MobileShopTemplateProps {
 
 export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) => {
   const biz: BusinessData = data.business_data || {};
-  const shift: ActiveShift | null = data.active_shift || null;
 
   // System theme preference as default
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -56,6 +55,109 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [hoveredRating, setHoveredRating] = useState<number | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+
+  // ── 1. Shifts Extraction & Management ──────────────────────────────────
+  const shifts: PaymentShift[] = useMemo(() => {
+    if (data.payment_shifts && data.payment_shifts.length > 0) {
+      return data.payment_shifts.filter((s) => s.is_active !== false);
+    }
+    if (data.active_shift) {
+      return [
+        {
+          label: data.active_shift.label || 'شيفت الكاشير',
+          cashier_name: data.active_shift.cashier_name,
+          hour_from: data.active_shift.hour_from,
+          period_from: data.active_shift.period_from,
+          hour_to: data.active_shift.hour_to,
+          period_to: data.active_shift.period_to,
+          instapay: data.active_shift.instapay || biz.instapay || undefined,
+          vodafone_cash: data.active_shift.vodafone_cash || biz.vodafone_cash || undefined,
+          is_active: true,
+        },
+      ];
+    }
+    return [];
+  }, [data.payment_shifts, data.active_shift, biz.instapay, biz.vodafone_cash]);
+
+  // Convert 12-hour period to 24-hour minutes (0..1439)
+  const to24Hour = (hour: number | undefined | null, period: 'am' | 'pm' | undefined | null): number => {
+    if (hour === undefined || hour === null) return 0;
+    let h = Number(hour);
+    const p = (period || 'am').toLowerCase();
+    if (p === 'pm' && h < 12) h += 12;
+    if (p === 'am' && h === 12) h = 0;
+    return h;
+  };
+
+  // Check if a shift is active right now based on local browser time
+  const isShiftActiveNow = (s?: PaymentShift | null): boolean => {
+    if (!s || s.hour_from === undefined || s.hour_from === null || s.hour_to === undefined || s.hour_to === null) {
+      return false;
+    }
+    const now = new Date();
+    const cur = now.getHours() * 60 + now.getMinutes();
+    const from = to24Hour(s.hour_from, s.period_from) * 60;
+    const to = to24Hour(s.hour_to, s.period_to) * 60;
+
+    if (from === to) return true; // 24-hour shift
+    if (from < to) {
+      // Daytime shift (e.g., 10:00 AM to 6:00 PM)
+      return cur >= from && cur < to;
+    } else {
+      // Overnight shift (e.g., 7:00 PM to 10:00 AM)
+      return cur >= from || cur < to;
+    }
+  };
+
+  // ── 1. Automatic Active Shift Resolution (تحديد تلقائي في الخلفية بدون تفاصيل إدارية) ──
+  const activeShift: PaymentShift | null = useMemo(() => {
+    if (shifts.length === 0) return null;
+    // 1. Time-based match with local client time
+    const live = shifts.find((s) => isShiftActiveNow(s));
+    if (live) return live;
+
+    // 2. Backend active_shift match if given
+    if (data.active_shift?.label) {
+      const match = shifts.find((s) => s.label === data.active_shift?.label);
+      if (match) return match;
+    }
+
+    // 3. Fallback to first shift
+    return shifts[0] || null;
+  }, [shifts, data.active_shift]);
+
+  const activeCashierName = activeShift?.cashier_name || data.active_shift?.cashier_name || '';
+
+  // ── 2. Effective Payment Details for Active Shift ─────────────────────
+  // Prioritize active shift payment credentials, with fallback to business_data
+  const rawInstaPay = activeShift?.instapay?.trim() || biz.instapay?.trim() || '';
+  const rawVodafoneCash = activeShift?.vodafone_cash?.trim() || biz.vodafone_cash?.trim() || '';
+
+  // Extract clean username from InstaPay IPN URL if present:
+  // e.g. "https://ipn.eg/S/abdallahrabeh8/instapay/8T0sBT" -> "abdallahrabeh8@instapay"
+  const getInstaPayDisplay = (val: string) => {
+    if (!val) return '';
+    const match = val.match(/ipn\.eg\/S\/([^/]+)\/instapay/i);
+    if (match && match[1]) {
+      return `${match[1]}@instapay`;
+    }
+    return val.replace(/^https?:\/\//i, '');
+  };
+
+  const getInstaPayCopyValue = (val: string) => {
+    if (!val) return '';
+    const match = val.match(/ipn\.eg\/S\/([^/]+)\/instapay/i);
+    if (match && match[1]) {
+      return `${match[1]}@instapay`;
+    }
+    return val;
+  };
+
+  const getInstaPayOpenUrl = (val: string) => {
+    if (!val) return 'https://ipn.eg';
+    if (/^https?:\/\//i.test(val)) return val;
+    return 'https://ipn.eg';
+  };
 
   // Copy helper with Haptic Feedback
   const handleCopy = (text: string, type: 'instapay' | 'vodafone') => {
@@ -116,12 +218,6 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
     }
   };
 
-  // Format hours helper
-  const formatPeriod = (period?: 'am' | 'pm') => {
-    if (!period) return '';
-    return period.toLowerCase() === 'pm' ? 'م' : 'ص';
-  };
-
   // Format Egyptian mobile numbers: 010 1234 5678
   const formatPhoneNumber = (phoneStr?: string | null) => {
     if (!phoneStr) return '';
@@ -162,7 +258,6 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
     textSecondary: isDark ? '#94a3b8' : '#64748b',
     subtleBg: isDark ? '#1a2436' : '#f1f5f9',
     subtleBorder: isDark ? 'rgba(255, 255, 255, 0.06)' : '#e2e8f0',
-    itemHoverBg: isDark ? '#1e293b' : '#f8fafc',
   };
 
   return (
@@ -219,7 +314,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
           gap: '16px',
         }}
       >
-        {/* ── Top Utility Bar (Quick status & Actions) ── */}
+        {/* ── Top Utility Bar ── */}
         <div
           style={{
             display: 'flex',
@@ -486,113 +581,71 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
           </div>
         </div>
 
-        {/* ── 2. Active Shift Pass (كاشير الشيفت الحالي) ── */}
-        {shift && (
+        {/* ── 2. Cashier Badge (إشعار رسمي ومطمئن للزبون الواقف في المحل) ── */}
+        {activeCashierName ? (
           <div
             style={{
               backgroundColor: theme.cardBg,
-              border: isDark ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: '20px',
-              padding: '16px 18px',
-              boxShadow: isDark
-                ? '0 6px 20px -4px rgba(16, 185, 129, 0.15)'
-                : '0 4px 16px -2px rgba(16, 185, 129, 0.08)',
+              border: `1px solid ${isDark ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.25)'}`,
+              borderRadius: '16px',
+              padding: '12px 16px',
+              boxShadow: theme.cardShadow,
               display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
+              alignItems: 'center',
+              justifyContent: 'space-between',
             }}
           >
-            {/* Shift Header Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span
-                  className="live-dot"
-                  style={{
-                    display: 'inline-block',
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: '#10b981',
-                  }}
-                />
-                <span style={{ fontSize: '13px', fontWeight: 800, color: '#10b981' }}>
-                  شيفت نشط الآن
-                </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5',
+                  color: '#10b981',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <UserCheck size={18} />
               </div>
-
-              {shift.label && (
-                <span
-                  style={{
-                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
-                    color: isDark ? '#6ee7b7' : '#047857',
-                    padding: '3px 10px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                  }}
-                >
-                  {shift.label}
-                </span>
-              )}
+              <div>
+                <div style={{ fontSize: '11px', color: theme.textSecondary, fontWeight: 600 }}>
+                  الكاشير المسؤول حالياً:
+                </div>
+                <div style={{ fontSize: '14.5px', fontWeight: 800, color: theme.textPrimary }}>
+                  {activeCashierName}
+                </div>
+              </div>
             </div>
 
-            {/* Cashier Info Row */}
             <div
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingTop: '10px',
-                borderTop: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9'}`,
+                gap: '5px',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5',
+                color: isDark ? '#6ee7b7' : '#047857',
+                fontSize: '11.5px',
+                fontWeight: 700,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '12px',
-                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5',
-                    color: '#059669',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <UserCheck size={19} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '11.5px', color: theme.textSecondary }}>الكاشير المسؤول:</div>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: theme.textPrimary }}>
-                    {shift.cashier_name || 'مسؤول الصالة'}
-                  </div>
-                </div>
-              </div>
-
-              {(shift.hour_from !== undefined || shift.hour_to !== undefined) && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    color: theme.textSecondary,
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    backgroundColor: theme.subtleBg,
-                    padding: '4px 10px',
-                    borderRadius: '8px',
-                  }}
-                >
-                  <Clock size={13} style={{ color: '#10b981' }} />
-                  <span>
-                    {shift.hour_from} {formatPeriod(shift.period_from)} — {shift.hour_to}{' '}
-                    {formatPeriod(shift.period_to)}
-                  </span>
-                </div>
-              )}
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: '#10b981',
+                  display: 'inline-block',
+                }}
+              />
+              <span>جاهز للاستلام</span>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* ── 3. Fast Payment Cards (بوابات الدفع والتحويل اللحظي) ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -608,13 +661,13 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
             >
               الدفع والتحويل اللحظي
             </h2>
-            <span style={{ fontSize: '12px', color: theme.textSecondary }}>
-              انقر لنسخ الحساب والتحويل فوراً
+            <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 700 }}>
+              تحويل فوري ومباشر
             </span>
           </div>
 
           {/* InstaPay Card */}
-          {biz.instapay && (
+          {rawInstaPay && (
             <div
               style={{
                 background: 'linear-gradient(135deg, #482583 0%, #30135c 100%)',
@@ -647,11 +700,11 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                   <InstaPayIcon size={46} style={{ borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }} />
                   <div>
                     <div style={{ fontSize: '12px', color: '#e9d5ff', fontWeight: 600 }}>
-                      حساب إنستاباي الرسمي
+                      حساب إنستاباي المعتمد
                     </div>
                     <div
                       style={{
-                        fontSize: '17px',
+                        fontSize: '16px',
                         fontWeight: 800,
                         color: '#ffffff',
                         direction: 'ltr',
@@ -660,7 +713,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                         letterSpacing: '0.2px',
                       }}
                     >
-                      {biz.instapay}
+                      {getInstaPayDisplay(rawInstaPay)}
                     </div>
                   </div>
                 </div>
@@ -683,7 +736,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <button
                   type="button"
-                  onClick={() => handleCopy(biz.instapay || '', 'instapay')}
+                  onClick={() => handleCopy(getInstaPayCopyValue(rawInstaPay), 'instapay')}
                   className="touch-action-btn"
                   style={{
                     display: 'flex',
@@ -718,7 +771,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 </button>
 
                 <a
-                  href="https://ipn.eg"
+                  href={getInstaPayOpenUrl(rawInstaPay)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="touch-action-btn"
@@ -746,7 +799,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
           )}
 
           {/* Vodafone Cash Card */}
-          {biz.vodafone_cash && (
+          {rawVodafoneCash && (
             <div
               style={{
                 background: 'linear-gradient(135deg, #e60000 0%, #b80000 100%)',
@@ -779,7 +832,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                   <VodafoneCashIcon size={46} style={{ borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }} />
                   <div>
                     <div style={{ fontSize: '12px', color: '#fee2e2', fontWeight: 600 }}>
-                      محفظة فودافون كاش
+                      محفظة فودافون كاش المعتمدة
                     </div>
                     <div
                       style={{
@@ -792,7 +845,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                         letterSpacing: '0.4px',
                       }}
                     >
-                      {formatPhoneNumber(biz.vodafone_cash)}
+                      {formatPhoneNumber(rawVodafoneCash)}
                     </div>
                   </div>
                 </div>
@@ -815,7 +868,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <button
                   type="button"
-                  onClick={() => handleCopy(biz.vodafone_cash || '', 'vodafone')}
+                  onClick={() => handleCopy(rawVodafoneCash, 'vodafone')}
                   className="touch-action-btn"
                   style={{
                     display: 'flex',
@@ -850,7 +903,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 </button>
 
                 <a
-                  href={`tel:${biz.vodafone_cash}`}
+                  href={`tel:${rawVodafoneCash}`}
                   className="touch-action-btn"
                   style={{
                     display: 'flex',
@@ -876,7 +929,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
           )}
 
           {/* Cashier payment reminder notice */}
-          {(biz.instapay || biz.vodafone_cash) && (
+          {(rawInstaPay || rawVodafoneCash) && (
             <div
               style={{
                 display: 'flex',

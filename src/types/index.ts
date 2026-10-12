@@ -115,6 +115,8 @@ export interface ActiveShift {
   period_from?: 'am' | 'pm';
   hour_to?: number;
   period_to?: 'am' | 'pm';
+  instapay?: string;
+  vodafone_cash?: string;
 }
 
 export interface PaymentShift {
@@ -302,6 +304,7 @@ export interface ApiSocialPageResponse {
   card_type: string;
   template?: 'default' | 'mobile_shop' | string;
   active_shift?: ActiveShift | null;
+  payment_shifts?: PaymentShift[];
   visit_count?: number;
   requires_subscription?: boolean;
   business_data: BusinessData | null;
