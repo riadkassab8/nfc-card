@@ -11,6 +11,9 @@ import {
   RefreshCw,
   Sparkles,
   ArrowLeft,
+  Clock,
+  ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { cardsApi } from '../../services';
@@ -24,6 +27,13 @@ export const MerchantOverviewPage: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const storeTitle = admin?.store_name || admin?.name || 'متجري الذكي';
+
+  // تفاصيل اشتراك المتجر في النظام
+  const isPermanent = !admin?.requires_subscription || admin?.subscription_type === 'permanent';
+  const subEndDate = admin?.subscription_end_date ? new Date(admin.subscription_end_date) : null;
+  const now = new Date();
+  const diffDays = subEndDate ? Math.ceil((subEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+  const endDateFormatted = subEndDate ? subEndDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
   const loadCards = async () => {
     setLoading(true);
@@ -125,6 +135,50 @@ export const MerchantOverviewPage: React.FC = () => {
         </Link>
       </div>
 
+      {/* Subscription Alert for Merchant if expiring soon or expired */}
+      {!isPermanent && diffDays !== null && diffDays <= 15 && (
+        <div
+          style={{
+            borderRadius: '16px',
+            padding: '16px 20px',
+            backgroundColor: diffDays <= 0 ? '#fef2f2' : '#fffbeb',
+            border: `1.5px solid ${diffDays <= 0 ? '#fecaca' : '#fef08a'}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '14px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                backgroundColor: diffDays <= 0 ? '#fee2e2' : '#fef3c7',
+                color: diffDays <= 0 ? '#dc2626' : '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {diffDays <= 0 ? <AlertCircle size={22} /> : <Clock size={22} />}
+            </div>
+            <div>
+              <h4 style={{ margin: '0 0 2px', fontSize: '15px', fontWeight: 800, color: diffDays <= 0 ? '#991b1b' : '#92400e' }}>
+                {diffDays <= 0
+                  ? 'انتهت فترة اشتراك حساب متجرك في النظام!'
+                  : `تنبيه: متبقي ${diffDays} ${diffDays === 1 ? 'يوم' : 'أيام'} فقط على انتهاء اشتراك حسابك!`}
+              </h4>
+              <p style={{ margin: 0, fontSize: '13px', color: diffDays <= 0 ? '#b91c1c' : '#b45309' }}>
+                تاريخ انتهاء الاشتراك: <strong>{endDateFormatted}</strong>. يرجى التواصل مع إدارة المنصة لتجديد الاشتراك لتفادي توقف الخدمة.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* KPI Stats Grid */}
       <div style={{
         display: 'grid',
@@ -197,7 +251,68 @@ export const MerchantOverviewPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 3: Subscription Status */}
+        {/* Card 3: Store Subscription (باقي على اشتراك المحل) */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          border: `1.5px solid ${isPermanent ? '#a7f3d0' : diffDays !== null && diffDays <= 15 ? '#fef08a' : 'var(--bdr-light)'}`,
+          padding: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          boxShadow: 'var(--shadow-xs)',
+        }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px',
+            backgroundColor: isPermanent ? '#ecfdf5' : diffDays !== null && diffDays <= 0 ? '#fef2f2' : diffDays !== null && diffDays <= 15 ? '#fefce8' : '#eff6ff',
+            color: isPermanent ? '#059669' : diffDays !== null && diffDays <= 0 ? '#dc2626' : diffDays !== null && diffDays <= 15 ? '#d97706' : '#2563eb',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            {isPermanent ? <ShieldCheck size={24} /> : <Clock size={24} />}
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '13px', color: 'var(--txt-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>اشتراك المحل</span>
+              <span style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                backgroundColor: isPermanent ? '#d1fae5' : '#e0e7ff',
+                color: isPermanent ? '#065f46' : '#4338ca',
+                fontWeight: 700,
+              }}>
+                {admin?.subscription_type === 'yearly' ? 'سنوي' : admin?.subscription_type === 'custom' ? 'مخصص' : 'دائم'}
+              </span>
+            </div>
+            <div style={{
+              fontSize: '18px',
+              fontWeight: 800,
+              color: isPermanent ? '#059669' : diffDays !== null && diffDays <= 0 ? '#dc2626' : diffDays !== null && diffDays <= 15 ? '#d97706' : '#1e40af',
+              marginTop: '2px',
+            }}>
+              {isPermanent ? (
+                'دائم (مدى الحياة)'
+              ) : diffDays !== null && diffDays <= 0 ? (
+                'منتهي الصلاحية ⚠️'
+              ) : diffDays !== null ? (
+                `متبقي ${diffDays} يوم`
+              ) : (
+                'غير محدد'
+              )}
+            </div>
+            {!isPermanent && endDateFormatted && (
+              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                ينتهي في {endDateFormatted}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card 4: Cards Subscription Status */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '16px',
@@ -222,7 +337,7 @@ export const MerchantOverviewPage: React.FC = () => {
           </div>
           <div>
             <div style={{ fontSize: '13px', color: 'var(--txt-muted)', fontWeight: 600 }}>
-              حالة الاشتراكات
+              حالة اشتراك البطاقات
             </div>
             <div style={{ fontSize: '15px', fontWeight: 800, color: expiredCards > 0 ? '#dc2626' : '#16a34a', marginTop: '4px' }}>
               {loading ? '—' : expiredCards > 0 ? `${expiredCards} بطاقة بحاجة لتجديد` : 'جميع البطاقات سارية ✓'}

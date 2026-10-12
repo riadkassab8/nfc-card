@@ -7,6 +7,7 @@ import {
   Store,
   LogOut,
   X,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -21,6 +22,13 @@ export const MerchantSidebar: React.FC<MerchantSidebarProps> = ({
 }) => {
   const { admin, logout } = useAuth();
   const storeTitle = admin?.store_name || admin?.name || 'متجري الذكي';
+
+  // حساب تفاصيل الاشتراك
+  const isPermanent = !admin?.requires_subscription || admin?.subscription_type === 'permanent';
+  const subEndDate = admin?.subscription_end_date ? new Date(admin.subscription_end_date) : null;
+  const now = new Date();
+  const diffDays = subEndDate ? Math.ceil((subEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+  const endDateFormatted = subEndDate ? subEndDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
 
   const navLinks = [
     { to: '/merchant', label: 'الرئيسية للمتجر', icon: LayoutDashboard, end: true },
@@ -145,15 +153,55 @@ export const MerchantSidebar: React.FC<MerchantSidebarProps> = ({
         flexDirection: 'column',
         gap: '8px',
       }}>
+        {/* Store Subscription Card */}
         <div style={{
-          padding: '10px 12px',
-          borderRadius: '10px',
-          backgroundColor: 'var(--bg-subtle)',
-          fontSize: '11.5px',
-          color: 'var(--txt-muted)',
-          lineHeight: 1.5,
+          padding: '12px 14px',
+          borderRadius: '12px',
+          backgroundColor: isPermanent ? '#ecfdf5' : diffDays !== null && diffDays <= 15 ? '#fffbeb' : '#f8fafc',
+          border: `1px solid ${isPermanent ? '#a7f3d0' : diffDays !== null && diffDays <= 15 ? '#fef08a' : '#e2e8f0'}`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px',
         }}>
-          💡 للتواصل مع الدعم الفني أو تجديد اشتراك متجرك، يرجى مراجعة إدارة المنصة.
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <ShieldCheck size={13} color="#2563eb" /> اشتراك المتجر
+            </span>
+            <span style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              padding: '2px 8px',
+              borderRadius: '999px',
+              backgroundColor: isPermanent ? '#d1fae5' : diffDays !== null && diffDays <= 15 ? '#fef08a' : '#eff6ff',
+              color: isPermanent ? '#065f46' : diffDays !== null && diffDays <= 15 ? '#854d0e' : '#1d4ed8',
+            }}>
+              {admin?.subscription_type === 'yearly' ? 'سنوي' : admin?.subscription_type === 'custom' ? 'مخصص' : 'دائم'}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <span style={{
+              fontSize: '13px',
+              fontWeight: 800,
+              color: isPermanent ? '#047857' : diffDays !== null && diffDays <= 0 ? '#dc2626' : diffDays !== null && diffDays <= 15 ? '#b45309' : '#0f172a',
+            }}>
+              {isPermanent ? (
+                'مدى الحياة (مفتوح)'
+              ) : diffDays !== null && diffDays <= 0 ? (
+                '⚠️ منتهي الصلاحية'
+              ) : diffDays !== null ? (
+                `متبقي ${diffDays} يوم`
+              ) : (
+                'غير محدد'
+              )}
+            </span>
+          </div>
+
+          {!isPermanent && endDateFormatted && (
+            <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+              ينتهي في: {endDateFormatted}
+            </span>
+          )}
         </div>
 
         <button

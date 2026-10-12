@@ -8,11 +8,20 @@ import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../services';
 import {
   User, Lock, Store, Mail, Phone, ShieldCheck, CheckCircle2,
-  AlertCircle, Eye, EyeOff, Save, RefreshCw, KeyRound
+  AlertCircle, Eye, EyeOff, Save, RefreshCw, KeyRound, Clock, Sparkles
 } from 'lucide-react';
 
 export const MerchantProfilePage: React.FC = () => {
   const { admin, updateAdmin } = useAuth();
+
+  // تفاصيل اشتراك المتجر
+  const isPermanent = !admin?.requires_subscription || admin?.subscription_type === 'permanent';
+  const subStartDate = admin?.subscription_start_date ? new Date(admin.subscription_start_date) : null;
+  const subEndDate = admin?.subscription_end_date ? new Date(admin.subscription_end_date) : null;
+  const now = new Date();
+  const diffDays = subEndDate ? Math.ceil((subEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+  const startDateFormatted = subStartDate ? subStartDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+  const endDateFormatted = subEndDate ? subEndDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
 
   // Profile Form state
   const [name, setName] = useState(admin?.name || '');
@@ -175,6 +184,103 @@ export const MerchantProfilePage: React.FC = () => {
           <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
             اسم المستخدم للدخول: <span style={{ fontWeight: 800, color: '#0f172a', fontFamily: 'monospace' }}>@{admin?.username}</span>
           </p>
+        </div>
+      </div>
+
+      {/* Store Subscription Details Card */}
+      <div
+        style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '20px',
+          padding: '22px 26px',
+          border: `1.5px solid ${isPermanent ? '#a7f3d0' : diffDays !== null && diffDays <= 15 ? '#fef08a' : '#e2e8f0'}`,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                backgroundColor: isPermanent ? '#ecfdf5' : '#eff6ff',
+                color: isPermanent ? '#059669' : '#2563eb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {isPermanent ? <Sparkles size={20} /> : <Clock size={20} />}
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                تفاصيل اشتراك المتجر وصلاحية النظام
+              </h3>
+              <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                مدة ونوع اشتراك حساب متجرك في منصة الكروت الذكية
+              </p>
+            </div>
+          </div>
+
+          <span
+            style={{
+              padding: '4px 12px',
+              borderRadius: '999px',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              backgroundColor: isPermanent ? '#d1fae5' : diffDays !== null && diffDays <= 0 ? '#fee2e2' : diffDays !== null && diffDays <= 15 ? '#fef08a' : '#eff6ff',
+              color: isPermanent ? '#065f46' : diffDays !== null && diffDays <= 0 ? '#b91c1c' : diffDays !== null && diffDays <= 15 ? '#854d0e' : '#1d4ed8',
+              border: `1px solid ${isPermanent ? '#a7f3d0' : diffDays !== null && diffDays <= 0 ? '#fecaca' : diffDays !== null && diffDays <= 15 ? '#fde047' : '#bfdbfe'}`,
+            }}
+          >
+            {isPermanent
+              ? 'اشتراك دائم (مفتوح)'
+              : diffDays !== null && diffDays <= 0
+              ? '⚠️ الاشتراك منتهي'
+              : `متبقي: ${diffDays} يوم`}
+          </span>
+        </div>
+
+        {/* 4 Detail Grid Blocks */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
+          {/* Block 1: Type */}
+          <div style={{ padding: '12px 16px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>نوع الاشتراك</span>
+            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+              {admin?.subscription_type === 'yearly' ? 'اشتراك سنوي' : admin?.subscription_type === 'custom' ? 'اشتراك مخصص' : 'اشتراك دائم'}
+            </span>
+          </div>
+
+          {/* Block 2: Start Date */}
+          <div style={{ padding: '12px 16px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>تاريخ البدء</span>
+            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+              {startDateFormatted}
+            </span>
+          </div>
+
+          {/* Block 3: End Date */}
+          <div style={{ padding: '12px 16px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>تاريخ الانتهاء</span>
+            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+              {isPermanent ? 'بدون تاريخ انتهاء' : endDateFormatted}
+            </span>
+          </div>
+
+          {/* Block 4: Remaining Time */}
+          <div style={{ padding: '12px 16px', borderRadius: '12px', backgroundColor: isPermanent ? '#ecfdf5' : diffDays !== null && diffDays <= 15 ? '#fffbeb' : '#f0fdf4', border: `1px solid ${isPermanent ? '#a7f3d0' : diffDays !== null && diffDays <= 15 ? '#fef08a' : '#bbf7d0'}` }}>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>المدة المتبقية</span>
+            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: isPermanent ? '#047857' : diffDays !== null && diffDays <= 0 ? '#dc2626' : diffDays !== null && diffDays <= 15 ? '#b45309' : '#15803d' }}>
+              {isPermanent
+                ? 'مفتوح مدى الحياة'
+                : diffDays !== null && diffDays <= 0
+                ? 'انتهى الاشتراك'
+                : diffDays !== null
+                ? `${diffDays} يوماً`
+                : 'غير محدد'}
+            </span>
+          </div>
         </div>
       </div>
 
