@@ -31,9 +31,8 @@ export const MerchantHeader: React.FC<MerchantHeaderProps> = ({ title, onOpenMob
           onClick={onOpenMobileMenu}
           className="hdr-icon-btn hdr-hamburger"
           aria-label="القائمة"
-          style={{ display: 'none' }}
         >
-          <Menu size={20} />
+          <Menu size={22} />
         </button>
 
         <div>

@@ -11,7 +11,7 @@ import { ApiCard, ApiCardAnalytics, ScanByDay, ScanByDevice, ScanByBrowser } fro
 import { useAuth } from '../../context/AuthContext';
 import {
   BarChart2, RefreshCw, TrendingUp, Smartphone, Monitor, Tablet,
-  CreditCard, Eye, Calendar, Sparkles, Filter
+  CreditCard, Eye, Calendar, Sparkles, Filter, FileDown
 } from 'lucide-react';
 
 const DAYS_OPTIONS = [7, 14, 30, 60, 90];
@@ -192,6 +192,89 @@ export const MerchantAnalyticsPage: React.FC = () => {
   }, [fetchAnalytics]);
 
   const selectedCard = cards.find(c => c._id === selectedCardId);
+  const [exporting, setExporting] = useState(false);
+
+  // Fallback Client CSV Export
+  const exportToCsvFallback = () => {
+    if (!analytics || !selectedCard) return;
+    const bizName = selectedCard.business_data?.business_name || selectedCard.card_code;
+    const nowStr = new Date().toISOString().slice(0, 10);
+
+    let csv = '';
+    csv += `تقرير إحصائيات وزوار بطاقة المتجر\n`;
+    csv += `اسم المتجر / النشاط,${bizName}\n`;
+    csv += `كود البطاقة,${selectedCard.card_code}\n`;
+    csv += `إجمالي المسحات الكلية,${analytics.total_scans}\n`;
+    csv += `مسحات آخر ${days} يوم,${analytics.scans_last_N_days}\n`;
+    csv += `تاريخ التصدير,${new Date().toLocaleDateString('ar-EG')}\n\n`;
+
+    // 1. Daily Scans
+    csv += `--- المسحات اليومية ---\n`;
+    csv += `التاريخ,عدد المسحات\n`;
+    (analytics.scans_by_day || []).forEach(d => {
+      csv += `${d.date},${d.count}\n`;
+    });
+    csv += `\n`;
+
+    // 2. Devices
+    csv += `--- توزيع أجهزة الزوار ---\n`;
+    csv += `نوع الجهاز,عدد المسحات\n`;
+    (analytics.scans_by_device || []).forEach(d => {
+      const dev = d.device_type === 'mobile' ? 'هاتف ذكي' : d.device_type === 'desktop' ? 'كمبيوتر مكتبي' : d.device_type;
+      csv += `${dev},${d.count}\n`;
+    });
+    csv += `\n`;
+
+    // 3. Browsers
+    csv += `--- المتصفحات المستخدمة ---\n`;
+    csv += `المتصفح,عدد المسحات\n`;
+    (analytics.scans_by_browser || []).forEach(b => {
+      csv += `${b.browser},${b.count}\n`;
+    });
+    csv += `\n`;
+
+    // 4. Detailed Scan Logs
+    csv += `--- سجل الزيارات التفصيلي الأخير ---\n`;
+    csv += `وقت الزيارة,نوع الجهاز,المتصفح\n`;
+    (analytics.recent_scans || []).forEach(s => {
+      const timeStr = new Date(s.timestamp).toLocaleString('ar-EG');
+      const dev = s.device_type === 'mobile' ? 'هاتف ذكي' : s.device_type === 'desktop' ? 'كمبيوتر مكتبي' : s.device_type;
+      csv += `"${timeStr}",${dev},${s.browser}\n`;
+    });
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `تقرير-إحصائيات-${selectedCard.card_code}-${nowStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Official Excel Export via backend: GET /api/export/cards/:id/report?days=N
+  const exportToExcel = async () => {
+    if (!selectedCardId || !selectedCard) return;
+    setExporting(true);
+    try {
+      const nowStr = new Date().toISOString().slice(0, 10);
+      const blob = await cardsApi.exportCardReport(selectedCardId, days);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `card-report-${selectedCard.card_code}-${nowStr}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.warn('Backend excel export failed, using fallback:', err);
+      exportToCsvFallback();
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -239,7 +322,7 @@ export const MerchantAnalyticsPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Controls: Card Selector + Days Selector */}
+        {/* Controls: Card Selector + Days Selector + Refresh + Export */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           {cards.length > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(255,255,255,0.1)', padding: '6px 12px', borderRadius: '12px' }}>
@@ -309,6 +392,34 @@ export const MerchantAnalyticsPage: React.FC = () => {
           >
             <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
             تحديث
+          </button>
+
+          <button
+            onClick={exportToExcel}
+            disabled={loading || exporting || !selectedCardId}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#10b981',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '8px 14px',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              cursor: (!selectedCardId || loading || exporting) ? 'not-allowed' : 'pointer',
+              opacity: (!selectedCardId || loading || exporting) ? 0.7 : 1,
+              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+            }}
+            title="تصدير تقرير شامل إلى ملف Excel جاهز من السيرفر"
+          >
+            {exporting ? (
+              <RefreshCw size={15} style={{ animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <FileDown size={16} />
+            )}
+            <span>{exporting ? 'جاري التحميل...' : 'تصدير إلى Excel'}</span>
           </button>
         </div>
       </div>

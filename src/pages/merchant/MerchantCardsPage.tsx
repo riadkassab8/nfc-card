@@ -1,3 +1,15 @@
+/* ==========================================================================
+   MERCHANT CARDS PAGE  /merchant/cards
+   Store owner cards management:
+   - View assigned cards
+   - Download print-ready QR codes
+   - Copy & test public links
+   - Edit business profile, social links, and Google Review Gate
+   - Edit Payment Shifts (InstaPay & Vodafone Cash per shift/cashier)
+   - Edit Smart Redirect Rules (Device target, time window, direct URLs)
+   - Read-only subscriptions, no deletion, zero partner exposure
+   ========================================================================== */
+
 import React, { useState, useEffect } from 'react';
 import {
   CreditCard,
@@ -11,17 +23,25 @@ import {
   Save,
   RefreshCw,
   Star,
-  Phone,
-  MessageCircle,
-  MapPin,
-  Instagram,
-  Facebook,
-  Globe,
+  Clock,
+  Plus,
+  Trash2,
+  Layers,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { cardsApi } from '../../services';
-import { ApiCard, BusinessData, fmtDate, isSubscriptionExpired } from '../../types';
+import {
+  ApiCard,
+  BusinessData,
+  PaymentShift,
+  RedirectRule,
+  fmtDate,
+  isSubscriptionExpired,
+} from '../../types';
 import QRCode from 'qrcode';
+
+type ModalTab = 'business' | 'shifts' | 'rules';
 
 export const MerchantCardsPage: React.FC = () => {
   const { admin } = useAuth();
@@ -29,9 +49,12 @@ export const MerchantCardsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Edit modal
+  // Edit Modal State
   const [editingCard, setEditingCard] = useState<ApiCard | null>(null);
+  const [activeTab, setActiveTab] = useState<ModalTab>('business');
   const [editForm, setEditForm] = useState<BusinessData>({});
+  const [shifts, setShifts] = useState<PaymentShift[]>([]);
+  const [rules, setRules] = useState<RedirectRule[]>([]);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
@@ -58,9 +81,77 @@ export const MerchantCardsPage: React.FC = () => {
 
   const openEditModal = (card: ApiCard) => {
     setEditingCard(card);
+    setActiveTab('business');
     setEditForm({ ...(card.business_data || {}) });
+    setShifts(
+      card.payment_shifts && card.payment_shifts.length > 0
+        ? [...card.payment_shifts]
+        : []
+    );
+    setRules(
+      card.redirect_rules && card.redirect_rules.length > 0
+        ? [...card.redirect_rules]
+        : []
+    );
   };
 
+  /* ── Shifts operations ─────────────────────────────────────────────── */
+  const addShift = () => {
+    setShifts(prev => [
+      ...prev,
+      {
+        label: `وردية ${prev.length + 1}`,
+        cashier_name: '',
+        hour_from: 10,
+        period_from: 'am',
+        hour_to: 6,
+        period_to: 'pm',
+        instapay: '',
+        vodafone_cash: '',
+        is_active: true,
+      },
+    ]);
+  };
+
+  const updateShift = (index: number, field: keyof PaymentShift, value: any) => {
+    setShifts(prev => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
+  const removeShift = (index: number) => {
+    setShifts(prev => prev.filter((_, i) => i !== index));
+  };
+
+  /* ── Redirect Rules operations ─────────────────────────────────────── */
+  const addRule = () => {
+    setRules(prev => [
+      ...prev,
+      {
+        label: `قاعدة ${prev.length + 1}`,
+        device_target: 'any',
+        redirect_url: '',
+        priority: prev.length + 1,
+        is_active: true,
+      },
+    ]);
+  };
+
+  const updateRule = (index: number, field: keyof RedirectRule, value: any) => {
+    setRules(prev => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
+  const removeRule = (index: number) => {
+    setRules(prev => prev.filter((_, i) => i !== index));
+  };
+
+  /* ── Save all changes ──────────────────────────────────────────────── */
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCard) return;
@@ -73,12 +164,51 @@ export const MerchantCardsPage: React.FC = () => {
         ])
       ) as BusinessData;
 
-      // Note: backend automatically ignores subscription dates/system fields for merchant
+      // Clean shifts
+      const cleanShifts: PaymentShift[] = shifts.map((s, idx) => ({
+        label: s.label?.trim() || `وردية ${idx + 1}`,
+        cashier_name: s.cashier_name?.trim() || undefined,
+        hour_from: s.hour_from ? Number(s.hour_from) : undefined,
+        period_from: s.period_from || 'am',
+        hour_to: s.hour_to ? Number(s.hour_to) : undefined,
+        period_to: s.period_to || 'pm',
+        instapay: s.instapay?.trim() || undefined,
+        vodafone_cash: s.vodafone_cash?.trim() || undefined,
+        is_active: s.is_active !== false,
+      }));
+
+      // Clean rules
+      const cleanRules: RedirectRule[] = rules
+        .filter(r => r.redirect_url && r.redirect_url.trim())
+        .map((r, idx) => ({
+          label: r.label?.trim() || `قاعدة ${idx + 1}`,
+          device_target: r.device_target || 'any',
+          redirect_url: r.redirect_url.trim(),
+          priority: idx + 1,
+          hour_from: r.hour_from ? Number(r.hour_from) : undefined,
+          period_from: r.period_from || undefined,
+          hour_to: r.hour_to ? Number(r.hour_to) : undefined,
+          period_to: r.period_to || undefined,
+          is_active: r.is_active !== false,
+        }));
+
+      // 1. Update Card main data & shifts
       await cardsApi.updateCard(editingCard._id, {
         business_data: cleanForm,
+        payment_shifts: cleanShifts,
+        redirect_rules: cleanRules,
       });
 
-      showToast('تم حفظ وتحديث بيانات وروابط المتجر بنجاح! ✓', 'success');
+      // 2. Also ensure rules endpoint is explicitly synced
+      try {
+        await cardsApi.updateRedirectRules(editingCard._id, {
+          rules: cleanRules,
+        });
+      } catch (err) {
+        console.warn('Redirect rules sync error:', err);
+      }
+
+      showToast('تم حفظ بيانات وروابط وورديات وقواعد البطاقة بنجاح! ✓', 'success');
       setEditingCard(null);
       loadCards();
     } catch (err: any) {
@@ -109,7 +239,7 @@ export const MerchantCardsPage: React.FC = () => {
   };
 
   return (
-    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '22px' }}>
       {/* Toast Alert */}
       {toast && (
         <div style={{
@@ -117,53 +247,58 @@ export const MerchantCardsPage: React.FC = () => {
           top: '20px',
           left: '50%',
           transform: 'translateX(-50%)',
-          backgroundColor: toast.type === 'success' ? '#16a34a' : '#dc2626',
+          zIndex: 9999,
+          backgroundColor: toast.type === 'success' ? '#065f46' : '#991b1b',
           color: '#ffffff',
           padding: '12px 24px',
           borderRadius: '12px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+          fontSize: '0.9rem',
           fontWeight: 700,
-          fontSize: '14px',
-          zIndex: 9999,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
         }}>
-          <span>{toast.msg}</span>
+          {toast.msg}
         </div>
       )}
 
-      {/* Header */}
+      {/* Header bar */}
       <div style={{
         display: 'flex',
-        alignItems: 'center',
         justifyContent: 'space-between',
+        alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '14px',
+        gap: '12px',
       }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--txt-heading)' }}>
-            إدارة بطاقات وروابط المتجر
+          <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: 'var(--txt-heading)' }}>
+            بطاقاتي الذكية المسندة
           </h1>
-          <p style={{ margin: '4px 0 0', fontSize: '13.5px', color: 'var(--txt-muted)' }}>
-            يمكنك من هنا تعديل روابط التواصل، الواتساب، التقييمات، والمنيو لكل بطاقة من بطاقاتك.
+          <p style={{ margin: '4px 0 0', color: 'var(--txt-muted)', fontSize: '0.85rem' }}>
+            يمكنك تخصيص بيانات المتجر، ورديات الدفع، وقواعد التحويل المباشر لكل بطاقة.
           </p>
         </div>
 
         <button
           onClick={loadCards}
-          className="btn-outline"
-          style={{ fontSize: '13px', padding: '8px 16px', borderRadius: '10px' }}
+          className="btn-secondary"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '0.85rem',
+            padding: '8px 16px',
+            borderRadius: '10px',
+            cursor: 'pointer',
+          }}
         >
-          <RefreshCw size={14} className={loading ? 'spin' : ''} /> تحديث القائمة
+          <RefreshCw size={15} className={loading ? 'spin' : ''} />
+          تحديث القائمة
         </button>
       </div>
 
       {/* Cards Grid */}
       {loading ? (
-        <div style={{ padding: '60px', textAlign: 'center', color: 'var(--txt-muted)' }}>
-          <RefreshCw size={28} className="spin" style={{ margin: '0 auto 12px', display: 'block' }} />
-          <span>جاري تحميل بطاقات المتجر...</span>
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--txt-muted)' }}>
+          جاري تحميل بيانات البطاقات...
         </div>
       ) : cards.length === 0 ? (
         <div style={{
@@ -247,74 +382,122 @@ export const MerchantCardsPage: React.FC = () => {
                     {bizName}
                   </h3>
 
-                  {/* Active links badges preview */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-                    {b.whatsapp && <span style={pillStyle}><MessageCircle size={12} color="#16a34a" /> واتساب</span>}
-                    {b.phone && <span style={pillStyle}><Phone size={12} color="#2563eb" /> هاتف</span>}
-                    {b.google_maps && <span style={pillStyle}><MapPin size={12} color="#ea580c" /> الموقع</span>}
-                    {b.google_review_url && <span style={pillStyle}><Star size={12} color="#eab308" /> تقييم جوجل</span>}
-                    {b.instagram && <span style={pillStyle}><Instagram size={12} color="#d946ef" /> انستجرام</span>}
-                    {b.facebook && <span style={pillStyle}><Facebook size={12} color="#1d4ed8" /> فيسبوك</span>}
-                    {b.website && <span style={pillStyle}><Globe size={12} color="#0284c7" /> موقع</span>}
+                  {/* Badges preview: Shifts & Rules & Links */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+                    {card.payment_shifts && card.payment_shifts.length > 0 && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        backgroundColor: '#f5f3ff',
+                        color: '#7c3aed',
+                        border: '1px solid #ddd6fe',
+                      }}>
+                        <Clock size={12} /> {card.payment_shifts.length} ورديات دفع
+                      </span>
+                    )}
+
+                    {card.redirect_rules && card.redirect_rules.length > 0 && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        backgroundColor: '#ecfeff',
+                        color: '#0891b2',
+                        border: '1px solid #a5f3fc',
+                      }}>
+                        <ArrowRightLeft size={12} /> {card.redirect_rules.length} قواعد تحويل
+                      </span>
+                    )}
+
+                    {b.google_review_url && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        backgroundColor: '#fefce8',
+                        color: '#ca8a04',
+                        border: '1px solid #fef08a',
+                      }}>
+                        <Star size={11} fill="#ca8a04" /> بوابة التقييمات
+                      </span>
+                    )}
                   </div>
 
-                  {/* Subscription details (Read only) */}
+                  {/* Read-Only Subscription Info */}
                   <div style={{
-                    padding: '8px 12px',
-                    borderRadius: '10px',
                     backgroundColor: 'var(--bg-subtle)',
+                    borderRadius: '12px',
+                    padding: '12px',
                     fontSize: '12px',
                     color: 'var(--txt-secondary)',
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
+                    flexDirection: 'column',
+                    gap: '4px',
                   }}>
-                    <Calendar size={13} />
-                    <span>
-                      {!card.requires_subscription
-                        ? 'اشتراك دائم مفتوح'
-                        : card.subscription_end_date
-                        ? `ينتهي الاشتراك بتاريخ: ${fmtDate(card.subscription_end_date)}`
-                        : 'اشتراك سارٍ'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--txt-heading)', fontWeight: 700 }}>
+                      <Calendar size={14} color="#059669" />
+                      معلومات الاشتراك (قراءة فقط):
+                    </div>
+                    <div>
+                      {card.requires_subscription ? (
+                        <>
+                          صالحة حتى: <strong style={{ color: expired ? '#dc2626' : '#16a34a' }}>{fmtDate(card.subscription_end_date)}</strong>
+                        </>
+                      ) : (
+                        <span style={{ color: '#16a34a', fontWeight: 700 }}>اشتراك دائم مدى الحياة</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Card Action Buttons */}
-                <div style={{
-                  display: 'flex',
-                  gap: '8px',
-                  paddingTop: '14px',
-                  borderTop: '1px solid var(--bdr-light)',
-                  flexWrap: 'wrap',
-                }}>
+                {/* Actions Bar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '14px', borderTop: '1px solid var(--bdr-light)' }}>
                   <button
                     type="button"
                     onClick={() => openEditModal(card)}
                     className="btn-primary"
                     style={{
                       flex: 1,
-                      fontSize: '13px',
-                      padding: '9px 14px',
-                      borderRadius: '10px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
                       justifyContent: 'center',
+                      gap: '6px',
+                      fontSize: '0.82rem',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      backgroundColor: '#059669',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      cursor: 'pointer',
                     }}
                   >
-                    <Edit2 size={14} />
-                    <span>تعديل الروابط والبيانات</span>
+                    <Edit2 size={15} />
+                    <span>تعديل البطاقة</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => copyUrl(card)}
                     style={{
-                      padding: '9px 14px',
+                      padding: '9px 12px',
                       borderRadius: '10px',
-                      backgroundColor: '#ffffff',
-                      border: '1px solid var(--bdr-light)',
-                      color: 'var(--txt-secondary)',
-                      fontSize: '13px',
-                      fontWeight: 700,
+                      backgroundColor: copiedId === card._id ? '#f0fdf4' : 'var(--bg-subtle)',
+                      border: `1px solid ${copiedId === card._id ? '#bbf7d0' : 'var(--bdr-light)'}`,
+                      color: copiedId === card._id ? '#16a34a' : 'var(--txt-secondary)',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -371,18 +554,21 @@ export const MerchantCardsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Edit Business Data Modal */}
+      {/* Comprehensive Edit Modal */}
       {editingCard && (
         <div className="modal-overlay" onClick={() => setEditingCard(null)}>
           <div
             className="modal-panel"
             onClick={(e) => e.stopPropagation()}
             dir="rtl"
-            style={{ maxWidth: '640px', width: '92%' }}
+            style={{ maxWidth: '780px', width: '94%' }}
           >
-            <div className="modal-header">
+            {/* Modal Header */}
+            <div className="modal-header" style={{ paddingBottom: '12px' }}>
               <div>
-                <h2 className="modal-title">تعديل بيانات وروابط البطاقة</h2>
+                <h2 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 900 }}>
+                  إدارة وتعديل البطاقة
+                </h2>
                 <span style={{ fontSize: '12px', color: 'var(--txt-muted)', fontFamily: 'monospace' }}>
                   كود البطاقة: {editingCard.card_code}
                 </span>
@@ -392,205 +578,704 @@ export const MerchantCardsPage: React.FC = () => {
               </button>
             </div>
 
+            {/* Navigation Tabs */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              padding: '0 20px 14px',
+              borderBottom: '1px solid var(--bdr-light)',
+              overflowX: 'auto',
+            }}>
+              <button
+                type="button"
+                onClick={() => setActiveTab('business')}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: activeTab === 'business' ? '#ecfdf5' : 'transparent',
+                  color: activeTab === 'business' ? '#065f46' : 'var(--txt-muted)',
+                }}
+              >
+                <Layers size={15} />
+                بيانات وروابط المتجر
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('shifts')}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: activeTab === 'shifts' ? '#f5f3ff' : 'transparent',
+                  color: activeTab === 'shifts' ? '#6d28d9' : 'var(--txt-muted)',
+                }}
+              >
+                <Clock size={15} />
+                ورديات وطرق الدفع ({shifts.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('rules')}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: activeTab === 'rules' ? '#ecfeff' : 'transparent',
+                  color: activeTab === 'rules' ? '#0e7490' : 'var(--txt-muted)',
+                }}
+              >
+                <ArrowRightLeft size={15} />
+                قواعد التحويل الذكية ({rules.length})
+              </button>
+            </div>
+
             <form onSubmit={handleSave}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '68vh', overflowY: 'auto' }}>
-                {/* 1. Basic Info */}
-                <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '14px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--txt-heading)' }}>
-                    المعلومات الأساسية للمحل
-                  </div>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '64vh', overflowY: 'auto', padding: '20px' }}>
+                {/* ── TAB 1: Business Profile & Social ── */}
+                {activeTab === 'business' && (
+                  <>
+                    {/* Basic Info */}
+                    <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '16px', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--txt-heading)' }}>
+                        المعلومات الأساسية للنشاط
+                      </div>
 
-                  <div className="form-group">
-                    <label className="form-label">اسم النشاط التجاري</label>
-                    <input
-                      className="form-input"
-                      value={editForm.business_name || ''}
-                      onChange={(e) => setEditForm(p => ({ ...p, business_name: e.target.value }))}
-                      placeholder="مثال: مطعم وكافيه الأندلس"
-                    />
-                  </div>
+                      <div className="form-group">
+                        <label className="form-label">اسم النشاط التجاري</label>
+                        <input
+                          className="form-input"
+                          value={editForm.business_name || ''}
+                          onChange={(e) => setEditForm(p => ({ ...p, business_name: e.target.value }))}
+                          placeholder="مثال: مطعم وسناك البرنس"
+                        />
+                      </div>
 
-                  <div className="form-group">
-                    <label className="form-label">وصف النشاط</label>
-                    <textarea
-                      className="form-input"
-                      value={editForm.description || ''}
-                      onChange={(e) => setEditForm(p => ({ ...p, description: e.target.value }))}
-                      placeholder="أشهى المأكولات والمشروبات..."
-                      rows={2}
-                    />
-                  </div>
+                      <div className="form-group">
+                        <label className="form-label">نبذة أو وصف مختصر</label>
+                        <textarea
+                          className="form-input"
+                          value={editForm.description || ''}
+                          onChange={(e) => setEditForm(p => ({ ...p, description: e.target.value }))}
+                          placeholder="أشهى الأطباق والوجبات السريعة..."
+                          rows={2}
+                        />
+                      </div>
 
-                  <div className="form-group">
-                    <label className="form-label">رابط شعار المحل (Logo URL)</label>
-                    <input
-                      className="form-input"
-                      value={editForm.logo || ''}
-                      onChange={(e) => setEditForm(p => ({ ...p, logo: e.target.value }))}
-                      placeholder="https://example.com/logo.png"
-                    />
-                  </div>
-                </div>
-
-                {/* 2. Direct Contact & Location */}
-                <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '14px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--txt-heading)' }}>
-                    التواصل المباشر والموقع
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div className="form-group">
-                      <label className="form-label">رابط الواتساب (WhatsApp)</label>
-                      <input
-                        className="form-input"
-                        value={editForm.whatsapp || ''}
-                        onChange={(e) => setEditForm(p => ({ ...p, whatsapp: e.target.value }))}
-                        placeholder="https://wa.me/2010..."
-                      />
+                      <div className="form-group">
+                        <label className="form-label">رابط شعار المحل (Logo URL)</label>
+                        <input
+                          className="form-input"
+                          value={editForm.logo || ''}
+                          onChange={(e) => setEditForm(p => ({ ...p, logo: e.target.value }))}
+                          placeholder="https://example.com/logo.png"
+                        />
+                      </div>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">رقم الهاتف للاتصال</label>
-                      <input
-                        className="form-input"
-                        value={editForm.phone || ''}
-                        onChange={(e) => setEditForm(p => ({ ...p, phone: e.target.value }))}
-                        placeholder="01012345678"
-                      />
-                    </div>
-                  </div>
+                    {/* Direct Contact & Location */}
+                    <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '16px', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--txt-heading)' }}>
+                        التواصل المباشر والموقع الجغرافي
+                      </div>
 
-                  <div className="form-group">
-                    <label className="form-label">رابط خرائط جوجل (Google Maps)</label>
-                    <input
-                      className="form-input"
-                      value={editForm.google_maps || ''}
-                      onChange={(e) => setEditForm(p => ({ ...p, google_maps: e.target.value }))}
-                      placeholder="https://maps.google.com/..."
-                    />
-                  </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+                        <div className="form-group">
+                          <label className="form-label">رابط الواتساب (WhatsApp)</label>
+                          <input
+                            className="form-input"
+                            value={editForm.whatsapp || ''}
+                            onChange={(e) => setEditForm(p => ({ ...p, whatsapp: e.target.value }))}
+                            placeholder="https://wa.me/2010..."
+                          />
+                        </div>
 
-                  <div className="form-group">
-                    <label className="form-label">الموقع الإلكتروني أو رابط المنيو</label>
-                    <input
-                      className="form-input"
-                      value={editForm.website || ''}
-                      onChange={(e) => setEditForm(p => ({ ...p, website: e.target.value }))}
-                      placeholder="https://yourstore.com"
-                    />
-                  </div>
-                </div>
+                        <div className="form-group">
+                          <label className="form-label">رقم الهاتف للاتصال</label>
+                          <input
+                            className="form-input"
+                            value={editForm.phone || ''}
+                            onChange={(e) => setEditForm(p => ({ ...p, phone: e.target.value }))}
+                            placeholder="010xxxxxxxx"
+                          />
+                        </div>
+                      </div>
 
-                {/* 3. Google Reviews Gate */}
-                <div style={{
-                  backgroundColor: '#fefce8',
-                  border: '1px solid #fef08a',
-                  padding: '14px',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '13.5px', color: '#854d0e' }}>
-                    <Star size={16} color="#ca8a04" />
-                    <span>تقييمات العملاء (Google Review)</span>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">رابط تقييم جوجل المباشر للمحل</label>
-                    <input
-                      className="form-input"
-                      value={editForm.google_review_url || ''}
-                      onChange={(e) => setEditForm(p => ({ ...p, google_review_url: e.target.value }))}
-                      placeholder="https://g.page/r/your-review-link"
-                    />
-                  </div>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '4px' }}>
-                    <input
-                      type="checkbox"
-                      checked={!!editForm.enable_review_gate}
-                      onChange={(e) => setEditForm(p => ({ ...p, enable_review_gate: e.target.checked }))}
-                      style={{ width: '16px', height: '16px', accentColor: '#ca8a04' }}
-                    />
-                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#854d0e' }}>
-                      تفعيل الفلترة الذكية (توجيه 5 نجوم لخرائط جوجل والشكاوى إلى واتساب المحل)
-                    </span>
-                  </label>
-                </div>
-
-                {/* 4. Social Media & Payments */}
-                <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '14px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--txt-heading)' }}>
-                    السوشيال ميديا والدفع
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div className="form-group">
-                      <label className="form-label">إنستجرام (Instagram)</label>
-                      <input
-                        className="form-input"
-                        value={editForm.instagram || ''}
-                        onChange={(e) => setEditForm(p => ({ ...p, instagram: e.target.value }))}
-                        placeholder="https://instagram.com/..."
-                      />
+                      <div className="form-group">
+                        <label className="form-label">رابط الموقع على خرائط جوجل (Google Maps)</label>
+                        <input
+                          className="form-input"
+                          value={editForm.google_maps || ''}
+                          onChange={(e) => setEditForm(p => ({ ...p, google_maps: e.target.value }))}
+                          placeholder="https://maps.google.com/..."
+                        />
+                      </div>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">فيسبوك (Facebook)</label>
-                      <input
-                        className="form-input"
-                        value={editForm.facebook || ''}
-                        onChange={(e) => setEditForm(p => ({ ...p, facebook: e.target.value }))}
-                        placeholder="https://facebook.com/..."
-                      />
-                    </div>
-                  </div>
+                    {/* Google Reviews Smart Gate */}
+                    <div style={{ backgroundColor: '#fefce8', border: '1px solid #fef08a', padding: '16px', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Star size={18} color="#ca8a04" fill="#ca8a04" />
+                          <span style={{ fontWeight: 800, fontSize: '14px', color: '#854d0e' }}>
+                            بوابة تقييمات جوجل الذكية (Review Gate)
+                          </span>
+                        </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, color: '#854d0e' }}>
+                          <input
+                            type="checkbox"
+                            checked={!!editForm.enable_review_gate}
+                            onChange={(e) => setEditForm(p => ({ ...p, enable_review_gate: e.target.checked }))}
+                          />
+                          تفعيل البوابة
+                        </label>
+                      </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div className="form-group">
-                      <label className="form-label">حساب إنستاباي (InstaPay)</label>
-                      <input
-                        className="form-input"
-                        value={editForm.instapay || ''}
-                        onChange={(e) => setEditForm(p => ({ ...p, instapay: e.target.value }))}
-                        placeholder="username@instapay"
-                      />
+                      <div className="form-group">
+                        <label className="form-label" style={{ color: '#854d0e' }}>
+                          رابط صفحة تقييم جوجل (Google Review Link)
+                        </label>
+                        <input
+                          className="form-input"
+                          value={editForm.google_review_url || ''}
+                          onChange={(e) => setEditForm(p => ({ ...p, google_review_url: e.target.value }))}
+                          placeholder="https://g.page/r/your-business/review"
+                        />
+                      </div>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">محفظة فودافون كاش</label>
-                      <input
-                        className="form-input"
-                        value={editForm.vodafone_cash || ''}
-                        onChange={(e) => setEditForm(p => ({ ...p, vodafone_cash: e.target.value }))}
-                        placeholder="01012345678"
-                      />
+                    {/* Social Media & Websites */}
+                    <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '16px', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--txt-heading)' }}>
+                        حسابات السوشيال ميديا والموقع
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+                        <div className="form-group">
+                          <label className="form-label">انستغرام (Instagram)</label>
+                          <input
+                            className="form-input"
+                            value={editForm.instagram || ''}
+                            onChange={(e) => setEditForm(p => ({ ...p, instagram: e.target.value }))}
+                            placeholder="https://instagram.com/..."
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label className="form-label">فيسبوك (Facebook)</label>
+                          <input
+                            className="form-input"
+                            value={editForm.facebook || ''}
+                            onChange={(e) => setEditForm(p => ({ ...p, facebook: e.target.value }))}
+                            placeholder="https://facebook.com/..."
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label className="form-label">تيك توك (TikTok)</label>
+                          <input
+                            className="form-input"
+                            value={editForm.tiktok || ''}
+                            onChange={(e) => setEditForm(p => ({ ...p, tiktok: e.target.value }))}
+                            placeholder="https://tiktok.com/@..."
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label className="form-label">الموقع الإلكتروني (Website)</label>
+                          <input
+                            className="form-input"
+                            value={editForm.website || ''}
+                            onChange={(e) => setEditForm(p => ({ ...p, website: e.target.value }))}
+                            placeholder="https://example.com"
+                          />
+                        </div>
+                      </div>
                     </div>
+                  </>
+                )}
+
+                {/* ── TAB 2: Payment Shifts ── */}
+                {activeTab === 'shifts' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{
+                      backgroundColor: '#f5f3ff',
+                      border: '1px solid #ddd6fe',
+                      padding: '14px 16px',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '10px',
+                    }}>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#5b21b6' }}>
+                          ورديات العمل وطرق الدفع المتغيرة
+                        </h4>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#6d28d9' }}>
+                          حدد حسابات إنستاباي وفودافون كاش لكل كاشير/وردية لتبديلها تلقائياً حسب الوقت.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={addShift}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '7px 14px',
+                          borderRadius: '10px',
+                          backgroundColor: '#7c3aed',
+                          color: '#ffffff',
+                          border: 'none',
+                          fontSize: '0.82rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Plus size={15} />
+                        إضافة وردية جديدة
+                      </button>
+                    </div>
+
+                    {shifts.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--txt-muted)' }}>
+                        لا توجد ورديات محددة حالياً. انقر على "إضافة وردية جديدة" لضبط طرق الدفع حسب الوقت.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {shifts.map((shift, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              backgroundColor: '#ffffff',
+                              borderRadius: '14px',
+                              border: '1px solid var(--bdr-light)',
+                              padding: '16px',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '12px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '8px',
+                                  backgroundColor: '#f5f3ff',
+                                  color: '#7c3aed',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 800,
+                                  fontSize: '0.8rem',
+                                }}>
+                                  {idx + 1}
+                                </span>
+                                <input
+                                  type="text"
+                                  value={shift.label}
+                                  onChange={(e) => updateShift(idx, 'label', e.target.value)}
+                                  placeholder="اسم الوردية (مثلاً: وردية الصباح)"
+                                  style={{
+                                    fontWeight: 800,
+                                    fontSize: '0.9rem',
+                                    border: '1px solid transparent',
+                                    borderRadius: '6px',
+                                    padding: '4px 8px',
+                                    outline: 'none',
+                                    backgroundColor: 'var(--bg-subtle)',
+                                  }}
+                                />
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={shift.is_active !== false}
+                                    onChange={(e) => updateShift(idx, 'is_active', e.target.checked)}
+                                  />
+                                  مفعلة
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => removeShift(idx)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    padding: '4px',
+                                  }}
+                                  title="حذف الوردية"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Shift Details Form Grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                              <div className="form-group">
+                                <label className="form-label">اسم المسؤول / الكاشير</label>
+                                <input
+                                  className="form-input"
+                                  value={shift.cashier_name || ''}
+                                  onChange={(e) => updateShift(idx, 'cashier_name', e.target.value)}
+                                  placeholder="مثال: أحمد محمود"
+                                />
+                              </div>
+
+                              <div className="form-group">
+                                <label className="form-label">إنستاباي (InstaPay Username/Link)</label>
+                                <input
+                                  className="form-input"
+                                  value={shift.instapay || ''}
+                                  onChange={(e) => updateShift(idx, 'instapay', e.target.value)}
+                                  placeholder="username@instapay"
+                                />
+                              </div>
+
+                              <div className="form-group">
+                                <label className="form-label">فودافون كاش (Vodafone Cash Number)</label>
+                                <input
+                                  className="form-input"
+                                  value={shift.vodafone_cash || ''}
+                                  onChange={(e) => updateShift(idx, 'vodafone_cash', e.target.value)}
+                                  placeholder="010xxxxxxxx"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Time Window */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              backgroundColor: 'var(--bg-subtle)',
+                              padding: '10px 12px',
+                              borderRadius: '10px',
+                              flexWrap: 'wrap',
+                            }}>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--txt-heading)' }}>
+                                فترة الوردية:
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '0.78rem' }}>من الساعة</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={12}
+                                  value={shift.hour_from ?? ''}
+                                  onChange={(e) => updateShift(idx, 'hour_from', e.target.value ? Number(e.target.value) : undefined)}
+                                  style={{ width: '54px', padding: '4px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'center' }}
+                                />
+                                <select
+                                  value={shift.period_from || 'am'}
+                                  onChange={(e) => updateShift(idx, 'period_from', e.target.value)}
+                                  style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                                >
+                                  <option value="am">صباحاً (AM)</option>
+                                  <option value="pm">مساءً (PM)</option>
+                                </select>
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '0.78rem' }}>إلى الساعة</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={12}
+                                  value={shift.hour_to ?? ''}
+                                  onChange={(e) => updateShift(idx, 'hour_to', e.target.value ? Number(e.target.value) : undefined)}
+                                  style={{ width: '54px', padding: '4px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'center' }}
+                                />
+                                <select
+                                  value={shift.period_to || 'pm'}
+                                  onChange={(e) => updateShift(idx, 'period_to', e.target.value)}
+                                  style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                                >
+                                  <option value="am">صباحاً (AM)</option>
+                                  <option value="pm">مساءً (PM)</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
+
+                {/* ── TAB 3: Smart Redirect Rules ── */}
+                {activeTab === 'rules' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{
+                      backgroundColor: '#ecfeff',
+                      border: '1px solid #a5f3fc',
+                      padding: '14px 16px',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '10px',
+                    }}>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#0e7490' }}>
+                          قواعد إعادة التوجيه الذكية (Redirect Rules)
+                        </h4>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#155e75' }}>
+                          وجه زوارك إلى روابط مخصصة حسب نوع أجهزتهم (هواتف، أجهزة لوحية، كمبيوتر) أو أوقات معينة.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={addRule}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '7px 14px',
+                          borderRadius: '10px',
+                          backgroundColor: '#0891b2',
+                          color: '#ffffff',
+                          border: 'none',
+                          fontSize: '0.82rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Plus size={15} />
+                        إضافة قاعدة تحويل
+                      </button>
+                    </div>
+
+                    {rules.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--txt-muted)' }}>
+                        لا توجد قواعد مخصصة. سيتم تحويل الزائر مباشرةً لصفحة النشاط الأساسية.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {rules.map((rule, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              backgroundColor: '#ffffff',
+                              borderRadius: '14px',
+                              border: '1px solid var(--bdr-light)',
+                              padding: '16px',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '12px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '8px',
+                                  backgroundColor: '#ecfeff',
+                                  color: '#0891b2',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 800,
+                                  fontSize: '0.8rem',
+                                }}>
+                                  {idx + 1}
+                                </span>
+                                <input
+                                  type="text"
+                                  value={rule.label || ''}
+                                  onChange={(e) => updateRule(idx, 'label', e.target.value)}
+                                  placeholder="وصف القاعدة (مثال: مستخدمي الهواتف)"
+                                  style={{
+                                    fontWeight: 800,
+                                    fontSize: '0.9rem',
+                                    border: '1px solid transparent',
+                                    borderRadius: '6px',
+                                    padding: '4px 8px',
+                                    outline: 'none',
+                                    backgroundColor: 'var(--bg-subtle)',
+                                  }}
+                                />
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={rule.is_active !== false}
+                                    onChange={(e) => updateRule(idx, 'is_active', e.target.checked)}
+                                  />
+                                  مفعلة
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => removeRule(idx)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    padding: '4px',
+                                  }}
+                                  title="حذف القاعدة"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Target Device & Redirect URL */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: '10px' }}>
+                              <div className="form-group">
+                                <label className="form-label">الجهاز المستهدف</label>
+                                <select
+                                  className="form-input"
+                                  value={rule.device_target}
+                                  onChange={(e) => updateRule(idx, 'device_target', e.target.value)}
+                                >
+                                  <option value="any">جميع الأجهزة (Any)</option>
+                                  <option value="mobile">الهواتف الذكية (Mobile)</option>
+                                  <option value="tablet">الأجهزة اللوحية (Tablet)</option>
+                                  <option value="desktop">الكمبيوتر المكتبي (Desktop)</option>
+                                </select>
+                              </div>
+
+                              <div className="form-group">
+                                <label className="form-label">رابط التحويل المباشر (Redirect URL)</label>
+                                <input
+                                  className="form-input"
+                                  value={rule.redirect_url}
+                                  onChange={(e) => updateRule(idx, 'redirect_url', e.target.value)}
+                                  placeholder="https://menu.example.com أو https://wa.me/..."
+                                  required
+                                />
+                              </div>
+                            </div>
+
+                            {/* Optional Time Window */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              backgroundColor: 'var(--bg-subtle)',
+                              padding: '8px 12px',
+                              borderRadius: '10px',
+                              flexWrap: 'wrap',
+                            }}>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--txt-heading)' }}>
+                                توقيت العمل (اختياري):
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '0.78rem' }}>من</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={12}
+                                  value={rule.hour_from ?? ''}
+                                  onChange={(e) => updateRule(idx, 'hour_from', e.target.value ? Number(e.target.value) : undefined)}
+                                  placeholder="—"
+                                  style={{ width: '48px', padding: '3px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'center' }}
+                                />
+                                <select
+                                  value={rule.period_from || 'am'}
+                                  onChange={(e) => updateRule(idx, 'period_from', e.target.value)}
+                                  style={{ padding: '3px 6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                                >
+                                  <option value="am">ص</option>
+                                  <option value="pm">م</option>
+                                </select>
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '0.78rem' }}>إلى</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={12}
+                                  value={rule.hour_to ?? ''}
+                                  onChange={(e) => updateRule(idx, 'hour_to', e.target.value ? Number(e.target.value) : undefined)}
+                                  placeholder="—"
+                                  style={{ width: '48px', padding: '3px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'center' }}
+                                />
+                                <select
+                                  value={rule.period_to || 'pm'}
+                                  onChange={(e) => updateRule(idx, 'period_to', e.target.value)}
+                                  style={{ padding: '3px 6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                                >
+                                  <option value="am">ص</option>
+                                  <option value="pm">م</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              {/* Modal Footer */}
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid var(--bdr-light)' }}>
                 <button
                   type="button"
-                  className="btn-outline"
+                  className="btn-secondary"
                   onClick={() => setEditingCard(null)}
                   disabled={saving}
+                  style={{ padding: '8px 16px', borderRadius: '10px' }}
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="btn-primary"
                   disabled={saving}
-                  style={{ minWidth: '130px', justifyContent: 'center' }}
+                  className="btn-primary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 20px',
+                    borderRadius: '10px',
+                    backgroundColor: '#059669',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 800,
+                  }}
                 >
-                  {saving ? (
-                    <><RefreshCw size={15} className="spin" /> جاري الحفظ...</>
-                  ) : (
-                    <><Save size={15} /> حفظ البيانات</>
-                  )}
+                  {saving ? <RefreshCw size={15} className="spin" /> : <Save size={15} />}
+                  <span>{saving ? 'جاري الحفظ...' : 'حفظ جميع التعديلات'}</span>
                 </button>
               </div>
             </form>
@@ -600,16 +1285,4 @@ export const MerchantCardsPage: React.FC = () => {
     </div>
   );
 };
-
-const pillStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px',
-  padding: '2px 8px',
-  borderRadius: '6px',
-  backgroundColor: '#ffffff',
-  border: '1px solid var(--bdr-light)',
-  fontSize: '11px',
-  fontWeight: 700,
-  color: 'var(--txt-secondary)',
-};
+export default MerchantCardsPage;

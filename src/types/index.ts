@@ -346,6 +346,7 @@ export interface ApiUpdateCardDto {
   business_data?: BusinessData | null;
   template?: string;
   payment_shifts?: PaymentShift[];
+  redirect_rules?: RedirectRule[];
   requires_subscription?: boolean;
 }
 
