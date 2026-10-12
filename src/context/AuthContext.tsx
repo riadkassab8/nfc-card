@@ -244,8 +244,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ) {
         return true;
       }
-      // صفحة إدارة المستخدمين والصلاحيات مخصصة حصرياً للمدير الرئيسي
-      if (pageId === 'users') {
+      // صفحتا إدارة المستخدمين وسجل المستخدمين مخصصتان حصرياً للمدير الرئيسي
+      if (pageId === 'users' || pageId === 'user_logs') {
         return false;
       }
       // التاجر / صاحب المحل: يصل فقط للرئيسية والبطاقات

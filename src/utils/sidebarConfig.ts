@@ -14,6 +14,7 @@ import {
   Tags,
   Scan,
   ShieldAlert,
+  History,
 } from 'lucide-react';
 import { authApi } from '../services/api';
 import { SidebarNavItemConfig } from '../types';
@@ -29,6 +30,7 @@ export const ICON_MAP: Record<string, React.ElementType> = {
   Tags,
   Scan,
   ShieldAlert,
+  History,
 };
 
 export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
@@ -103,6 +105,15 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     iconName: 'ShieldAlert',
     visible: true,
     order: 7,
+  },
+  {
+    id: 'user_logs',
+    path: '/admin/user-logs',
+    label: 'سجل المستخدمين',
+    defaultLabel: 'سجل المستخدمين',
+    iconName: 'History',
+    visible: true,
+    order: 8,
   },
 ];
 

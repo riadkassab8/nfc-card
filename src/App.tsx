@@ -20,6 +20,7 @@ import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
+import { AdminUserLogsPage } from './pages/admin/AdminUserLogsPage';
 import { PublicCardLandingPage } from './pages/PublicCardLandingPage';
 import { SocialPage } from './pages/SocialPage';
 
@@ -28,10 +29,17 @@ import { MerchantOverviewPage } from './pages/merchant/MerchantOverviewPage';
 import { MerchantCardsPage } from './pages/merchant/MerchantCardsPage';
 import { MerchantAnalyticsPage } from './pages/merchant/MerchantAnalyticsPage';
 import { MerchantProfilePage } from './pages/merchant/MerchantProfilePage';
+import { useActivityTracker } from './hooks/useActivityTracker';
+
+const ActivityTrackerListener: React.FC = () => {
+  useActivityTracker();
+  return null;
+};
 
 export const App: React.FC = () => (
   <AuthProvider>
     <BrowserRouter>
+      <ActivityTrackerListener />
       <Routes>
         {/* ── Auth (Public - no token required) ── */}
         <Route path="/" element={<FallbackRoute />} />
@@ -136,6 +144,17 @@ export const App: React.FC = () => (
             <ProtectedRoute requiredRole="super_admin">
               <AdminShell title="المستخدمين والصلاحيات">
                 <AdminUsersPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/user-logs"
+          element={
+            <ProtectedRoute requiredRole="super_admin">
+              <AdminShell title="سجل المستخدمين">
+                <AdminUserLogsPage />
               </AdminShell>
             </ProtectedRoute>
           }

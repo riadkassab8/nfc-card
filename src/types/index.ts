@@ -770,5 +770,60 @@ export interface ApiNotificationsResponse {
   unread_count: number;
 }
 
+// ── User Activity Logs (Audit Trail) ──────────────────────────────────────
 
+export interface ApiUserLog {
+  _id: string;
+  user_id: string;
+  username: string;
+  user_name?: string;
+  role: string;
+  action_type:
+    | 'login'
+    | 'logout'
+    | 'page_view'
+    | 'create'
+    | 'update'
+    | 'delete'
+    | 'export'
+    | 'status_change';
+  action_name: string;
+  page_url: string;
+  page_title?: string;
+  duration_seconds: number;
+  session_id?: string | null;
+  details?: Record<string, any>;
+  ip_address?: string;
+  user_agent?: string;
+  status: 'success' | 'failed';
+  createdAt: string;
+  updatedAt?: string;
+}
 
+export interface ApiUserLogsResponse {
+  logs: ApiUserLog[];
+  total: number;
+  page: number;
+  total_pages: number;
+  limit: number;
+}
+
+export interface ApiUserLogsStats {
+  total_today: number;
+  active_users_today: number;
+  avg_duration_today_seconds: number;
+  top_page_today: { page_title: string; page_url: string; count: number } | null;
+  actions_breakdown: Record<string, number>;
+}
+
+export interface TrackActivityPayload {
+  log_id?: string;
+  action_type?: string;
+  action_name?: string;
+  page_url: string;
+  page_title?: string;
+  duration_seconds?: number;
+  session_id?: string;
+  details?: Record<string, any>;
+  status?: string;
+}
