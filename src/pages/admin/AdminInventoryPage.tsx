@@ -517,6 +517,7 @@ export const AdminInventoryPage: React.FC = () => {
         />
       )}
 
+
       {/* Hero */}
       <div className="responsive-hero-banner" style={{
         position: 'relative',
