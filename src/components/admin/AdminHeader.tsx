@@ -135,8 +135,22 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
       }
     }
     setNotifOpen(false);
-    if (notif.link) {
-      navigate(notif.link);
+
+    let targetLink = notif.link;
+    if (!targetLink && notif.card_id) {
+      targetLink = `/admin/cards?cardId=${notif.card_id}`;
+    } else if (notif.card_id && targetLink && !targetLink.includes('cardId=')) {
+      const sep = targetLink.includes('?') ? '&' : '?';
+      targetLink = `${targetLink}${sep}cardId=${notif.card_id}`;
+    } else if (!targetLink) {
+      const match = (notif.message || notif.title || '').match(/\(([A-Za-z0-9_-]+)\)/);
+      if (match && match[1]) {
+        targetLink = `/admin/cards?search=${encodeURIComponent(match[1])}`;
+      }
+    }
+
+    if (targetLink) {
+      navigate(targetLink);
     }
   };
 

@@ -173,13 +173,19 @@ export const AdminInventoryPage: React.FC = () => {
 
   const [searchParams] = useSearchParams();
   const initStatus = (searchParams.get('status') as any) || 'all';
+  const initSearch = searchParams.get('search') || searchParams.get('code') || '';
+  const initCardId = searchParams.get('cardId') || searchParams.get('card_id') || searchParams.get('id') || '';
 
-  const [search, setSearch] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
-  const [statusF, setStatusF] = useState<'all' | 'active' | 'inactive' | 'expired' | 'assigned'>(initStatus);
+  const [search, setSearch] = useState(initSearch);
+  const [appliedSearch, setAppliedSearch] = useState(initSearch);
+  const [statusF, setStatusF] = useState<'all' | 'active' | 'inactive' | 'expired' | 'assigned'>(
+    initSearch || initCardId ? 'all' : initStatus
+  );
   const [typeF, setTypeF] = useState('');
   const [catF, setCatF] = useState('');
-  const [assignedF, setAssignedF] = useState<'all' | 'assigned' | 'unassigned'>('unassigned');
+  const [assignedF, setAssignedF] = useState<'all' | 'assigned' | 'unassigned'>(
+    initSearch || initCardId ? 'all' : 'unassigned'
+  );
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -282,6 +288,11 @@ export const AdminInventoryPage: React.FC = () => {
         setCards(pagedCards);
         setTotalPages(Math.ceil(filteredCards.length / currentLimit) || 1);
         setCurrentTotal(filteredCards.length);
+
+        if (appliedSearch) {
+          const match = filteredCards.find(c => c.card_code?.toLowerCase() === appliedSearch.toLowerCase().trim() || c._id === appliedSearch);
+          if (match) setDrawerCard(match);
+        }
       } else {
         const cr = await cardsApi.getCards({
           page: pg,
@@ -295,6 +306,11 @@ export const AdminInventoryPage: React.FC = () => {
         setCards(rawCards);
         setTotalPages(cr.totalPages ?? 1);
         setCurrentTotal(cr.total ?? rawCards.length);
+
+        if (appliedSearch) {
+          const match = rawCards.find(c => c.card_code?.toLowerCase() === appliedSearch.toLowerCase().trim() || c._id === appliedSearch);
+          if (match) setDrawerCard(match);
+        }
       }
     } catch (e: any) {
       setError(e?.message || 'فشل التحميل');
@@ -337,6 +353,41 @@ export const AdminInventoryPage: React.FC = () => {
   useEffect(() => {
     fetchCards(page, limit);
   }, [page, limit, appliedSearch, statusF, typeF, catF, assignedF]);
+
+  // المزامنة التلقائية مع معاملات الرابط عند النقر على إشعار
+  useEffect(() => {
+    const qSearch = searchParams.get('search') || searchParams.get('code') || '';
+    const qCardId = searchParams.get('cardId') || searchParams.get('card_id') || searchParams.get('id') || '';
+    const qStatus = searchParams.get('status');
+
+    if (qSearch || qCardId) {
+      setAssignedF('all');
+      if (qStatus) {
+        setStatusF(qStatus as any);
+      } else {
+        setStatusF('all');
+      }
+
+      if (qSearch) {
+        setSearch(qSearch);
+        setAppliedSearch(qSearch);
+      }
+
+      if (qCardId) {
+        cardsApi.getCardById(qCardId).then((card) => {
+          if (card) {
+            setDrawerCard(card);
+            if (!qSearch && card.card_code) {
+              setSearch(card.card_code);
+              setAppliedSearch(card.card_code);
+            }
+          }
+        }).catch(() => {});
+      }
+    } else if (qStatus) {
+      setStatusF(qStatus as any);
+    }
+  }, [searchParams]);
 
   /* actions */
   const handleToggle = async (card: ApiCard) => {
