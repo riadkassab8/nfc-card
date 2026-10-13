@@ -62,15 +62,23 @@ export const AdminNotificationsPage: React.FC = () => {
       }
     }
     let targetLink = notif.link;
-    if (!targetLink && notif.card_id) {
-      targetLink = `/admin/cards?cardId=${notif.card_id}`;
-    } else if (notif.card_id && targetLink && !targetLink.includes('cardId=')) {
-      const sep = targetLink.includes('?') ? '&' : '?';
-      targetLink = `${targetLink}${sep}cardId=${notif.card_id}`;
-    } else if (!targetLink) {
-      const match = (notif.message || notif.title || '').match(/\(([A-Za-z0-9_-]+)\)/);
-      if (match && match[1]) {
-        targetLink = `/admin/cards?search=${encodeURIComponent(match[1])}`;
+    if (notif.card_id) {
+      if (!targetLink || !targetLink.startsWith('/admin/cards')) {
+        targetLink = `/admin/cards?cardId=${notif.card_id}`;
+      } else if (!targetLink.includes('cardId=')) {
+        const sep = targetLink.includes('?') ? '&' : '?';
+        targetLink = `${targetLink}${sep}cardId=${notif.card_id}`;
+      }
+    } else {
+      const cardMatch =
+        (notif.message || notif.title || '').match(/\b(CARD-[A-Za-z0-9_-]+)\b/i) ||
+        (notif.message || notif.title || '').match(/\(([A-Za-z0-9_-]+)\)/);
+      if (
+        cardMatch &&
+        cardMatch[1] &&
+        (!targetLink || targetLink.includes('/admin/cards') || !targetLink.startsWith('/admin/users'))
+      ) {
+        targetLink = `/admin/cards?search=${encodeURIComponent(cardMatch[1])}`;
       }
     }
 

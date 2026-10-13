@@ -361,6 +361,7 @@ export const AdminInventoryPage: React.FC = () => {
     const qStatus = searchParams.get('status');
 
     if (qSearch || qCardId) {
+      setPage(1);
       setAssignedF('all');
       if (qStatus) {
         setStatusF(qStatus as any);
@@ -381,6 +382,19 @@ export const AdminInventoryPage: React.FC = () => {
               setSearch(card.card_code);
               setAppliedSearch(card.card_code);
             }
+          }
+        }).catch(() => {});
+      } else if (qSearch) {
+        cardsApi.getCards({ search: qSearch, limit: 10 }).then((res) => {
+          const list = res.data ?? [];
+          const match =
+            list.find(
+              (c) =>
+                c.card_code?.toLowerCase() === qSearch.toLowerCase().trim() ||
+                c._id === qSearch,
+            ) || list[0];
+          if (match) {
+            setDrawerCard(match);
           }
         }).catch(() => {});
       }
