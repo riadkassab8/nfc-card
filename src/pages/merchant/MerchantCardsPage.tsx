@@ -320,7 +320,7 @@ export const MerchantCardsPage: React.FC = () => {
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))',
           gap: '20px',
         }}>
           {cards.map((card) => {
@@ -558,13 +558,13 @@ export const MerchantCardsPage: React.FC = () => {
       {editingCard && (
         <div className="modal-overlay" onClick={() => setEditingCard(null)}>
           <div
-            className="modal-panel"
+            className="modal-panel responsive-modal-panel"
             onClick={(e) => e.stopPropagation()}
             dir="rtl"
             style={{ maxWidth: '780px', width: '94%' }}
           >
             {/* Modal Header */}
-            <div className="modal-header" style={{ paddingBottom: '12px' }}>
+            <div className="modal-header responsive-modal-header" style={{ paddingBottom: '12px' }}>
               <div>
                 <h2 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 900 }}>
                   إدارة وتعديل البطاقة
@@ -579,7 +579,7 @@ export const MerchantCardsPage: React.FC = () => {
             </div>
 
             {/* Navigation Tabs */}
-            <div style={{
+            <div className="responsive-tabs-bar" style={{
               display: 'flex',
               gap: '8px',
               padding: '0 20px 14px',

@@ -11,8 +11,16 @@ export interface MerchantHeaderProps {
 
 export const MerchantHeader: React.FC<MerchantHeaderProps> = ({ title, onOpenMobileMenu }) => {
   const { admin, logout } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const storeTitle = admin?.store_name || admin?.name || 'متجري الذكي';
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 6);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     if (!confirmOpen) return;
@@ -31,90 +39,58 @@ export const MerchantHeader: React.FC<MerchantHeaderProps> = ({ title, onOpenMob
   const endDateFormatted = subEndDate ? subEndDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
 
   return (
-    <header className="merchant-header" dir="rtl" style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '14px 24px',
-      backgroundColor: '#ffffff',
-      borderBottom: '1px solid var(--bdr-light)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 50,
-    }}>
+    <header className={`merchant-header${scrolled ? ' scrolled' : ''}`} dir="rtl">
       {/* Start: mobile menu + title */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+      <div className="hdr-start">
         <button
           type="button"
           onClick={onOpenMobileMenu}
           className="hdr-icon-btn hdr-hamburger"
           aria-label="القائمة"
         >
-          <Menu size={22} />
+          <Menu size={20} />
         </button>
 
-        <div>
-          <div style={{ fontSize: '12px', color: 'var(--txt-muted)', fontWeight: 600 }}>
-            مرحباً بك في بوابة التاجر 👋
-          </div>
-          <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--txt-heading)' }}>
+        <div className="hdr-title-wrap">
+          <span className="hdr-crumb">مرحباً بك في بوابة المتجر 👋</span>
+          <h1 key={title} className="hdr-title">
             {title}
           </h1>
         </div>
       </div>
 
       {/* End: Store badge + Subscription badge + Profile + Logout */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-        {/* Store Title Badge */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '6px 14px',
-          borderRadius: '999px',
-          backgroundColor: '#eff6ff',
-          border: '1px solid #bfdbfe',
-        }}>
-          <Store size={15} style={{ color: '#1d4ed8' }} />
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#1d4ed8' }}>
+      <div className="hdr-end">
+        {/* Store Title Badge (Desktop Only) */}
+        <div className="merchant-store-badge" title={storeTitle}>
+          <Store size={14} />
+          <span style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {storeTitle}
           </span>
         </div>
 
-        {/* Subscription Status Badge */}
+        {/* Subscription Status Badge (Desktop & Tablet Only) */}
         {isPermanent ? (
           <div
+            className="merchant-sub-badge"
             title="اشتراكك في النظام دائم ومفتوح مدى الحياة"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 14px',
-              borderRadius: '999px',
               backgroundColor: '#ecfdf5',
               border: '1px solid #a7f3d0',
               color: '#065f46',
-              fontSize: '12.5px',
-              fontWeight: 800,
             }}
           >
             <Sparkles size={14} color="#059669" />
-            <span>اشتراك دائم (مفتوح)</span>
+            <span>اشتراك دائم</span>
           </div>
         ) : diffDays !== null && diffDays <= 0 ? (
           <div
+            className="merchant-sub-badge"
             title={`انتهى الاشتراك بتاريخ ${endDateFormatted}`}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 14px',
-              borderRadius: '999px',
               backgroundColor: '#fef2f2',
               border: '1px solid #fecaca',
               color: '#b91c1c',
-              fontSize: '12.5px',
-              fontWeight: 800,
             }}
           >
             <AlertCircle size={14} color="#ef4444" />
@@ -122,59 +98,34 @@ export const MerchantHeader: React.FC<MerchantHeaderProps> = ({ title, onOpenMob
           </div>
         ) : diffDays !== null ? (
           <div
+            className="merchant-sub-badge"
             title={`ينتهي الاشتراك بتاريخ ${endDateFormatted}`}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 14px',
-              borderRadius: '999px',
               backgroundColor: diffDays <= 15 ? '#fefce8' : '#f0fdf4',
               border: `1px solid ${diffDays <= 15 ? '#fef08a' : '#bbf7d0'}`,
               color: diffDays <= 15 ? '#a16207' : '#15803d',
-              fontSize: '12.5px',
-              fontWeight: 800,
             }}
           >
             <Clock size={14} color={diffDays <= 15 ? '#ca8a04' : '#16a34a'} />
-            <span>متبقي على الاشتراك: {diffDays} يوم</span>
+            <span>متبقي: {diffDays} يوم</span>
           </div>
         ) : null}
 
+        {/* Profile Link Button */}
         <Link
           to="/merchant/profile"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
-            backgroundColor: 'var(--bg-subtle)',
-            color: 'var(--txt-secondary)',
-            border: '1px solid var(--bdr-light)',
-            textDecoration: 'none',
-          }}
+          className="hdr-icon-btn"
           title="الملف الشخصي وإعدادات الحساب"
+          aria-label="الملف الشخصي"
         >
           <User size={18} />
         </Link>
 
+        {/* Logout Button */}
         <button
           type="button"
           onClick={() => setConfirmOpen(true)}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
-            backgroundColor: 'var(--clr-error-bg)',
-            color: 'var(--clr-error)',
-            border: '1px solid var(--clr-error-bdr)',
-            cursor: 'pointer',
-          }}
+          className="hdr-icon-btn danger"
           title="تسجيل الخروج"
           aria-label="تسجيل الخروج"
         >
@@ -185,19 +136,19 @@ export const MerchantHeader: React.FC<MerchantHeaderProps> = ({ title, onOpenMob
       {/* Logout confirmation — portalled */}
       {confirmOpen && createPortal(
         <div className="modal-overlay" onClick={() => setConfirmOpen(false)} role="dialog" aria-modal="true">
-          <div className="modal-panel" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()} dir="rtl">
-            <div className="modal-header">
+          <div className="modal-panel responsive-modal-panel" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()} dir="rtl">
+            <div className="modal-header responsive-modal-header">
               <h2 className="modal-title">تسجيل الخروج</h2>
               <button type="button" className="modal-close" onClick={() => setConfirmOpen(false)} aria-label="إغلاق">
                 <X size={17} />
               </button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body responsive-modal-body">
               <p style={{ margin: '0 0 8px', color: 'var(--txt-body)' }}>
                 هل أنت متأكد من رغبتك في تسجيل الخروج من لوحة تحكم المتجر؟
               </p>
             </div>
-            <div className="modal-footer">
+            <div className="modal-footer responsive-modal-footer">
               <button type="button" className="btn-secondary" onClick={() => setConfirmOpen(false)}>
                 إلغاء
               </button>

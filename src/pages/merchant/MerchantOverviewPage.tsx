@@ -79,7 +79,7 @@ export const MerchantOverviewPage: React.FC = () => {
   return (
     <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Hero Welcome Banner */}
-      <div style={{
+      <div className="responsive-hero-banner" style={{
         background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%)',
         borderRadius: '20px',
         padding: '28px 32px',
@@ -113,26 +113,28 @@ export const MerchantOverviewPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/merchant/cards"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            backgroundColor: '#ffffff',
-            color: '#1d4ed8',
-            padding: '12px 22px',
-            borderRadius: '12px',
-            fontWeight: 800,
-            fontSize: '14px',
-            textDecoration: 'none',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <span>إدارة بطاقات المحل</span>
-          <ArrowLeft size={16} />
-        </Link>
+        <div className="responsive-hero-actions">
+          <Link
+            to="/merchant/cards"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: '#ffffff',
+              color: '#1d4ed8',
+              padding: '12px 22px',
+              borderRadius: '12px',
+              fontWeight: 800,
+              fontSize: '14px',
+              textDecoration: 'none',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>إدارة بطاقات المحل</span>
+            <ArrowLeft size={16} />
+          </Link>
+        </div>
       </div>
 
       {/* Subscription Alert for Merchant if expiring soon or expired */}
@@ -182,7 +184,7 @@ export const MerchantOverviewPage: React.FC = () => {
       {/* KPI Stats Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))',
         gap: '16px',
       }}>
         {/* Card 1: Total cards */}

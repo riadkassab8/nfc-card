@@ -247,6 +247,7 @@ export const AdminCustomersPage: React.FC = () => {
 
       {/* Hero Header */}
       <div
+        className="responsive-hero-banner"
         style={{
           position: 'relative',
           overflow: 'hidden',
@@ -277,7 +278,7 @@ export const AdminCustomersPage: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', zIndex: 1, flexWrap: 'wrap' }}>
+        <div className="responsive-hero-actions" style={{ display: 'flex', gap: '10px', zIndex: 1, flexWrap: 'wrap' }}>
           {can('customers:delete') && (
             <button
               onClick={() => setTrashModalOpen(true)}
@@ -383,6 +384,7 @@ export const AdminCustomersPage: React.FC = () => {
 
       {/* Navigation Tabs */}
       <div
+        className="responsive-tabs-bar"
         style={{
           display: 'flex',
           gap: '8px',

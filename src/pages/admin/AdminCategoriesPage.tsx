@@ -45,7 +45,7 @@ const Modal: React.FC<{ existing?: ApiCategory | null; onClose: () => void; onSa
 
   return (
     <div className="modal-overlay">
-      <div className="modal-panel" dir="rtl" style={{ maxWidth: '440px' }}>
+      <div className="modal-panel responsive-modal-panel" dir="rtl" style={{ maxWidth: '440px' }}>
         <div className="modal-header">
           <h2 className="modal-title">{isEdit ? 'تعديل التصنيف' : 'إضافة تصنيف جديد'}</h2>
           <button className="modal-close" onClick={onClose}><X size={16} /></button>
@@ -188,7 +188,7 @@ export const AdminCategoriesPage: React.FC = () => {
       )}
 
       {/* Hero Header */}
-      <div style={{
+      <div className="responsive-hero-banner" style={{
         position: 'relative',
         overflow: 'hidden',
         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
@@ -214,7 +214,7 @@ export const AdminCategoriesPage: React.FC = () => {
             إجمالي التصنيفات المسجلة: <strong style={{ color: '#38bdf8', fontWeight: 800 }}>{totalCount}</strong> تصنيف
           </p>
         </div>
-        <div style={{ zIndex: 1, display: 'flex', gap: '10px' }}>
+        <div className="responsive-hero-actions" style={{ zIndex: 1, display: 'flex', gap: '10px' }}>
           {can('categories:manage') && (
             <button
               onClick={() => { setEditing(null); setModalOpen(true); }}
@@ -241,7 +241,7 @@ export const AdminCategoriesPage: React.FC = () => {
       </div>
 
       {/* KPI Stats Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: '14px' }}>
         {[
           { key: 'all',      label: 'إجمالي التصنيفات', val: totalCount,    icon: <Tags size={20} />,         color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
           { key: 'active',   label: 'تصنيفات مفعّلة',   val: activeCount,   icon: <CheckCircle2 size={20} />, color: '#10b981', bg: '#ecfdf5', border: '#a7f3d0' },

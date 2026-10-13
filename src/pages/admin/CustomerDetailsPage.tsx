@@ -330,7 +330,7 @@ export const CustomerDetailsPage: React.FC = () => {
           <ArrowRight size={16} /> العودة لقائمة العملاء
         </button>
 
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="responsive-hero-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button
             onClick={() => setActiveTab(activeTab === 'history' ? 'cards' : 'history')}
             className="btn-outline"
@@ -445,6 +445,7 @@ export const CustomerDetailsPage: React.FC = () => {
 
       {/* Customer Info Card Header */}
       <div
+        className="responsive-hero-banner"
         style={{
           backgroundColor: '#fff',
           borderRadius: '20px',

@@ -116,6 +116,7 @@ export const AdminNotificationsPage: React.FC = () => {
     <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* ── Top Header Bar ────────────────────────────────────────── */}
       <div
+        className="responsive-hero-banner"
         style={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -154,7 +155,7 @@ export const AdminNotificationsPage: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="responsive-hero-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {unreadCount > 0 && (
             <button
               type="button"

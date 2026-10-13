@@ -262,6 +262,7 @@ export const AdminUserLogsPage: React.FC = () => {
 
       {/* ── Header Banner ── */}
       <div
+        className="responsive-hero-banner"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -316,7 +317,7 @@ export const AdminUserLogsPage: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="responsive-hero-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             type="button"
             onClick={handleExportCSV}
@@ -366,7 +367,7 @@ export const AdminUserLogsPage: React.FC = () => {
       </div>
 
       {/* ── KPI Stats Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: '16px' }}>
         {/* Card 1: Today Actions */}
         <div style={{ backgroundColor: '#ffffff', padding: '20px 22px', borderRadius: '18px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
@@ -425,6 +426,7 @@ export const AdminUserLogsPage: React.FC = () => {
 
       {/* ── Toolbar: Search & Filters ── */}
       <div
+        className="responsive-filter-toolbar"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -437,7 +439,7 @@ export const AdminUserLogsPage: React.FC = () => {
           border: '1px solid #e2e8f0',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '280px' }}>
+        <div className="responsive-filter-search" style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '280px' }}>
           <div style={{ position: 'relative', width: '100%', maxWidth: '380px' }}>
             <Search size={18} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
             <input
@@ -462,7 +464,7 @@ export const AdminUserLogsPage: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="responsive-filter-pills" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           {/* Role Filter */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>الدور:</span>
@@ -560,7 +562,7 @@ export const AdminUserLogsPage: React.FC = () => {
           boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
         }}
       >
-        <div style={{ overflowX: 'auto' }}>
+        <div className="data-table-wrapper" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>

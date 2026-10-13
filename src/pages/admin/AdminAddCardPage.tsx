@@ -2151,6 +2151,7 @@ export const AdminAddCardPage: React.FC = () => {
 
         {/* ══════ Bottom Stepper Navigation Actions Bar ══════ */}
         <div
+          className="responsive-bottom-bar"
           style={{
             position: 'sticky',
             bottom: '16px',

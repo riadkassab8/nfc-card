@@ -387,6 +387,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
 
       {/* ── Executive Hero Profile Banner ── */}
       <div
+        className="responsive-hero-banner"
         style={{
           background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
           borderRadius: '20px',
@@ -535,7 +536,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
         </div>
 
         {/* Action button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', position: 'relative', zIndex: 1 }}>
+        <div className="responsive-hero-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px', position: 'relative', zIndex: 1 }}>
           <button
             type="button"
             onClick={() => {
@@ -574,6 +575,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
 
       {/* ── Segmented Tab Switcher (Profile & Security only) ── */}
       <div
+        className="responsive-tabs-bar"
         style={{
           display: 'flex',
           gap: '8px',
@@ -582,6 +584,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
           borderRadius: '14px',
           border: '1px solid #e2e8f0',
           width: 'fit-content',
+          maxWidth: '100%',
         }}
       >
         <button

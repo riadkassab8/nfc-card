@@ -421,15 +421,123 @@ body {
   margin: 0 auto;
 }
 
+/* ── Merchant Header ── */
+.merchant-header {
+  height: 70px;
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 28px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  transition: box-shadow 250ms var(--ease), background 250ms var(--ease);
+}
+.merchant-header.scrolled {
+  box-shadow: 0 10px 28px -16px rgba(15, 23, 42, 0.22);
+  background: rgba(255, 255, 255, 0.95);
+}
+.merchant-store-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 700;
+}
+.merchant-sub-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+/* ── Notification Dropdown & Mobile Centering ── */
+.hdr-notif-backdrop {
+  display: none;
+}
+.hdr-notif-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: 380px;
+  max-width: 90vw;
+  background-color: var(--bg-card, #ffffff);
+  border-radius: 18px;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--bdr-light, #e2e8f0);
+  overflow: hidden;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  max-height: 480px;
+  animation: fadeIn 0.2s ease;
+}
+.hdr-notif-close-mobile {
+  display: none;
+}
+
 @media (max-width: 992px) {
   .admin-sidebar-desktop { display: none !important; }
   .hdr-hamburger { display: flex; }
   .admin-header { padding: 0 16px; height: 64px; }
+  .merchant-header { padding: 0 16px; height: 64px; }
+  .merchant-store-badge { display: none !important; }
 }
 @media (max-width: 768px) {
   .admin-main { padding: 16px 12px; }
   .hdr-crumb { display: none; }
   .hdr-title { font-size: 1.02rem; }
+  .merchant-sub-badge { display: none !important; }
+}
+@media (max-width: 640px) {
+  .hdr-notif-backdrop {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(15, 23, 42, 0.5) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    z-index: 998 !important;
+    animation: fadeIn 180ms ease !important;
+  }
+  .hdr-notif-dropdown {
+    position: fixed !important;
+    top: 70px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: calc(100vw - 24px) !important;
+    max-width: 410px !important;
+    max-height: calc(100vh - 90px) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.45), 0 0 0 1px rgba(15, 23, 42, 0.1) !important;
+    z-index: 999 !important;
+  }
+  .hdr-notif-close-mobile {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(148, 163, 184, 0.15);
+    color: #475569;
+    cursor: pointer;
+  }
 }
 @media (max-width: 560px) {
   .hdr-user-meta { display: none; }
@@ -664,3 +772,231 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .auth-blob, .login-orb, .nfc-card-float, .page-hero, .login-visual-side { animation: none !important; }
 }
+
+/* ==========================================================================
+   ✦ SYSTEM-WIDE RESPONSIVE FOUNDATION
+   Ensures seamless experience across Mobile (320px–480px), Tablet (600px–992px),
+   and Desktop without any horizontal overflowing.
+   ========================================================================== */
+
+/* ── Global Overflow Guard ───────────────────────────────────────── */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* ── Universal Responsive Grids ──────────────────────────────────── */
+.responsive-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.responsive-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.responsive-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 860px) {
+  .responsive-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .responsive-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .responsive-grid-2,
+  .responsive-grid-3,
+  .responsive-grid-4 {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}
+
+/* ── Responsive Tables & Wrappers ────────────────────────────────── */
+.data-table-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin;
+  position: relative;
+}
+.data-table-wrapper table {
+  min-width: 640px;
+}
+@media (max-width: 640px) {
+  .data-table th, .data-table td,
+  .premium-table th, .premium-table td {
+    padding: 10px 12px !important;
+    font-size: 0.82rem !important;
+  }
+}
+
+/* ── Responsive Hero Banners ─────────────────────────────────────── */
+.responsive-hero-banner {
+  transition: padding 200ms ease;
+}
+@media (max-width: 768px) {
+  .responsive-hero-banner {
+    padding: 18px 16px !important;
+    border-radius: 16px !important;
+    gap: 16px !important;
+  }
+  .responsive-hero-banner h1,
+  .responsive-hero-banner h2 {
+    font-size: 1.3rem !important;
+  }
+  .responsive-hero-banner p {
+    font-size: 0.82rem !important;
+  }
+}
+@media (max-width: 540px) {
+  .responsive-hero-banner {
+    padding: 16px 14px !important;
+    border-radius: 14px !important;
+  }
+  .responsive-hero-actions {
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .responsive-hero-actions > button,
+  .responsive-hero-actions > a {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+}
+
+/* ── Responsive Navigation Tabs ──────────────────────────────────── */
+.responsive-tabs-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border-bottom: 2px solid var(--bdr-light) !important;
+  overflow-x: auto !important;
+  white-space: nowrap !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  padding-bottom: 0 !important;
+  margin-top: 2px !important;
+  width: 100% !important;
+}
+.responsive-tabs-bar::-webkit-scrollbar {
+  display: none !important;
+}
+.responsive-tabs-bar > button,
+.responsive-tabs-bar > a {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* ── Responsive Modals & Dialogs ─────────────────────────────────── */
+.responsive-modal-panel {
+  width: 100% !important;
+  max-width: 680px;
+  max-height: 90vh !important;
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+@media (max-width: 768px) {
+  .responsive-modal-panel {
+    max-width: calc(100vw - 20px) !important;
+    max-height: 94vh !important;
+    border-radius: 18px !important;
+  }
+  .responsive-modal-header {
+    padding: 14px 16px !important;
+  }
+  .responsive-modal-body {
+    padding: 16px 14px !important;
+    gap: 16px !important;
+  }
+  .responsive-modal-footer {
+    padding: 12px 14px !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+}
+@media (max-width: 480px) {
+  .responsive-modal-footer > button {
+    flex: 1 !important;
+    justify-content: center !important;
+  }
+}
+
+/* ── Responsive Sticky Bottom Actions Bar (Add/Edit Card Steppers) ── */
+.responsive-bottom-bar {
+  position: sticky !important;
+  bottom: 14px !important;
+  z-index: 100 !important;
+  transition: all 180ms ease !important;
+}
+@media (max-width: 640px) {
+  .responsive-bottom-bar {
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    bottom: 8px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .responsive-bottom-bar > div {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+  .responsive-bottom-bar button {
+    flex: 1 !important;
+    justify-content: center !important;
+  }
+}
+
+/* ── Responsive Filter & Toolbar Row ─────────────────────────────── */
+@media (max-width: 768px) {
+  .responsive-filter-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 14px 12px !important;
+    gap: 12px !important;
+  }
+  .responsive-filter-search {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+  .responsive-filter-pills {
+    width: 100% !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    scrollbar-width: none !important;
+    padding-bottom: 2px !important;
+  }
+  .responsive-filter-pills::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+/* ── Responsive Toast ────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .toast,
+  div[style*="toastPopIn"] {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    min-width: 0 !important;
+    padding: 10px 14px !important;
+    font-size: 0.82rem !important;
+    top: 14px !important;
+  }
+}
+

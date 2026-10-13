@@ -518,7 +518,7 @@ export const AdminInventoryPage: React.FC = () => {
       )}
 
       {/* Hero */}
-      <div style={{
+      <div className="responsive-hero-banner" style={{
         position: 'relative',
         overflow: 'hidden',
         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
@@ -546,7 +546,7 @@ export const AdminInventoryPage: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ zIndex: 1, display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="responsive-hero-actions" style={{ zIndex: 1, display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           {can('cards:delete') && (
             <button
               onClick={() => setTrashModalOpen(true)}
@@ -664,7 +664,7 @@ export const AdminInventoryPage: React.FC = () => {
       </div>
 
       {/* KPI Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: '14px' }}>
         {[
           { key: 'all', label: 'إجمالي البطاقات', val: globalTotal, icon: <CreditCard size={20} />, color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
           { key: 'active', label: 'البطاقات النشطة', val: globalActive, icon: <CheckCircle2 size={20} />, color: '#10b981', bg: '#ecfdf5', border: '#a7f3d0' },

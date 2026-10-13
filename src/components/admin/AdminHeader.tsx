@@ -225,27 +225,20 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
               )}
             </button>
 
+            {/* Backdrop on mobile */}
+            {notifOpen && (
+              <div
+                className="hdr-notif-backdrop"
+                onClick={() => setNotifOpen(false)}
+                aria-hidden="true"
+              />
+            )}
+
             {/* Dropdown Panel */}
             {notifOpen && (
               <div
                 dir="rtl"
-                style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 10px)',
-                  left: 0,
-                  width: '360px',
-                  maxWidth: '90vw',
-                  backgroundColor: 'var(--bg-card, #ffffff)',
-                  borderRadius: '18px',
-                  boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06)',
-                  border: '1px solid var(--bdr-light, #e2e8f0)',
-                  overflow: 'hidden',
-                  zIndex: 1000,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  maxHeight: '480px',
-                  animation: 'fadeIn 0.2s ease',
-                }}
+                className="hdr-notif-dropdown"
               >
                 {/* Header */}
                 <div
@@ -279,29 +272,41 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
                     )}
                   </div>
 
-                  {unreadCount > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {unreadCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleMarkAllAsRead}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--clr-primary-600, #3b82f6)',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                        }}
+                        title="تحديد الكل كمقروء"
+                      >
+                        <CheckCheck size={14} />
+                        تحديد الكل كمقروء
+                      </button>
+                    )}
+
                     <button
                       type="button"
-                      onClick={handleMarkAllAsRead}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--clr-primary-600, #3b82f6)',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                      }}
-                      title="تحديد الكل كمقروء"
+                      onClick={() => setNotifOpen(false)}
+                      className="hdr-notif-close-mobile"
+                      title="إغلاق"
+                      aria-label="إغلاق الإشعارات"
                     >
-                      <CheckCheck size={14} />
-                      تحديد الكل كمقروء
+                      <X size={15} />
                     </button>
-                  )}
+                  </div>
                 </div>
 
                 {/* Notifications List */}

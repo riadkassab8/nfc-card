@@ -136,7 +136,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
   return (
     <div className="modal-overlay" style={{ zIndex: 1200 }}>
       <div
-        className="modal-panel"
+        className="modal-panel responsive-modal-panel"
         dir="rtl"
         style={{
           maxWidth: '520px',
@@ -153,7 +153,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
       >
         {/* Header */}
         <div
-          className="modal-header"
+          className="modal-header responsive-modal-header"
           style={{
             padding: '18px 22px',
             borderBottom: '1px solid var(--bdr-light)',
@@ -273,7 +273,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
             </div>
 
             {/* Email & City row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="responsive-grid-2">
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: 700, fontSize: 'var(--fs-sm)', marginBottom: '6px', display: 'block' }}>
                   البريد الإلكتروني (اختياري)
@@ -437,6 +437,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
 
         {/* Footer */}
         <div
+          className="modal-footer responsive-modal-footer"
           style={{
             padding: '16px 22px',
             borderTop: '1px solid var(--bdr-light)',

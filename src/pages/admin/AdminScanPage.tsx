@@ -387,20 +387,23 @@ export const AdminScanPage: React.FC = () => {
       )}
 
       {/* Hero */}
-      <div style={{
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-        borderRadius: '20px',
-        padding: '28px 32px',
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '20px',
-        boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.15)'
-      }}>
+      <div
+        className="responsive-hero-banner"
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+          borderRadius: '20px',
+          padding: '28px 32px',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '20px',
+          boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.15)'
+        }}
+      >
         <div style={{ position: 'absolute', top: '-40px', left: '-40px', width: '180px', height: '180px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.08)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-50px', right: '25%', width: '140px', height: '140px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.08)', pointerEvents: 'none' }} />
 
@@ -414,7 +417,7 @@ export const AdminScanPage: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ zIndex: 1, display: 'flex', gap: '10px' }}>
+        <div className="responsive-hero-actions" style={{ zIndex: 1, display: 'flex', gap: '10px' }}>
           <button
             className="hero-action-btn"
             onClick={() => setShowScanner(true)}

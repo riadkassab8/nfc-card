@@ -611,6 +611,7 @@ export const AdminUsersPage: React.FC = () => {
 
       {/* ── Top Header Banner ── */}
       <div
+        className="responsive-hero-banner"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -650,7 +651,7 @@ export const AdminUsersPage: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="responsive-hero-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             type="button"
             onClick={fetchData}
@@ -847,6 +848,7 @@ export const AdminUsersPage: React.FC = () => {
 
       {/* ── Filters & Search Toolbar ── */}
       <div
+        className="responsive-filter-toolbar"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -859,7 +861,7 @@ export const AdminUsersPage: React.FC = () => {
           border: '1px solid #e2e8f0',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '280px' }}>
+        <div className="responsive-filter-search" style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '280px' }}>
           <div style={{ position: 'relative', width: '100%', maxWidth: '360px' }}>
             <Search
               size={18}
@@ -1316,15 +1318,9 @@ export const AdminUsersPage: React.FC = () => {
             onClick={() => setIsFormOpen(false)}
           >
             <div
+              className="responsive-modal-panel"
               style={{
-                width: '100%',
-                maxWidth: '680px',
-                maxHeight: '90vh',
                 backgroundColor: '#ffffff',
-                borderRadius: '24px',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
                 boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.35)',
                 fontFamily: "'Tajawal', sans-serif",
                 direction: 'rtl',
@@ -1333,6 +1329,7 @@ export const AdminUsersPage: React.FC = () => {
             >
               {/* Modal Header */}
               <div
+                className="responsive-modal-header"
                 style={{
                   padding: '20px 28px',
                   borderBottom: '1px solid #f1f5f9',
@@ -1387,13 +1384,13 @@ export const AdminUsersPage: React.FC = () => {
               </div>
 
               {/* Modal Body Form */}
-              <form onSubmit={handleSaveUser} style={{ overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '22px' }}>
+              <form onSubmit={handleSaveUser} className="responsive-modal-body" style={{ overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '22px' }}>
                 {/* 1. Basic Information */}
                 <div>
                   <h4 style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
                     1. البيانات الأساسية
                   </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div className="responsive-grid-2">
                     <div>
                       <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
                         اسم المستخدم (للدخول) *
@@ -1522,7 +1519,7 @@ export const AdminUsersPage: React.FC = () => {
                   <h4 style={{ margin: '0 0 10px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
                     2. نوع الحساب والدور
                   </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                  <div className="responsive-grid-3">
                     {/* Super Admin */}
                     <div
                       onClick={() => handleRoleChange('super_admin')}
@@ -1717,7 +1714,7 @@ export const AdminUsersPage: React.FC = () => {
                     </div>
 
                     {/* Subscription Type Selector */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
+                    <div className="responsive-grid-3" style={{ marginBottom: '16px' }}>
                       {/* Permanent */}
                       <div
                         onClick={() => handleSubTypeChange('permanent')}
@@ -1842,14 +1839,12 @@ export const AdminUsersPage: React.FC = () => {
                     {/* Dates inputs for yearly and custom */}
                     {formSubType !== 'permanent' && (
                       <div
+                        className="responsive-grid-2"
                         style={{
                           backgroundColor: '#f8fafc',
                           padding: '14px 16px',
                           borderRadius: '12px',
                           border: '1px solid #e2e8f0',
-                          display: 'grid',
-                          gridTemplateColumns: '1fr 1fr',
-                          gap: '14px',
                         }}
                       >
                         <div>
@@ -1910,7 +1905,7 @@ export const AdminUsersPage: React.FC = () => {
                       <span style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
                         الصفحات المسموح بالدخول إليها في لوحة التحكم:
                       </span>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div className="responsive-grid-2">
                         {AVAILABLE_PAGES.map((p) => {
                           const isChecked = formPages.includes(p.id);
                           return (
@@ -2009,6 +2004,7 @@ export const AdminUsersPage: React.FC = () => {
 
                 {/* Modal Footer Actions */}
                 <div
+                  className="responsive-modal-footer"
                   style={{
                     display: 'flex',
                     alignItems: 'center',

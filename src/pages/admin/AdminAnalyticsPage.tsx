@@ -171,7 +171,7 @@ const GlobalTab: React.FC<{ days: number }> = ({ days }) => {
       )}
 
       {/* KPI tiles */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: '14px' }}>
         <Tile label="إجمالي المسحات بالمنظومة" value={data?.total_scans ?? 0}        icon={<BarChart2 size={20} />}   color="#3b82f6" bg="#eff6ff" border="#bfdbfe" loading={loading} />
         <Tile label={`مسحات آخر ${days} يوم`}   value={data?.scans_last_N_days ?? 0}  icon={<TrendingUp size={20} />}  color="#10b981" bg="#ecfdf5" border="#a7f3d0" loading={loading} />
         <Tile label="أكثر بطاقة مسحاً"        value={loading ? 0 : (data?.top_cards?.[0]?.count ?? 0)} icon={<Award size={20} />} color="#8b5cf6" bg="#f5f3ff" border="#ddd6fe" loading={loading} />
@@ -418,7 +418,7 @@ export const AdminAnalyticsPage: React.FC = () => {
     <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', fontFamily: 'var(--font)' }}>
 
       {/* Hero */}
-      <div style={{
+      <div className="responsive-hero-banner" style={{
         position: 'relative',
         overflow: 'hidden',
         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
@@ -445,7 +445,7 @@ export const AdminAnalyticsPage: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ zIndex: 1, display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div className="responsive-hero-actions" style={{ zIndex: 1, display: 'flex', gap: '10px', alignItems: 'center' }}>
           <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '13px', fontWeight: 700 }}>فترة التحليل:</span>
           <select
             value={days}
@@ -465,7 +465,7 @@ export const AdminAnalyticsPage: React.FC = () => {
       </div>
 
       {/* Modern Tabs */}
-      <div style={{
+      <div className="responsive-tabs-bar" style={{
         display: 'inline-flex',
         alignSelf: 'flex-start',
         gap: '6px',

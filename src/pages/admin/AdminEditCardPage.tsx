@@ -2081,6 +2081,7 @@ export const AdminEditCardPage: React.FC = () => {
         {/* ── Steps Footer Navigation (for Steps 1, 2, 3) ──────── */}
         {currentStep < 4 && (
           <div
+            className="responsive-bottom-bar"
             style={{
               display: 'flex',
               alignItems: 'center',

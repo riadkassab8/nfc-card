@@ -1086,6 +1086,7 @@ export const AdminOverviewPage: React.FC = () => {
 
       {/* Hero Header Banner */}
       <div
+        className="responsive-hero-banner"
         style={{
           position: 'relative',
           overflow: 'hidden',
@@ -1154,7 +1155,7 @@ export const AdminOverviewPage: React.FC = () => {
         </div>
 
         {/* Quick Action Buttons */}
-        <div style={{ zIndex: 1, display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="responsive-hero-actions" style={{ zIndex: 1, display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <button
             onClick={() => setShowAddCustomerModal(true)}
             style={{
@@ -1235,7 +1236,7 @@ export const AdminOverviewPage: React.FC = () => {
       )}
 
       {/* KPI Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: '14px' }}>
         <StatCard
           label="إجمالي البطاقات"
           value={total}
