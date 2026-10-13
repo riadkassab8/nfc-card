@@ -101,7 +101,7 @@ export const MerchantProfilePage: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="merchant-profile-container">
       {/* Toast */}
       {toast && (
         <div
@@ -130,23 +130,20 @@ export const MerchantProfilePage: React.FC = () => {
 
       {/* Header Banner */}
       <div
+        className="merchant-profile-card"
         style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '20px',
-          padding: '24px 28px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
           display: 'flex',
           alignItems: 'center',
-          gap: '20px',
+          gap: '18px',
           flexWrap: 'wrap',
         }}
       >
         <div
+          className="merchant-profile-header-avatar"
           style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '18px',
+            width: '60px',
+            height: '60px',
+            borderRadius: '16px',
             backgroundColor: '#ecfdf5',
             border: '2px solid #a7f3d0',
             display: 'flex',
@@ -156,11 +153,11 @@ export const MerchantProfilePage: React.FC = () => {
             flexShrink: 0,
           }}
         >
-          <Store size={32} />
+          <Store size={30} />
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: '200px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '4px' }}>
-            <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#0f172a' }}>
+            <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>
               {admin?.store_name || admin?.name || 'الملف الشخصي'}
             </h1>
             <span
@@ -189,12 +186,9 @@ export const MerchantProfilePage: React.FC = () => {
 
       {/* Store Subscription Details Card */}
       <div
+        className="merchant-profile-card"
         style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '20px',
-          padding: '22px 26px',
           border: `1.5px solid ${isPermanent ? '#a7f3d0' : diffDays !== null && diffDays <= 15 ? '#fef08a' : '#e2e8f0'}`,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
@@ -209,6 +203,7 @@ export const MerchantProfilePage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                flexShrink: 0,
               }}
             >
               {isPermanent ? <Sparkles size={20} /> : <Clock size={20} />}
@@ -243,35 +238,35 @@ export const MerchantProfilePage: React.FC = () => {
         </div>
 
         {/* 4 Detail Grid Blocks */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
+        <div className="merchant-subscription-grid">
           {/* Block 1: Type */}
-          <div style={{ padding: '12px 16px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <div style={{ padding: '12px 14px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', boxSizing: 'border-box' }}>
             <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>نوع الاشتراك</span>
-            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+            <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
               {admin?.subscription_type === 'yearly' ? 'اشتراك سنوي' : admin?.subscription_type === 'custom' ? 'اشتراك مخصص' : 'اشتراك دائم'}
             </span>
           </div>
 
           {/* Block 2: Start Date */}
-          <div style={{ padding: '12px 16px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <div style={{ padding: '12px 14px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', boxSizing: 'border-box' }}>
             <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>تاريخ البدء</span>
-            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+            <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
               {startDateFormatted}
             </span>
           </div>
 
           {/* Block 3: End Date */}
-          <div style={{ padding: '12px 16px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <div style={{ padding: '12px 14px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', boxSizing: 'border-box' }}>
             <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>تاريخ الانتهاء</span>
-            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+            <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
               {isPermanent ? 'بدون تاريخ انتهاء' : endDateFormatted}
             </span>
           </div>
 
           {/* Block 4: Remaining Time */}
-          <div style={{ padding: '12px 16px', borderRadius: '12px', backgroundColor: isPermanent ? '#ecfdf5' : diffDays !== null && diffDays <= 15 ? '#fffbeb' : '#f0fdf4', border: `1px solid ${isPermanent ? '#a7f3d0' : diffDays !== null && diffDays <= 15 ? '#fef08a' : '#bbf7d0'}` }}>
+          <div style={{ padding: '12px 14px', borderRadius: '12px', backgroundColor: isPermanent ? '#ecfdf5' : diffDays !== null && diffDays <= 15 ? '#fffbeb' : '#f0fdf4', border: `1px solid ${isPermanent ? '#a7f3d0' : diffDays !== null && diffDays <= 15 ? '#fef08a' : '#bbf7d0'}`, boxSizing: 'border-box' }}>
             <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>المدة المتبقية</span>
-            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: isPermanent ? '#047857' : diffDays !== null && diffDays <= 0 ? '#dc2626' : diffDays !== null && diffDays <= 15 ? '#b45309' : '#15803d' }}>
+            <span style={{ fontSize: '0.92rem', fontWeight: 800, color: isPermanent ? '#047857' : diffDays !== null && diffDays <= 0 ? '#dc2626' : diffDays !== null && diffDays <= 15 ? '#b45309' : '#15803d' }}>
               {isPermanent
                 ? 'مفتوح مدى الحياة'
                 : diffDays !== null && diffDays <= 0
@@ -284,18 +279,10 @@ export const MerchantProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Two Column Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+      {/* Two Column Layout: Store Info & Password Security */}
+      <div className="merchant-profile-grid">
         {/* Card 1: Store & Contact Info */}
-        <div
-          style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '20px',
-            border: '1px solid #e2e8f0',
-            padding: '24px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-          }}
-        >
+        <div className="merchant-profile-card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
             <div
               style={{
@@ -425,6 +412,7 @@ export const MerchantProfilePage: React.FC = () => {
             <button
               type="submit"
               disabled={profileLoading}
+              className="merchant-profile-submit-btn"
               style={{
                 marginTop: '8px',
                 display: 'inline-flex',
@@ -449,15 +437,7 @@ export const MerchantProfilePage: React.FC = () => {
         </div>
 
         {/* Card 2: Password Security */}
-        <div
-          style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '20px',
-            border: '1px solid #e2e8f0',
-            padding: '24px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-          }}
-        >
+        <div className="merchant-profile-card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
             <div
               style={{
@@ -611,6 +591,7 @@ export const MerchantProfilePage: React.FC = () => {
             <button
               type="submit"
               disabled={passwordLoading}
+              className="merchant-profile-submit-btn"
               style={{
                 marginTop: '8px',
                 display: 'inline-flex',

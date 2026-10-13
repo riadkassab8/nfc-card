@@ -579,8 +579,11 @@ body {
   .hdr-user-meta { display: none; }
   .hdr-user { padding: 3px; }
 }
+@media (max-width: 640px) {
+  .admin-main { padding: 16px 12px !important; }
+}
 @media (max-width: 480px) {
-  .admin-main { padding: 12px 8px; }
+  .admin-main { padding: 12px 8px !important; }
 }
 
 /* ==========================================================================
@@ -1041,4 +1044,74 @@ html, body {
     top: 14px !important;
   }
 }
+
+/* ── Merchant Profile & Settings Responsive System ───────────────── */
+.merchant-profile-container {
+  width: 100% !important;
+  max-width: 960px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 22px !important;
+  box-sizing: border-box !important;
+}
+
+.merchant-profile-card {
+  background-color: #ffffff;
+  border-radius: 20px;
+  border: 1px solid var(--bdr-light, #e2e8f0);
+  padding: 24px 28px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.merchant-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  gap: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.merchant-subscription-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .merchant-profile-container {
+    gap: 16px !important;
+  }
+  .merchant-profile-card {
+    padding: 18px 16px !important;
+    border-radius: 16px !important;
+  }
+  .merchant-profile-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  .merchant-subscription-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .merchant-profile-card {
+    padding: 16px 14px !important;
+  }
+  .merchant-subscription-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .merchant-profile-submit-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
 

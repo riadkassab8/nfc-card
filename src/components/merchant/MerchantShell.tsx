@@ -142,7 +142,7 @@ export const MerchantShell: React.FC<MerchantShellProps> = ({ title, children })
           </div>
         )}
 
-        <main className="admin-main page-transition" style={{ flex: 1, padding: '24px', boxSizing: 'border-box' }}>
+        <main className="admin-main page-transition" style={{ flex: 1, boxSizing: 'border-box' }}>
           {children}
         </main>
       </div>
