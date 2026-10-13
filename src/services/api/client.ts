@@ -133,7 +133,14 @@ export async function apiClient<T = unknown>(
     response = await fetch(url, {
       method,
       headers,
-      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
+      body:
+        body instanceof FormData
+          ? body
+          : typeof body === 'string'
+          ? body
+          : body !== undefined
+          ? JSON.stringify(body)
+          : undefined,
     });
   } catch (err) {
     throw new ApiError(0, 'فشل الاتصال بالسيرفر. تحقق من الإنترنت.', 'NetworkError');

@@ -29,7 +29,7 @@ export const userLogsApi = {
   trackActivity: (payload: TrackActivityPayload): Promise<{ log_id: string; success: boolean }> =>
     apiClient<{ log_id: string; success: boolean }>('/user-logs/track', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: payload,
     }),
 
   /**
