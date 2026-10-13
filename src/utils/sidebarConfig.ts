@@ -18,6 +18,7 @@ import {
   History,
   Activity,
   Store,
+  BookOpen,
 } from 'lucide-react';
 import { authApi } from '../services/api';
 import { SidebarNavItemConfig } from '../types';
@@ -36,6 +37,7 @@ export const ICON_MAP: Record<string, React.ElementType> = {
   History,
   Activity,
   Store,
+  BookOpen,
 };
 
 export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [

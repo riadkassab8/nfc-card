@@ -29,6 +29,7 @@ import { MerchantOverviewPage } from './pages/merchant/MerchantOverviewPage';
 import { MerchantCardsPage } from './pages/merchant/MerchantCardsPage';
 import { MerchantAnalyticsPage } from './pages/merchant/MerchantAnalyticsPage';
 import { MerchantProfilePage } from './pages/merchant/MerchantProfilePage';
+import { MerchantGuidePage } from './pages/merchant/MerchantGuidePage';
 import { useActivityTracker } from './hooks/useActivityTracker';
 
 const ActivityTrackerListener: React.FC = () => {
@@ -235,6 +236,16 @@ export const App: React.FC = () => (
             <ProtectedRoute requiredRole="merchant">
               <MerchantShell title="الملف الشخصي للمتجر">
                 <MerchantProfilePage />
+              </MerchantShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/merchant/guide"
+          element={
+            <ProtectedRoute requiredRole="merchant">
+              <MerchantShell title="دليل المستخدم">
+                <MerchantGuidePage />
               </MerchantShell>
             </ProtectedRoute>
           }

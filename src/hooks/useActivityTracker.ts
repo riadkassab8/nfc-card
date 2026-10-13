@@ -41,6 +41,7 @@ export const getPageTitleArabic = (pathname: string): string => {
   if (pathname.startsWith('/merchant/cards')) return 'بطاقات المتجر';
   if (pathname.startsWith('/merchant/analytics')) return 'إحصائيات وزوار المحل';
   if (pathname.startsWith('/merchant/profile')) return 'إعدادات المتجر';
+  if (pathname.startsWith('/merchant/guide')) return 'دليل المستخدم للمتجر';
 
   return pathname;
 };
