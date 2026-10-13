@@ -52,7 +52,6 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
           const code = `CARD-${padNum(next + offset + i)}`;
           return {
             card_code: code,
-            nfc_uid: `NFC-${padNum(next + offset + i).padStart(6, '0')}`,
             card_type: bType,
             current_redirect_url: `${domainOrigin}/r/${code}`,
             category_id: bCat,

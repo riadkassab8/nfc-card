@@ -304,7 +304,6 @@ export const BusinessProfilePage: React.FC = () => {
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <DetailItem label="كود البطاقة" value={card.card_code} mono />
-            {card.nfc_uid && <DetailItem label="معرف NFC" value={card.nfc_uid} mono />}
             <DetailItem label="النوع" value={card.card_type} />
             <DetailItem label="الحالة" value={card.status === 'active' ? 'نشطة' : 'معطلة'} />
             <DetailItem

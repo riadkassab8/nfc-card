@@ -822,9 +822,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
                     <span style={{ color: 'var(--txt-muted)' }}>— (تلقائي)</span>
                   )}
                 </Field>
-                <Field label="معرف NFC">
-                  <span style={{ fontFamily: 'monospace' }}>{card.nfc_uid || '—'}</span>
-                </Field>
+                
                 <Field label="نوع البطاقة">{card.card_type}</Field>
                 <Field label="التصنيف">{cat?.name || '—'}</Field>
                 <Field label="نوع الاشتراك">

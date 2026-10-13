@@ -205,7 +205,6 @@ export const AdminAddCardPage: React.FC = () => {
   /* Card state */
   const [cardCode, setCardCode] = useState(editCard?.card_code || '');
   const [customSlug, setCustomSlug] = useState(editCard?.custom_slug || '');
-  const [nfcUid, setNfcUid] = useState(editCard?.nfc_uid || '');
   const [cardType, setCardType] = useState<string>(editCard?.card_type || CardType.CARD);
   const [redirectUrl, setRedirectUrl] = useState(editCard?.current_redirect_url || '');
   const [categoryId, setCategoryId] = useState(getCategoryId(editCard?.category_id) || '');
@@ -410,11 +409,9 @@ export const AdminAddCardPage: React.FC = () => {
         .filter(Boolean);
       const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
       const nextCode = `CARD-${String(next).padStart(4, '0')}`;
-      const nextNfc = `NFC-${String(next).padStart(6, '0')}`;
 
       if (autoCode && !editCard) {
         setCardCode(nextCode);
-        setNfcUid(nextNfc);
       }
     } catch (e: any) {
       Swal.fire({
@@ -646,7 +643,6 @@ export const AdminAddCardPage: React.FC = () => {
           template: template,
           payment_shifts: paymentShiftsList,
         };
-        updateDto.nfc_uid = nfcUid.trim() ? nfcUid.trim().toUpperCase() : '';
         updateDto.business_data = isBusinessProfileCategory ? (hasBiz ? business : null) : null;
 
         const updated = await cardsApi.updateCard(editCard._id, updateDto);
@@ -678,7 +674,6 @@ export const AdminAddCardPage: React.FC = () => {
           payment_shifts: paymentShiftsList,
         };
         if (trimmedSlug) createDto.custom_slug = trimmedSlug;
-        if (nfcUid.trim()) createDto.nfc_uid = nfcUid.trim().toUpperCase();
         if (isBusinessProfileCategory && hasBiz) createDto.business_data = business;
 
         const created = await cardsApi.createCard(createDto);
@@ -715,7 +710,6 @@ export const AdminAddCardPage: React.FC = () => {
             // Reset form for next card
             setAutoCode(true);
             setCustomSlug('');
-            setNfcUid('');
             setRedirectUrl('');
             setBizData({
               business_name: '', logo: '', description: '', phone: '',
@@ -1131,26 +1125,6 @@ export const AdminAddCardPage: React.FC = () => {
                 />
                 <span style={{ fontSize: '12px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
                   صيغة الكود: CARD-XXXX (يتم توليده تلقائياً بالتسلسل)
-                </span>
-              </div>
-
-              {/* NFC UID */}
-              <div className="form-group">
-                <label className="form-label" style={{ fontWeight: 700, fontSize: '13.5px', marginBottom: '6px' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CreditCard size={15} style={{ color: 'var(--txt-muted)' }} />
-                    معرف NFC الفعلي (NFC UID)
-                  </span>
-                </label>
-                <input
-                  className="form-input"
-                  value={nfcUid}
-                  onChange={(e) => setNfcUid(e.target.value.toUpperCase())}
-                  placeholder="NFC-7FJ2K9"
-                  style={{ fontFamily: 'monospace', fontSize: '14px' }}
-                />
-                <span style={{ fontSize: '12px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
-                  اختياري — معرّف رقاقة الـ NFC الفيزيائية
                 </span>
               </div>
 

@@ -143,7 +143,6 @@ export const AdminEditCardPage: React.FC = () => {
   /* Card state */
   const [cardCode, setCardCode] = useState('');
   const [customSlug, setCustomSlug] = useState('');
-  const [nfcUid, setNfcUid] = useState('');
   const [cardType, setCardType] = useState<string>(CardType.CARD);
   const [redirectUrl, setRedirectUrl] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -308,7 +307,6 @@ export const AdminEditCardPage: React.FC = () => {
     setCurrentCard(card);
     setCardCode(card.card_code || '');
     setCustomSlug(card.custom_slug || '');
-    setNfcUid(card.nfc_uid || '');
     setCardType(card.card_type || CardType.CARD);
     setRedirectUrl(card.current_redirect_url || '');
     setCategoryId(getCategoryId(card.category_id) || '');
@@ -620,7 +618,6 @@ export const AdminEditCardPage: React.FC = () => {
         template: template,
         payment_shifts: paymentShiftsList,
       };
-      updateDto.nfc_uid = nfcUid.trim() ? nfcUid.trim().toUpperCase() : '';
       updateDto.business_data = isBusinessProfileCategory ? (hasBiz ? business : null) : null;
 
       const updated = await cardsApi.updateCard(id, updateDto);
@@ -648,7 +645,7 @@ export const AdminEditCardPage: React.FC = () => {
       if (e?.statusCode === 409 || /already taken/i.test(errMsg) || /custom slug.*already taken/i.test(errMsg)) {
         errMsg = 'هذا الرابط المخصص محجوز بالفعل، يرجى اختيار اسم آخر';
       } else if (errMsg.includes('500') || errMsg.includes('Internal server error')) {
-        errMsg = 'معرف NFC أو كود البطاقة مستخدم ومكرر بالفعل في بطاقة أخرى. يرجى تغيير معرف NFC (أو ترك الحقل فارغاً).';
+        errMsg = 'كود البطاقة مستخدم ومكرر بالفعل في بطاقة أخرى.';
       }
       Swal.fire({
         icon: 'error',
@@ -1000,21 +997,6 @@ export const AdminEditCardPage: React.FC = () => {
                   <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
                     صيغة الكود: CARD-XXXX (أرقام متسلسلة)
                   </span>
-                </div>
-
-                {/* NFC UID */}
-                <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                    معرف شريحة NFC (اختياري)
-                  </label>
-                  <input
-                    className="form-input"
-                    dir="ltr"
-                    value={nfcUid}
-                    onChange={(e) => setNfcUid(e.target.value.toUpperCase())}
-                    placeholder="04:A2:3B:5C أو NFC-000001"
-                    style={{ fontFamily: 'monospace', fontSize: '13.5px' }}
-                  />
                 </div>
 
                 {/* Custom Slug */}

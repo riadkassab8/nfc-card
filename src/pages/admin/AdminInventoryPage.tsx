@@ -803,7 +803,7 @@ export const AdminInventoryPage: React.FC = () => {
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { setAppliedSearch(search); setPage(1); } }}
-              placeholder="ابحث بكود البطاقة، الرابط المخصص، أو NFC..."
+              placeholder="ابحث بكود البطاقة، الرابط المخصص..."
               className="form-input" style={{ paddingRight: '36px', height: '40px', borderRadius: '10px' }}
             />
           </div>

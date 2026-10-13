@@ -279,8 +279,7 @@ export const AdminScanPage: React.FC = () => {
 
       // أولاً: نحاول exact match
       const exact = data.find(c =>
-        c.card_code.toLowerCase() === term.toLowerCase() ||
-        (c.nfc_uid && c.nfc_uid.toLowerCase() === term.toLowerCase())
+        c.card_code.toLowerCase() === term.toLowerCase()
       );
 
       // لو ما فيش exact match خذ أول نتيجة (الـ API search كان كافياً)
@@ -418,7 +417,7 @@ export const AdminScanPage: React.FC = () => {
           </div>
           <h2 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 6px', letterSpacing: '-0.3px', color: '#fff' }}>فحص وتجهيز بطاقات NFC</h2>
           <p style={{ margin: 0, fontSize: '13.5px', color: '#94a3b8' }}>
-            ابحث بكود البطاقة أو معرف NFC لتحديث بيانات النشاط التجاري والروابط الاجتماعية فوراً
+            ابحث بكود البطاقة لتحديث بيانات النشاط التجاري والروابط الاجتماعية فوراً
           </p>
         </div>
 
@@ -456,7 +455,7 @@ export const AdminScanPage: React.FC = () => {
               value={query}
               onChange={e => setQuery(e.target.value)}
               onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-              placeholder="ابحث بكود البطاقة CARD-0001 أو NFC-7FJ2K9 أو الرابط..."
+              placeholder="ابحث بكود البطاقة CARD-0001 أو الرابط..."
               style={{ paddingRight: '38px', height: '44px', borderRadius: '10px', fontSize: '14px', width: '100%' }}
             />
             
@@ -516,11 +515,7 @@ export const AdminScanPage: React.FC = () => {
                         {suggestion.business_data.business_name}
                       </span>
                     )}
-                    {suggestion.nfc_uid && (
-                      <span style={{ fontSize: '11px', color: 'var(--txt-muted)', fontFamily: 'monospace' }}>
-                        NFC: {suggestion.nfc_uid}
-                      </span>
-                    )}
+                    
                   </div>
                 ))}
               </div>
@@ -626,11 +621,7 @@ export const AdminScanPage: React.FC = () => {
                     </span>
                     {expired && <span className="badge badge-warning">⚠ منتهية الاشتراك</span>}
                   </div>
-                  {card.nfc_uid && (
-                    <div style={{ fontSize: '12.5px', color: 'var(--txt-muted)', fontFamily: 'monospace', marginTop: '4px' }}>
-                      معرف NFC الفيزيائي: <strong style={{ color: 'var(--txt-body)' }}>{card.nfc_uid}</strong>
-                    </div>
-                  )}
+                  
                 </div>
               </div>
 

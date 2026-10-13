@@ -289,7 +289,6 @@ export interface ApiCard {
   _id: string;
   card_code: string;
   custom_slug?: string | null;
-  nfc_uid?: string | null;
   qr_code?: string | null;
   card_type: string;
   current_redirect_url: string;
@@ -338,7 +337,6 @@ export interface ApiCardsPaginatedResponse {
 export interface ApiCreateCardDto {
   card_code: string;
   custom_slug?: string;
-  nfc_uid?: string;
   card_type: string;
   current_redirect_url: string;
   category_id?: string;
@@ -351,7 +349,6 @@ export interface ApiCreateCardDto {
 
 export interface ApiUpdateCardDto {
   custom_slug?: string | null;
-  nfc_uid?: string;
   card_type?: string;
   current_redirect_url?: string;
   status?: CardStatus;
