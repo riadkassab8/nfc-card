@@ -566,10 +566,10 @@ export const MerchantCardsPage: React.FC = () => {
             className="modal-panel responsive-modal-panel"
             onClick={(e) => e.stopPropagation()}
             dir="rtl"
-            style={{ maxWidth: '780px', width: '94%' }}
+            style={{ maxWidth: '820px', width: '96%', height: '92vh', maxHeight: '94vh', display: 'flex', flexDirection: 'column' }}
           >
             {/* Modal Header */}
-            <div className="modal-header responsive-modal-header" style={{ paddingBottom: '12px' }}>
+            <div className="modal-header responsive-modal-header" style={{ paddingBottom: '12px', flexShrink: 0 }}>
               <div>
                 <h2 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 900 }}>
                   إدارة وتعديل البطاقة
@@ -590,6 +590,7 @@ export const MerchantCardsPage: React.FC = () => {
               padding: '0 20px 14px',
               borderBottom: '1px solid var(--bdr-light)',
               overflowX: 'auto',
+              flexShrink: 0,
             }}>
               <button
                 type="button"
@@ -655,8 +656,8 @@ export const MerchantCardsPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSave}>
-              <div className="modal-body responsive-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '64vh', overflowY: 'auto', overflowX: 'hidden', padding: '20px' }}>
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              <div className="modal-body responsive-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px' }}>
                 {/* ── TAB 1: Business Profile & Social ── */}
                 {activeTab === 'business' && (
                   <>
@@ -870,7 +871,7 @@ export const MerchantCardsPage: React.FC = () => {
                         لا توجد ورديات محددة حالياً. انقر على "إضافة وردية جديدة" لضبط طرق الدفع حسب الوقت.
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', overflowX: 'auto' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%'}}>
                         {shifts.map((shift, idx) => (
                           <div
                             key={idx}
@@ -1264,7 +1265,7 @@ export const MerchantCardsPage: React.FC = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="modal-footer responsive-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid var(--bdr-light)' }}>
+              <div className="modal-footer responsive-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid var(--bdr-light)', flexShrink: 0 }}>
                 <button
                   type="button"
                   className="btn-secondary"

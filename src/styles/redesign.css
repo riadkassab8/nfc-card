@@ -939,8 +939,9 @@ html, body {
 /* ── Responsive Modals & Dialogs ─────────────────────────────────── */
 .responsive-modal-panel {
   width: 100% !important;
-  max-width: 680px;
-  max-height: 90vh !important;
+  max-width: 800px;
+  height: 92vh;
+  max-height: 94vh !important;
   border-radius: 24px;
   overflow: hidden;
   display: flex;
@@ -948,21 +949,26 @@ html, body {
 }
 @media (max-width: 768px) {
   .responsive-modal-panel {
-    max-width: calc(100vw - 20px) !important;
-    max-height: 94vh !important;
+    max-width: calc(100vw - 16px) !important;
+    height: 95vh !important;
+    max-height: 96vh !important;
     border-radius: 18px !important;
   }
   .responsive-modal-header {
     padding: 14px 16px !important;
+    flex-shrink: 0 !important;
   }
   .responsive-modal-body {
     padding: 16px 14px !important;
     gap: 16px !important;
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
   }
   .responsive-modal-footer {
     padding: 12px 14px !important;
     flex-wrap: wrap !important;
     gap: 8px !important;
+    flex-shrink: 0 !important;
   }
 }
 @media (max-width: 480px) {
