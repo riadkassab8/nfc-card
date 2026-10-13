@@ -335,7 +335,10 @@ export const AdminScanPage: React.FC = () => {
     setSaving(true);
     try {
       const clean: BusinessData = Object.fromEntries(
-        Object.entries(form).map(([k, v]) => [k, (v as string)?.trim() || undefined])
+        Object.entries(form).map(([k, v]) => [
+          k,
+          typeof v === 'string' ? (v.trim() || undefined) : v,
+        ])
       ) as BusinessData;
       await cardsApi.updateCard(card._id, { business_data: clean });
       setToast({ msg: 'تم حفظ البيانات بنجاح', type: 'success' });
