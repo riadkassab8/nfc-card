@@ -349,13 +349,7 @@ export const MerchantOverviewPage: React.FC = () => {
       </div>
 
       {/* Cards List Section */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '20px',
-        border: '1px solid var(--bdr-light)',
-        padding: '24px',
-        boxShadow: 'var(--shadow-xs)',
-      }}>
+      <div className="merchant-section-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--txt-heading)' }}>
@@ -391,11 +385,7 @@ export const MerchantOverviewPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '16px',
-          }}>
+          <div className="merchant-cards-grid">
             {cards.map((card) => {
               const expired = isSubscriptionExpired(card);
               const liveUrl = `${window.location.origin}/social/${card.custom_slug || card.card_code}`;
@@ -404,6 +394,7 @@ export const MerchantOverviewPage: React.FC = () => {
               return (
                 <div
                   key={card._id}
+                  className="merchant-card-item"
                   style={{
                     borderRadius: '16px',
                     border: '1px solid var(--bdr-light)',
@@ -414,6 +405,9 @@ export const MerchantOverviewPage: React.FC = () => {
                     justifyContent: 'space-between',
                     gap: '14px',
                     transition: 'all 0.2s ease',
+                    width: '100%',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
                   }}
                 >
                   {/* Top: Code & Badge */}
@@ -465,16 +459,18 @@ export const MerchantOverviewPage: React.FC = () => {
                   {/* Actions */}
                   <div style={{
                     display: 'flex',
+                    alignItems: 'center',
                     gap: '8px',
                     paddingTop: '12px',
                     borderTop: '1px solid var(--bdr-light)',
                     flexWrap: 'wrap',
+                    width: '100%',
                   }}>
                     <Link
                       to="/merchant/cards"
                       style={{
-                        flex: 1,
-                        padding: '8px 12px',
+                        flex: '1 1 120px',
+                        padding: '9px 14px',
                         borderRadius: '8px',
                         backgroundColor: 'var(--clr-primary-500)',
                         color: '#ffffff',
@@ -482,71 +478,80 @@ export const MerchantOverviewPage: React.FC = () => {
                         fontWeight: 700,
                         textAlign: 'center',
                         textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
                       تعديل الروابط
                     </Link>
 
-                    <button
-                      type="button"
-                      onClick={() => copyUrl(card)}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        backgroundColor: '#ffffff',
-                        border: '1px solid var(--bdr-light)',
-                        color: 'var(--txt-secondary)',
-                        fontSize: '12.5px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}
-                      title="نسخ رابط الصفحة"
-                    >
-                      {copiedId === card._id ? <Check size={14} color="#16a34a" /> : <Copy size={14} />}
-                      <span>{copiedId === card._id ? 'تم النسخ' : 'نسخ الرابط'}</span>
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 auto', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        onClick={() => copyUrl(card)}
+                        style={{
+                          padding: '9px 12px',
+                          borderRadius: '8px',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid var(--bdr-light)',
+                          color: 'var(--txt-secondary)',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          flex: 1,
+                          justifyContent: 'center',
+                        }}
+                        title="نسخ رابط الصفحة"
+                      >
+                        {copiedId === card._id ? <Check size={14} color="#16a34a" /> : <Copy size={14} />}
+                        <span>{copiedId === card._id ? 'تم النسخ' : 'نسخ الرابط'}</span>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => downloadQR(card)}
-                      style={{
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        backgroundColor: '#ffffff',
-                        border: '1px solid var(--bdr-light)',
-                        color: 'var(--clr-primary-700)',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      title="تحميل كود الـ QR بجودة عالية للطباعة"
-                    >
-                      <Download size={15} />
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadQR(card)}
+                        style={{
+                          padding: '9px 10px',
+                          borderRadius: '8px',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid var(--bdr-light)',
+                          color: 'var(--clr-primary-700)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '36px',
+                        }}
+                        title="تحميل كود الـ QR بجودة عالية للطباعة"
+                      >
+                        <Download size={15} />
+                      </button>
 
-                    <a
-                      href={liveUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        backgroundColor: '#eff6ff',
-                        border: '1px solid #bfdbfe',
-                        color: '#1d4ed8',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textDecoration: 'none',
-                      }}
-                      title="معاينة الصفحة للزبائن"
-                    >
-                      <ExternalLink size={15} />
-                    </a>
+                      <a
+                        href={liveUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          padding: '9px 10px',
+                          borderRadius: '8px',
+                          backgroundColor: '#eff6ff',
+                          border: '1px solid #bfdbfe',
+                          color: '#1d4ed8',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          textDecoration: 'none',
+                          minWidth: '36px',
+                        }}
+                        title="معاينة الصفحة للزبائن"
+                      >
+                        <ExternalLink size={15} />
+                      </a>
+                    </div>
                   </div>
                 </div>
               );
