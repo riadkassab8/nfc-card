@@ -183,9 +183,7 @@ export const AdminInventoryPage: React.FC = () => {
   );
   const [typeF, setTypeF] = useState('');
   const [catF, setCatF] = useState('');
-  const [assignedF, setAssignedF] = useState<'all' | 'assigned' | 'unassigned'>(
-    initSearch || initCardId ? 'all' : 'unassigned'
-  );
+  const [assignedF, setAssignedF] = useState<'all' | 'assigned' | 'unassigned'>('all');
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);

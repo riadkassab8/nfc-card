@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { cardsApi, categoriesApi } from '../../services';
 import { ApiCard, ApiCategory, BusinessData, fmtDate, isSubscriptionExpired, parseCategoryMeta } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import {
   Search, Save, RefreshCw, XCircle, ExternalLink, QrCode, X, Camera,
-  CreditCard, Copy, Download, Sparkles,
+  CreditCard, Copy, Download, Sparkles, Edit2,
 } from 'lucide-react';
 
 import jsQR from 'jsqr';
@@ -191,6 +192,7 @@ const QRScannerModal: React.FC<{ onScan: (data: string) => void; onClose: () => 
 /* ── Main ─────────────────────────────────────────────────────── */
 export const AdminScanPage: React.FC = () => {
   const { can } = useAuth();
+  const navigate = useNavigate();
   const [query, setQuery]       = useState('');
   const [searching, setSearching] = useState(false);
   const [card, setCard]         = useState<ApiCard | null>(null);
@@ -648,11 +650,21 @@ export const AdminScanPage: React.FC = () => {
                 <a
                   href={`/social/${card.custom_slug || card.card_code}`}
                   target="_blank" rel="noopener noreferrer"
-                  className="btn-primary"
+                  className="btn-outline"
                   style={{ textDecoration: 'none', fontSize: '13px', padding: '8px 16px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
                   <ExternalLink size={14} /> معاينة الصفحة العامة
                 </a>
+                {can('cards:edit') && (
+                  <button
+                    onClick={() => navigate(`/admin/cards/${card._id}/edit`)}
+                    className="btn-primary"
+                    style={{ fontSize: '13px', padding: '8px 18px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 800 }}
+                    title="فتح صفحة التعديل الكاملة بكل البيانات والشيفتات والروابط"
+                  >
+                    <Edit2 size={14} /> تعديل كامل
+                  </button>
+                )}
               </div>
             </div>
 
