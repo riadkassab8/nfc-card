@@ -1574,7 +1574,7 @@ export const AdminEditCardPage: React.FC = () => {
                       </div>
 
                       {/* Shift Inputs Grid */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '14px' }}>
                         {/* Shift Label */}
                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                           <label className="form-label" style={{ fontWeight: 700, fontSize: '12.5px', marginBottom: '4px' }}>

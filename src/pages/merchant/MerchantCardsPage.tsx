@@ -318,11 +318,7 @@ export const MerchantCardsPage: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))',
-          gap: '20px',
-        }}>
+        <div className="merchant-cards-grid">
           {cards.map((card) => {
             const expired = isSubscriptionExpired(card);
             const liveUrl = `${window.location.origin}/social/${card.custom_slug || card.card_code}`;
@@ -332,6 +328,7 @@ export const MerchantCardsPage: React.FC = () => {
             return (
               <div
                 key={card._id}
+                className="merchant-card-item"
                 style={{
                   backgroundColor: '#ffffff',
                   borderRadius: '20px',
@@ -342,6 +339,8 @@ export const MerchantCardsPage: React.FC = () => {
                   justifyContent: 'space-between',
                   boxShadow: 'var(--shadow-xs)',
                   gap: '18px',
+                  width: '100%',
+                  boxSizing: 'border-box',
                 }}
               >
                 <div>
@@ -464,19 +463,19 @@ export const MerchantCardsPage: React.FC = () => {
                 </div>
 
                 {/* Actions Bar */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '14px', borderTop: '1px solid var(--bdr-light)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '14px', borderTop: '1px solid var(--bdr-light)', flexWrap: 'wrap', width: '100%' }}>
                   <button
                     type="button"
                     onClick={() => openEditModal(card)}
                     className="btn-primary"
                     style={{
-                      flex: 1,
+                      flex: '1 1 160px',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '6px',
-                      fontSize: '0.82rem',
-                      padding: '9px 12px',
+                      fontSize: '0.84rem',
+                      padding: '10px 14px',
                       borderRadius: '10px',
                       backgroundColor: '#059669',
                       border: 'none',
@@ -489,64 +488,70 @@ export const MerchantCardsPage: React.FC = () => {
                     <span>تعديل البطاقة</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => copyUrl(card)}
-                    style={{
-                      padding: '9px 12px',
-                      borderRadius: '10px',
-                      backgroundColor: copiedId === card._id ? '#f0fdf4' : 'var(--bg-subtle)',
-                      border: `1px solid ${copiedId === card._id ? '#bbf7d0' : 'var(--bdr-light)'}`,
-                      color: copiedId === card._id ? '#16a34a' : 'var(--txt-secondary)',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                    }}
-                    title="نسخ رابط الصفحة الذكية"
-                  >
-                    {copiedId === card._id ? <Check size={15} color="#16a34a" /> : <Copy size={15} />}
-                    <span>{copiedId === card._id ? 'تم' : 'نسخ'}</span>
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 auto', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={() => copyUrl(card)}
+                      style={{
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        backgroundColor: copiedId === card._id ? '#f0fdf4' : 'var(--bg-subtle)',
+                        border: `1px solid ${copiedId === card._id ? '#bbf7d0' : 'var(--bdr-light)'}`,
+                        color: copiedId === card._id ? '#16a34a' : 'var(--txt-secondary)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        flex: 1,
+                        justifyContent: 'center',
+                      }}
+                      title="نسخ رابط الصفحة الذكية"
+                    >
+                      {copiedId === card._id ? <Check size={15} color="#16a34a" /> : <Copy size={15} />}
+                      <span>{copiedId === card._id ? 'تم' : 'نسخ'}</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => downloadQR(card)}
-                    style={{
-                      padding: '9px 12px',
-                      borderRadius: '10px',
-                      backgroundColor: '#eff6ff',
-                      border: '1px solid #bfdbfe',
-                      color: '#1d4ed8',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                    title="تحميل كود الـ QR للطباعة بجودة عالية"
-                  >
-                    <Download size={16} />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadQR(card)}
+                      style={{
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        backgroundColor: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        color: '#1d4ed8',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '40px',
+                      }}
+                      title="تحميل كود الـ QR للطباعة بجودة عالية"
+                    >
+                      <Download size={16} />
+                    </button>
 
-                  <a
-                    href={liveUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      padding: '9px 12px',
-                      borderRadius: '10px',
-                      backgroundColor: 'var(--bg-subtle)',
-                      border: '1px solid var(--bdr-light)',
-                      color: 'var(--txt-secondary)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      textDecoration: 'none',
-                    }}
-                    title="معاينة الصفحة العامة كما يراها الزبون"
-                  >
-                    <ExternalLink size={16} />
-                  </a>
+                    <a
+                      href={liveUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        backgroundColor: 'var(--bg-subtle)',
+                        border: '1px solid var(--bdr-light)',
+                        color: 'var(--txt-secondary)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textDecoration: 'none',
+                        minWidth: '40px',
+                      }}
+                      title="معاينة الصفحة العامة كما يراها الزبون"
+                    >
+                      <ExternalLink size={16} />
+                    </a>
+                  </div>
                 </div>
               </div>
             );
@@ -651,7 +656,7 @@ export const MerchantCardsPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleSave}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '64vh', overflowY: 'auto', padding: '20px' }}>
+              <div className="modal-body responsive-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '64vh', overflowY: 'auto', overflowX: 'hidden', padding: '20px' }}>
                 {/* ── TAB 1: Business Profile & Social ── */}
                 {activeTab === 'business' && (
                   <>
@@ -817,7 +822,7 @@ export const MerchantCardsPage: React.FC = () => {
 
                 {/* ── TAB 2: Payment Shifts ── */}
                 {activeTab === 'shifts' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="shifts-scroll-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
                     <div style={{
                       backgroundColor: '#f5f3ff',
                       border: '1px solid #ddd6fe',
@@ -865,7 +870,7 @@ export const MerchantCardsPage: React.FC = () => {
                         لا توجد ورديات محددة حالياً. انقر على "إضافة وردية جديدة" لضبط طرق الدفع حسب الوقت.
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', overflowX: 'auto' }}>
                         {shifts.map((shift, idx) => (
                           <div
                             key={idx}
@@ -878,6 +883,10 @@ export const MerchantCardsPage: React.FC = () => {
                               display: 'flex',
                               flexDirection: 'column',
                               gap: '12px',
+                              overflowX: 'auto',
+                              maxWidth: '100%',
+                              boxSizing: 'border-box',
+                              WebkitOverflowScrolling: 'touch',
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -940,7 +949,7 @@ export const MerchantCardsPage: React.FC = () => {
                             </div>
 
                             {/* Shift Details Form Grid */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: '10px' }}>
                               <div className="form-group">
                                 <label className="form-label">اسم المسؤول / الكاشير</label>
                                 <input
@@ -981,6 +990,9 @@ export const MerchantCardsPage: React.FC = () => {
                               padding: '10px 12px',
                               borderRadius: '10px',
                               flexWrap: 'wrap',
+                              overflowX: 'auto',
+                              maxWidth: '100%',
+                              WebkitOverflowScrolling: 'touch',
                             }}>
                               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--txt-heading)' }}>
                                 فترة الوردية:
@@ -1034,7 +1046,7 @@ export const MerchantCardsPage: React.FC = () => {
 
                 {/* ── TAB 3: Smart Redirect Rules ── */}
                 {activeTab === 'rules' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="rules-scroll-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
                     <div style={{
                       backgroundColor: '#ecfeff',
                       border: '1px solid #a5f3fc',
@@ -1082,7 +1094,7 @@ export const MerchantCardsPage: React.FC = () => {
                         لا توجد قواعد مخصصة. سيتم تحويل الزائر مباشرةً لصفحة النشاط الأساسية.
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', overflowX: 'auto' }}>
                         {rules.map((rule, idx) => (
                           <div
                             key={idx}
@@ -1095,6 +1107,10 @@ export const MerchantCardsPage: React.FC = () => {
                               display: 'flex',
                               flexDirection: 'column',
                               gap: '12px',
+                              overflowX: 'auto',
+                              maxWidth: '100%',
+                              boxSizing: 'border-box',
+                              WebkitOverflowScrolling: 'touch',
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1248,7 +1264,7 @@ export const MerchantCardsPage: React.FC = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid var(--bdr-light)' }}>
+              <div className="modal-footer responsive-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid var(--bdr-light)' }}>
                 <button
                   type="button"
                   className="btn-secondary"

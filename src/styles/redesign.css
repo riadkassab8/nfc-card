@@ -464,6 +464,29 @@ body {
   font-weight: 800;
 }
 
+/* ── Merchant Cards Grid & Shift Overflow ── */
+.merchant-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: 20px;
+  width: 100%;
+}
+.shifts-scroll-container,
+.rules-scroll-container {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+@media (max-width: 640px) {
+  .merchant-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  .merchant-card-item {
+    padding: 16px !important;
+  }
+}
+
 /* ── Notification Dropdown & Mobile Centering ── */
 .hdr-notif-backdrop {
   display: none;
