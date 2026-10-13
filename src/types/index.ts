@@ -340,6 +340,7 @@ export interface ApiCreateCardDto {
   card_type: string;
   current_redirect_url: string;
   category_id?: string;
+  customer_id?: string | null;
   business_data?: BusinessData;
   template?: string;
   payment_shifts?: PaymentShift[];
@@ -348,6 +349,7 @@ export interface ApiCreateCardDto {
 }
 
 export interface ApiUpdateCardDto {
+  customer_id?: string | null;
   custom_slug?: string | null;
   card_type?: string;
   current_redirect_url?: string;

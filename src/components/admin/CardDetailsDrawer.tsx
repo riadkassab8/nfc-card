@@ -483,24 +483,8 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
         .catch(() => setLinkedCustomer(null))
         .finally(() => setCustLoading(false));
     } else {
-      // Search if this card is assigned to any customer
-      setCustLoading(true);
-      customersApi.getCustomers({ limit: 100 })
-        .then(async (res) => {
-          const list = res.data || [];
-          for (const c of list) {
-            try {
-              const detail = await customersApi.getCustomerById(c._id);
-              if (detail.cards?.some(cd => cd._id === card._id || cd.card_code === card.card_code)) {
-                setLinkedCustomer(detail.customer);
-                return;
-              }
-            } catch { /* continue */ }
-          }
-          setLinkedCustomer(null);
-        })
-        .catch(() => setLinkedCustomer(null))
-        .finally(() => setCustLoading(false));
+      setLinkedCustomer(null);
+      setCustLoading(false);
     }
   }, [card]);
 
