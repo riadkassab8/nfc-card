@@ -247,6 +247,7 @@ export interface BusinessData {
   telegram_group?: string | null;
   google_review_url?: string | null;
   enable_review_gate?: boolean | null;
+  locations?: Array<{ name: string; google_maps_url: string }> | null;
 }
 
 // ── Card Types ────────────────────────────────────────────────────────────

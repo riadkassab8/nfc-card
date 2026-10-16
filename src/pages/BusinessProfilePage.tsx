@@ -237,10 +237,10 @@ export const BusinessProfilePage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {SOCIAL_LINKS.map(s => {
                 const val = biz?.[s.key];
-                if (!val) return null;
+                if (!val || typeof val !== 'string') return null;
 
                 const href = s.key === 'phone' ? `tel:${val}` :
-                             s.key === 'email' ? `mailto:${val}` : val as string;
+                             s.key === 'email' ? `mailto:${val}` : val;
 
                 return (
                   <a

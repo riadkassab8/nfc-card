@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { cardsApi, categoriesApi, customersApi } from '../../services';
 import {
   ApiCard,
@@ -193,6 +193,7 @@ const STEPS = [
 export const AdminAddCardPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { id: cardId } = useParams<{ id: string }>();
   const editCard = location.state?.cardToEdit as ApiCard | undefined;
 
   /* Step state */
@@ -298,7 +299,104 @@ export const AdminAddCardPage: React.FC = () => {
     google_review_url: editCard?.business_data?.google_review_url || '',
   });
 
+  /* Multiple Locations state */
+  interface Location {
+    id: string;
+    name: string;
+    google_maps_url: string;
+  }
+  const [locations, setLocations] = useState<Location[]>(() => {
+    console.log('🔍 editCard:', editCard);
+    console.log('🔍 editCard?.business_data:', editCard?.business_data);
+    
+    // Load from business_data.locations if editing
+    if (editCard?.business_data?.locations && Array.isArray(editCard.business_data.locations)) {
+      const locs = editCard.business_data.locations.map((loc: any, idx: number) => ({
+        id: `loc-${idx}`,
+        name: loc.name || `فرع ${idx + 1}`,
+        google_maps_url: loc.google_maps_url || '',
+      }));
+      console.log('✅ Locations loaded from editCard:', locs);
+      return locs;
+    }
+    // Fallback: If editing card with old google_maps field, migrate it to first location
+    if (editCard?.business_data?.google_maps) {
+      const locFromMaps = [{
+        id: 'loc-0',
+        name: 'الموقع الرئيسي',
+        google_maps_url: editCard.business_data.google_maps,
+      }];
+      console.log('✅ Location created from google_maps:', locFromMaps);
+      return locFromMaps;
+    }
+    console.log('✅ Locations initialized empty - no editCard or google_maps found');
+    return [];
+  });
+
   const [autoCode, setAutoCode] = useState(!editCard);
+
+  /* Load card from API if accessing via URL (not via state) */
+  useEffect(() => {
+    if (cardId && !editCard) {
+      // User navigated via URL, load from API
+      cardsApi.getCardById(cardId).then((card) => {
+        // Populate all form fields with the loaded card data
+        setCardCode(card.card_code || '');
+        setCustomSlug(card.custom_slug || '');
+        setCardType(card.card_type || CardType.CARD);
+        setRedirectUrl(card.current_redirect_url || '');
+        setCategoryId(getCategoryId(card.category_id) || '');
+        setRequiresSubscription(card.requires_subscription ?? true);
+        setTemplate(card.template || 'default');
+        
+        if (card.business_data) {
+          setBizData((prev) => ({
+            ...prev,
+            business_name: card.business_data?.business_name || '',
+            logo: card.business_data?.logo || '',
+            description: card.business_data?.description || '',
+            phone: card.business_data?.phone || '',
+            email: card.business_data?.email || '',
+            whatsapp: card.business_data?.whatsapp || '',
+            instagram: card.business_data?.instagram || '',
+            facebook: card.business_data?.facebook || '',
+            tiktok: card.business_data?.tiktok || '',
+            google_maps: card.business_data?.google_maps || '',
+            website: card.business_data?.website || '',
+            instapay: card.business_data?.instapay || '',
+            vodafone_cash: card.business_data?.vodafone_cash || '',
+            maintenance_whatsapp: card.business_data?.maintenance_whatsapp || '',
+            offers_url: card.business_data?.offers_url || '',
+            telegram_group: card.business_data?.telegram_group || '',
+            google_review_url: card.business_data?.google_review_url || '',
+          }));
+        }
+
+        // Load locations from card
+        if (card.business_data?.locations && Array.isArray(card.business_data.locations)) {
+          setLocations(
+            card.business_data.locations.map((loc: any, idx: number) => ({
+              id: `loc-${idx}`,
+              name: loc.name || `فرع ${idx + 1}`,
+              google_maps_url: loc.google_maps_url || '',
+            }))
+          );
+        } else if (card.business_data?.google_maps) {
+          setLocations([{
+            id: 'loc-0',
+            name: 'الموقع الرئيسي',
+            google_maps_url: card.business_data.google_maps,
+          }]);
+        }
+
+        setFetchingData(false);
+        console.log('✅ Card loaded from API:', card);
+      }).catch((err) => {
+        console.error('Failed to load card:', err);
+        setFetchingData(false);
+      });
+    }
+  }, [cardId, editCard]);
 
   /* Logo upload state & handlers */
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -431,6 +529,25 @@ export const AdminAddCardPage: React.FC = () => {
 
   const updateBiz = (key: string, val: string) => {
     setBizData((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const addLocation = () => {
+    const newId = `loc-${Date.now()}`;
+    setLocations((prev) => [...prev, {
+      id: newId,
+      name: `فرع ${prev.length + 1}`,
+      google_maps_url: '',
+    }]);
+  };
+
+  const updateLocation = (id: string, field: 'name' | 'google_maps_url', value: string) => {
+    setLocations((prev) =>
+      prev.map((loc) => loc.id === id ? { ...loc, [field]: value } : loc)
+    );
+  };
+
+  const removeLocation = (id: string) => {
+    setLocations((prev) => prev.filter((loc) => loc.id !== id));
   };
 
   const updateShift = (index: number, field: keyof PaymentShiftFormItem, value: any) => {
@@ -595,6 +712,20 @@ export const AdminAddCardPage: React.FC = () => {
         business.enable_review_gate = enableReviewGate;
         hasBiz = true;
       }
+
+      // Add multiple locations if any exist
+      if (locations.length > 0) {
+        const validLocations = locations.filter(
+          (loc) => loc.name.trim() && loc.google_maps_url.trim()
+        );
+        if (validLocations.length > 0) {
+          (business as any).locations = validLocations.map((loc) => ({
+            name: loc.name.trim(),
+            google_maps_url: loc.google_maps_url.trim(),
+          }));
+          hasBiz = true;
+        }
+      }
     }
 
     // Payment shifts packaging for backend
@@ -718,6 +849,7 @@ export const AdminAddCardPage: React.FC = () => {
               vodafone_cash: '', maintenance_whatsapp: '', offers_url: '',
               telegram_group: '', google_review_url: '',
             });
+            setLocations([]);
             setShifts([
               {
                 label: 'شيفت الصباح',
@@ -1531,6 +1663,113 @@ export const AdminAddCardPage: React.FC = () => {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Multiple Locations */}
+            <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', gap: '10px', flexWrap: 'wrap' }}>
+                <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Store size={16} style={{ color: '#0891b2' }} />
+                  4. الفروع والمواقع الإضافية (Multiple Locations)
+                </h3>
+                <button
+                  type="button"
+                  onClick={addLocation}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: '#0891b2',
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Plus size={14} />
+                  إضافة فرع
+                </button>
+              </div>
+
+              {locations.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--txt-muted)', fontSize: '13px' }}>
+                  لم تضف أي فروع حتى الآن. اضغط على "إضافة فرع" لإضافة مواقع متعددة لنشاطك.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {locations.map((loc, idx) => (
+                    <div
+                      key={loc.id}
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid var(--bdr-light)',
+                        borderRadius: '12px',
+                        padding: '14px 16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 800, backgroundColor: 'var(--clr-primary-50)', color: 'var(--clr-primary-600)', padding: '3px 10px', borderRadius: '6px' }}>
+                          فرع #{idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeLocation(loc.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--clr-error)',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title="حذف هذا الفرع"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12px', marginBottom: '4px' }}>
+                            اسم الفرع
+                          </label>
+                          <input
+                            className="form-input"
+                            type="text"
+                            value={loc.name}
+                            onChange={(e) => updateLocation(loc.id, 'name', e.target.value)}
+                            placeholder="الفرع الأول، الفرع الرئيسي، إلخ"
+                            style={{ fontSize: '13px' }}
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12px', marginBottom: '4px' }}>
+                            رابط خرائط جوجل
+                          </label>
+                          <input
+                            className="form-input"
+                            type="url"
+                            dir="ltr"
+                            value={loc.google_maps_url}
+                            onChange={(e) => updateLocation(loc.id, 'google_maps_url', e.target.value)}
+                            placeholder="https://maps.app.goo.gl/... أو https://g.page/r/..."
+                            style={{ fontSize: '13px' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

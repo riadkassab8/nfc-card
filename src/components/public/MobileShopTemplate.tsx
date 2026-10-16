@@ -20,7 +20,6 @@ import {
   ShieldCheck,
   ArrowUpRight,
   Smartphone,
-  Eye,
   Info,
   X,
   Share2,
@@ -1376,24 +1375,6 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
             paddingTop: '8px',
           }}
         >
-          {data.visit_count !== undefined && (
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '11.5px',
-                color: theme.textSecondary,
-                backgroundColor: theme.subtleBg,
-                padding: '4px 12px',
-                borderRadius: '999px',
-              }}
-            >
-              <Eye size={13} />
-              <span>عدد التمريرات: {data.visit_count}</span>
-            </div>
-          )}
-
           <div
             style={{
               fontSize: '11.5px',

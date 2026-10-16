@@ -83,27 +83,99 @@ const Tile: React.FC<{ label: string; value: number | string; icon: React.ReactN
   </div>
 );
 
-/* ── Day bar chart ────────────────────────────────────────────────── */
+/* ── Day bar chart with chart type selector ────────────────────── */
+type ChartType = 'bar' | 'line' | 'area';
+
 const DayChart: React.FC<{ data: ScanByDay[] }> = ({ data }) => {
+  const [chartType, setChartType] = useState<ChartType>('bar');
   const max = Math.max(...data.map(d => d.count), 1);
   const recent = data.slice(-30);
+  
   if (!recent.length) return <p style={{ color: 'var(--txt-muted)', fontSize: '13px', textAlign: 'center', padding: '24px 0' }}>لا توجد بيانات</p>;
+
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '90px', padding: '6px 0' }}>
-      {recent.map(d => (
-        <div
-          key={d.date}
-          title={`${d.date}: ${d.count}`}
-          style={{
-            flex: 1, minWidth: '6px',
-            height: `${Math.max(4, (d.count / max) * 85)}px`,
-            background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
-            borderRadius: '4px 4px 0 0',
-            transition: 'height 0.3s ease',
-            cursor: 'pointer',
-          }}
-        />
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Chart Type Buttons */}
+      <div style={{ display: 'flex', gap: '6px', padding: '6px', backgroundColor: '#f1f5f9', borderRadius: '8px', width: 'fit-content' }}>
+        {(['bar', 'line', 'area'] as const).map(type => (
+          <button
+            key={type}
+            onClick={() => setChartType(type)}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: 700,
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              backgroundColor: chartType === type ? '#ffffff' : 'transparent',
+              color: chartType === type ? '#3b82f6' : '#64748b',
+              boxShadow: chartType === type ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              transform: chartType === type ? 'scale(1.05)' : 'scale(1)',
+            }}
+          >
+            {type === 'bar' && '📊'}
+            {type === 'line' && '📈'}
+            {type === 'area' && '📉'}
+          </button>
+        ))}
+      </div>
+
+      {/* Chart Display */}
+      <div style={{ height: '120px', position: 'relative' }}>
+        {chartType === 'bar' && (
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '100%' }}>
+            {recent.map((d) => (
+              <div
+                key={d.date}
+                title={`${d.date}: ${d.count}`}
+                style={{
+                  flex: 1,
+                  minWidth: '6px',
+                  height: `${Math.max(4, (d.count / max) * 100)}%`,
+                  background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
+                  borderRadius: '4px 4px 0 0',
+                  cursor: 'pointer',
+                  transition: 'all 0.5s ease',
+                  opacity: 0.8,
+                  transformOrigin: 'bottom',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.opacity = '1';
+                  (e.currentTarget as HTMLElement).style.transform = 'scaleY(1.12)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 0 8px rgba(59, 130, 246, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.opacity = '0.8';
+                  (e.currentTarget as HTMLElement).style.transform = 'scaleY(1)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {chartType === 'line' && (
+          <svg style={{ width: '100%', height: '100%' }} viewBox={`0 0 ${recent.length * 20} 120`} preserveAspectRatio="none">
+            <polyline points={recent.map((d, i) => `${i * 20 + 10},${120 - (d.count / max) * 100}`).join(' ')} fill="none" stroke="#3b82f6" strokeWidth="2.5" />
+            {recent.map((d, i) => <circle key={`dot-${i}`} cx={i * 20 + 10} cy={120 - (d.count / max) * 100} r="3" fill="#3b82f6" />)}
+          </svg>
+        )}
+
+        {chartType === 'area' && (
+          <svg style={{ width: '100%', height: '100%' }} viewBox={`0 0 ${recent.length * 20} 120`} preserveAspectRatio="none">
+            <path d={`M 0,120 ${recent.map((d, i) => `L ${i * 20 + 10},${120 - (d.count / max) * 100}`).join(' ')} L ${recent.length * 20},120 Z`} fill="url(#areaGradient)" />
+            <polyline points={recent.map((d, i) => `${i * 20 + 10},${120 - (d.count / max) * 100}`).join(' ')} fill="none" stroke="#3b82f6" strokeWidth="2" />
+            <defs>
+              <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+          </svg>
+        )}
+      </div>
     </div>
   );
 };

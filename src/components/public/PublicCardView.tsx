@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ApiCard } from '../../types';
 import { ProfileHero } from './ProfileHero';
 import { PublicCardFooter } from './PublicCardFooter';
-import { Globe, UserPlus, Eye, Check } from 'lucide-react';
+import { Globe, UserPlus, Check } from 'lucide-react';
 import { gsap } from 'gsap';
 import {
   WhatsAppIcon,
@@ -632,28 +632,6 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         <div className="nfc-container">
           <div className="gsap-hero" style={{ width: '100%' }}>
             <ProfileHero card={card} />
-
-            {/* Visit Counter Badge */}
-            {typeof card.visit_count === 'number' && (
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '14px' }}>
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 16px',
-                  backgroundColor: 'var(--surface)',
-                  border: '1px solid var(--border-light)',
-                  borderRadius: '9999px',
-                  fontSize: '0.8125rem',
-                  fontWeight: 600,
-                  color: 'var(--text-secondary)',
-                  boxShadow: 'var(--shadow-subtle)',
-                }}>
-                  <Eye size={14} style={{ color: '#8b5cf6' }} />
-                  <span>{card.visit_count.toLocaleString('ar-EG')} زيارة</span>
-                </div>
-              </div>
-            )}
 
             {/* Save Contact (vCard) Action Button - only show if phone exists */}
             {biz?.phone?.trim() && (

@@ -202,6 +202,14 @@ export const AdminEditCardPage: React.FC = () => {
     google_review_url: '',
   });
 
+  /* Multiple Locations state */
+  interface Location {
+    id: string;
+    name: string;
+    google_maps_url: string;
+  }
+  const [locations, setLocations] = useState<Location[]>([]);
+
   /* Logo upload state & handlers */
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -211,6 +219,23 @@ export const AdminEditCardPage: React.FC = () => {
 
   const updateBiz = (key: string, val: string) => {
     setBizData((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const addLocation = () => {
+    const newId = `loc-${Date.now()}`;
+    setLocations((prev) => [...prev, {
+      id: newId,
+      name: `فرع ${prev.length + 1}`,
+      google_maps_url: '',
+    }]);
+  };
+
+  const updateLocation = (id: string, field: 'name' | 'google_maps_url', value: string) => {
+    setLocations((prev) => prev.map((loc) => loc.id === id ? { ...loc, [field]: value } : loc));
+  };
+
+  const removeLocation = (id: string) => {
+    setLocations((prev) => prev.filter((loc) => loc.id !== id));
   };
 
   const updateShift = (index: number, field: keyof PaymentShiftFormItem, value: any) => {
@@ -394,6 +419,23 @@ export const AdminEditCardPage: React.FC = () => {
       google_review_url: b.google_review_url || '',
     });
 
+    // Load multiple locations, with a backwards-compatible fallback for the old single map field.
+    if (Array.isArray(b.locations)) {
+      setLocations(b.locations.map((loc, index) => ({
+        id: `loc-${index}`,
+        name: loc.name || `فرع ${index + 1}`,
+        google_maps_url: loc.google_maps_url || '',
+      })));
+    } else if (b.google_maps) {
+      setLocations([{
+        id: 'loc-0',
+        name: 'الموقع الرئيسي',
+        google_maps_url: b.google_maps,
+      }]);
+    } else {
+      setLocations([]);
+    }
+
     // Customer
     const rawCustId = card.customer_id || card.customer;
     const custId = typeof rawCustId === 'string' ? rawCustId : rawCustId?._id;
@@ -570,6 +612,17 @@ export const AdminEditCardPage: React.FC = () => {
 
       if (template === 'mobile_shop') {
         business.enable_review_gate = enableReviewGate;
+        hasBiz = true;
+      }
+
+      const validLocations = locations.filter(
+        (loc) => loc.name.trim() && loc.google_maps_url.trim()
+      );
+      if (validLocations.length > 0) {
+        business.locations = validLocations.map((loc) => ({
+          name: loc.name.trim(),
+          google_maps_url: loc.google_maps_url.trim(),
+        }));
         hasBiz = true;
       }
     }
@@ -1447,6 +1500,60 @@ export const AdminEditCardPage: React.FC = () => {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Multiple Locations */}
+            <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', gap: '10px', flexWrap: 'wrap' }}>
+                <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Store size={16} style={{ color: '#0891b2' }} />
+                  4. الفروع والمواقع الإضافية (Multiple Locations)
+                </h3>
+                <button
+                  type="button"
+                  onClick={addLocation}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', border: 'none', backgroundColor: '#0891b2', color: '#ffffff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  <Plus size={14} />
+                  إضافة فرع
+                </button>
+              </div>
+
+              {locations.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--txt-muted)', fontSize: '13px' }}>
+                  لم تضف أي فروع حتى الآن. اضغط على "إضافة فرع" لإضافة مواقع متعددة لنشاطك.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {locations.map((loc, idx) => (
+                    <div key={loc.id} style={{ backgroundColor: '#ffffff', border: '1px solid var(--bdr-light)', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 800, backgroundColor: 'var(--clr-primary-50)', color: 'var(--clr-primary-600)', padding: '3px 10px', borderRadius: '6px' }}>
+                          فرع #{idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeLocation(loc.id)}
+                          style={{ background: 'none', border: 'none', color: 'var(--clr-error)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          title="حذف هذا الفرع"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12px', marginBottom: '4px' }}>اسم الفرع</label>
+                          <input className="form-input" type="text" value={loc.name} onChange={(e) => updateLocation(loc.id, 'name', e.target.value)} placeholder="الفرع الأول، الفرع الرئيسي، إلخ" style={{ fontSize: '13px' }} />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontWeight: 700, fontSize: '12px', marginBottom: '4px' }}>رابط خرائط جوجل</label>
+                          <input className="form-input" type="url" dir="ltr" value={loc.google_maps_url} onChange={(e) => updateLocation(loc.id, 'google_maps_url', e.target.value)} placeholder="https://maps.app.goo.gl/... أو https://g.page/r/..." style={{ fontSize: '13px' }} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
