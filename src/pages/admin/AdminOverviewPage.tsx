@@ -104,6 +104,7 @@ const StatCard: React.FC<StatCardProps> = ({
   onClick,
 }) => (
   <div
+    className="stat-card"
     onClick={onClick}
     style={{
       cursor: onClick ? 'pointer' : 'default',
@@ -244,6 +245,7 @@ const InteractiveScansChart: React.FC<InteractiveChartProps> = ({
 
   return (
     <div
+      className="admin-overview-chart"
       style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -1052,7 +1054,7 @@ export const AdminOverviewPage: React.FC = () => {
   const browserItems = (analytics?.scans_by_browser ?? []).map((b) => ({ label: b.browser, count: b.count }));
 
   return (
-    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', fontFamily: 'var(--font)' }}>
+    <div className="admin-overview" dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', fontFamily: 'var(--font)' }}>
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Card Details Drawer */}
@@ -1236,7 +1238,7 @@ export const AdminOverviewPage: React.FC = () => {
       )}
 
       {/* KPI Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: '14px' }}>
+      <div className="admin-overview-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: '14px' }}>
         <StatCard
           label="إجمالي البطاقات"
           value={total}
@@ -1336,7 +1338,7 @@ export const AdminOverviewPage: React.FC = () => {
       />
 
       {/* Visual Analytics Widgets Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: '16px' }}>
+      <div className="admin-overview-widgets" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: '16px' }}>
         {/* Donut Chart: Card Distribution */}
         <SystemHealthDonut
           active={active}
@@ -1366,6 +1368,7 @@ export const AdminOverviewPage: React.FC = () => {
 
       {/* Quick Operations & Backup Download Ribbon */}
       <div
+        className="admin-overview-backup"
         style={{
           backgroundColor: '#ffffff',
           borderRadius: '16px',

@@ -118,7 +118,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   );
 
   return (
-    <aside className={`admin-sidebar${collapsed ? ' collapsed' : ''}`}>
+    <aside className={`admin-sidebar${collapsed ? ' collapsed' : ''}${onClose ? ' mobile-drawer-sidebar' : ''}`}>
       {/* Brand */}
       <div className="sb-brand">
         <div className="sb-logo">
