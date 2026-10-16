@@ -92,6 +92,10 @@ export const cardsApi = {
   updateCard: (id: string, dto: ApiUpdateCardDto): Promise<ApiCard> =>
     apiClient<ApiCard>(`/cards/${id}`, { method: 'PUT', body: dto }),
 
+  // ── PATCH /api/cards/:id/unassign ─────────────────────────────────────────
+  unassignCard: (id: string): Promise<ApiCard> =>
+    apiClient<ApiCard>(`/cards/${id}/unassign`, { method: 'PATCH' }),
+
   // ── PUT /api/cards/:id/toggle ────────────────────────────────────────────
   toggleCard: (id: string): Promise<ApiCard> =>
     apiClient<ApiCard>(`/cards/${id}/toggle`, { method: 'PUT' }),

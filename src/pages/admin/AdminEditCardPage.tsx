@@ -440,14 +440,25 @@ export const AdminEditCardPage: React.FC = () => {
     const rawCustId = card.customer_id || card.customer;
     const custId = typeof rawCustId === 'string' ? rawCustId : rawCustId?._id;
     if (custId) {
-      try {
-        const custRes = await customersApi.getCustomerById(custId);
-        const actualCust = custRes?.customer || (custRes as any);
-        setSelectedCustomer(actualCust);
-        setInitialCustomer(actualCust);
-      } catch (err) {
-        console.error('Failed to load assigned customer:', err);
+      if (typeof rawCustId === 'object' && rawCustId?.name) {
+        setSelectedCustomer(rawCustId as any);
+        setInitialCustomer(rawCustId as any);
+      } else {
+        try {
+          const custRes = await customersApi.getCustomerById(custId);
+          const actualCust = custRes?.customer || (custRes as any);
+          setSelectedCustomer(actualCust);
+          setInitialCustomer(actualCust);
+        } catch (err) {
+          console.error('Failed to load assigned customer:', err);
+          const fallbackCust = { _id: custId, name: 'عميل مربوط' } as any;
+          setSelectedCustomer(fallbackCust);
+          setInitialCustomer(fallbackCust);
+        }
       }
+    } else {
+      setSelectedCustomer(null);
+      setInitialCustomer(null);
     }
   }, []);
 
@@ -670,19 +681,20 @@ export const AdminEditCardPage: React.FC = () => {
         custom_slug: trimmedSlug || null,
         template: template,
         payment_shifts: paymentShiftsList,
+        customer_id: selectedCustomer ? selectedCustomer._id : null,
       };
       updateDto.business_data = isBusinessProfileCategory ? (hasBiz ? business : null) : null;
 
       const updated = await cardsApi.updateCard(id, updateDto);
 
       // Handle customer assignment change
-      if (selectedCustomer?._id !== initialCustomer?._id) {
-        if (initialCustomer) {
+      if (!selectedCustomer) {
+        await cardsApi.unassignCard(id).catch(console.error);
+        if (initialCustomer?._id) {
           await customersApi.unassignCard(initialCustomer._id, updated._id).catch(console.error);
         }
-        if (selectedCustomer) {
-          await customersApi.assignCards(selectedCustomer._id, { card_ids: [updated._id] }).catch(console.error);
-        }
+      } else if (selectedCustomer._id !== initialCustomer?._id) {
+        await customersApi.assignCards(selectedCustomer._id, { card_ids: [updated._id] }).catch(console.error);
       }
 
       await Swal.fire({
