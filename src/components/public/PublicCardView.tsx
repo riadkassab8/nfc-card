@@ -239,6 +239,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   };
   
   // Extract links
+  // Build in order: Social → Locations → Payment Methods → Contact → Website
   const links: any[] = [];
   
   const waUrl = biz?.whatsapp?.trim() || 'https://wa.me/201098277229';
@@ -248,6 +249,9 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   const phRaw = biz?.phone?.trim() || '01098277229';
   const phUrl = phRaw.startsWith('tel:') ? phRaw : `tel:${phRaw}`;
 
+  // ═══════════════════════════════════════════════════════════
+  // 1. SOCIAL MEDIA (الشبكات الاجتماعية)
+  // ═══════════════════════════════════════════════════════════
   if (biz?.whatsapp?.trim() || !biz) {
     links.push({
       id: 'wa',
@@ -292,26 +296,34 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
       brandColor: '#000000'
     });
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // 2. LOCATIONS (الفروع والمواقع)
+  // ═══════════════════════════════════════════════════════════
   if (biz?.google_maps?.trim()) {
     links.push({ id: 'gm', platform: 'google_maps', title: 'Google Review', subtitle: 'موقعنا على الخريطة', url: biz.google_maps, icon: <GoogleMapsIcon size={60} />, brandColor: '#EA4335' });
   }
-  if (biz?.phone?.trim() || !biz) {
-    links.push({
-      id: 'ph',
-      platform: 'phone',
-      title: 'Call',
-      subtitle: 'يسعدنا استقبال مكالمتك',
-      url: phUrl,
-      icon: <PhoneIcon size={60} />,
-      brandColor: '#2563EB'
+
+  // Add multiple locations if available
+  if (biz?.locations && Array.isArray(biz.locations) && biz.locations.length > 0) {
+    biz.locations.forEach((loc: any, idx: number) => {
+      if (loc.name?.trim() && loc.google_maps_url?.trim()) {
+        links.push({
+          id: `loc-${idx}`,
+          platform: 'location',
+          title: loc.name.trim(),
+          subtitle: 'اضغط لفتح الموقع على الخريطة',
+          url: loc.google_maps_url.trim(),
+          icon: <GoogleMapsIcon size={60} />,
+          brandColor: '#0891b2'
+        });
+      }
     });
   }
-  if (biz?.email?.trim()) {
-    links.push({ id: 'em', platform: 'email', title: 'Email', subtitle: 'راسلنا عبر البريد', url: `mailto:${biz.email}`, icon: <EmailIcon size={60} />, brandColor: '#6366F1' });
-  }
-  if (biz?.website?.trim()) {
-    links.push({ id: 'ws', platform: 'website', title: 'Website', subtitle: 'تصفح موقعنا', url: biz.website, icon: <GlobeIcon size={60} />, brandColor: '#3B82F6' });
-  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 3. PAYMENT METHODS (وسايل الدفع)
+  // ═══════════════════════════════════════════════════════════
   if (biz?.instapay?.trim()) {
     const val = biz.instapay.trim();
     const isUrl = /^https?:\/\//i.test(val);
@@ -340,6 +352,31 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
       copyValue: val,
       copyMessage: `تم نسخ رقم محفظة فودافون كاش (${val}) بنجاح ✓`,
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 4. CONTACT (وسائل الاتصال)
+  // ═══════════════════════════════════════════════════════════
+  if (biz?.phone?.trim() || !biz) {
+    links.push({
+      id: 'ph',
+      platform: 'phone',
+      title: 'Call',
+      subtitle: 'يسعدنا استقبال مكالمتك',
+      url: phUrl,
+      icon: <PhoneIcon size={60} />,
+      brandColor: '#2563EB'
+    });
+  }
+  if (biz?.email?.trim()) {
+    links.push({ id: 'em', platform: 'email', title: 'Email', subtitle: 'راسلنا عبر البريد', url: `mailto:${biz.email}`, icon: <EmailIcon size={60} />, brandColor: '#6366F1' });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 5. WEBSITE (الموقع الإلكتروني)
+  // ═══════════════════════════════════════════════════════════
+  if (biz?.website?.trim()) {
+    links.push({ id: 'ws', platform: 'website', title: 'Website', subtitle: 'تصفح موقعنا', url: biz.website, icon: <GlobeIcon size={60} />, brandColor: '#3B82F6' });
   }
 
   useEffect(() => {

@@ -668,11 +668,11 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
           {rawInstaPay && (
             <div
               style={{
-                background: 'linear-gradient(135deg, #482583 0%, #30135c 100%)',
+                background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
                 borderRadius: '22px',
                 padding: '18px 20px',
                 color: '#ffffff',
-                boxShadow: '0 10px 25px -4px rgba(72, 37, 131, 0.35)',
+                boxShadow: '0 10px 25px -4px rgba(75, 85, 99, 0.25)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '16px',
@@ -697,7 +697,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <InstaPayIcon size={46} style={{ borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }} />
                   <div>
-                    <div style={{ fontSize: '12px', color: '#e9d5ff', fontWeight: 600 }}>
+                    <div style={{ fontSize: '12px', color: '#e5e7eb', fontWeight: 600 }}>
                       حساب إنستاباي المعتمد
                     </div>
                     <div
@@ -744,7 +744,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                     padding: '11px 16px',
                     borderRadius: '12px',
                     backgroundColor: copiedInstaPay ? '#10b981' : '#ffffff',
-                    color: copiedInstaPay ? '#ffffff' : '#30135c',
+                    color: copiedInstaPay ? '#ffffff' : '#4b5563',
                     border: 'none',
                     fontSize: '13.5px',
                     fontWeight: 800,
@@ -800,11 +800,11 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
           {rawVodafoneCash && (
             <div
               style={{
-                background: 'linear-gradient(135deg, #e60000 0%, #b80000 100%)',
+                background: 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)',
                 borderRadius: '22px',
                 padding: '18px 20px',
                 color: '#ffffff',
-                boxShadow: '0 10px 25px -4px rgba(230, 0, 0, 0.35)',
+                boxShadow: '0 10px 25px -4px rgba(107, 114, 128, 0.25)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '16px',
@@ -829,7 +829,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <VodafoneCashIcon size={46} style={{ borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }} />
                   <div>
-                    <div style={{ fontSize: '12px', color: '#fee2e2', fontWeight: 600 }}>
+                    <div style={{ fontSize: '12px', color: '#e5e7eb', fontWeight: 600 }}>
                       محفظة فودافون كاش المعتمدة
                     </div>
                     <div
