@@ -251,8 +251,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // التاجر / صاحب المحل: يصل لبوابته وبطاقاته وإحصائياته ودليله ومتجره
       if (state.admin.role === 'merchant') {
         return [
-          'overview',
-          'cards',
           'merchant_overview',
           'merchant_cards',
           'merchant_analytics',

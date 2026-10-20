@@ -167,6 +167,108 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
   },
 ];
 
+export const DEFAULT_MERCHANT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
+  {
+    id: 'merchant_overview',
+    path: '/merchant',
+    label: 'الرئيسية للمتجر',
+    defaultLabel: 'الرئيسية للمتجر',
+    iconName: 'LayoutDashboard',
+    visible: true,
+    order: 0,
+  },
+  {
+    id: 'merchant_cards',
+    path: '/merchant/cards',
+    label: 'بطاقاتي الذكية',
+    defaultLabel: 'بطاقاتي الذكية',
+    iconName: 'CreditCard',
+    visible: true,
+    order: 1,
+  },
+  {
+    id: 'merchant_analytics',
+    path: '/merchant/analytics',
+    label: 'إحصائيات وزوار المحل',
+    defaultLabel: 'إحصائيات وزوار المحل',
+    iconName: 'BarChart2',
+    visible: true,
+    order: 2,
+  },
+  {
+    id: 'merchant_store',
+    path: '/merchant/store',
+    label: 'طلب كوسترز وبطاقات',
+    defaultLabel: 'طلب كوسترز وبطاقات',
+    iconName: 'ShoppingCart',
+    visible: true,
+    order: 3,
+  },
+  {
+    id: 'merchant_profile',
+    path: '/merchant/profile',
+    label: 'إعدادات المتجر',
+    defaultLabel: 'إعدادات المتجر',
+    iconName: 'Store',
+    visible: true,
+    order: 4,
+  },
+  {
+    id: 'merchant_guide',
+    path: '/merchant/guide',
+    label: 'دليل المستخدم',
+    defaultLabel: 'دليل المستخدم',
+    iconName: 'BookOpen',
+    visible: true,
+    order: 5,
+  },
+];
+
+export const MERCHANT_ALLOWED_PAGE_IDS = new Set(
+  DEFAULT_MERCHANT_SIDEBAR_ITEMS.map((item) => item.id)
+);
+
+/**
+ * تطبيع عناصر القائمة الجانبية الخاصة بصاحب المحل (Merchant) حصراً
+ * واستبعاد أي روابط إدارة أو لوحة تحكم عامة نهائياً.
+ */
+export function normalizeMerchantSidebarItems(
+  items?: Partial<SidebarNavItemConfig>[]
+): SidebarNavItemConfig[] {
+  if (!Array.isArray(items) || items.length === 0) {
+    return DEFAULT_MERCHANT_SIDEBAR_ITEMS;
+  }
+
+  // فلترة الروابط التابعة للمتجر فقط لا غير
+  const merchantOnly = items.filter(
+    (item) =>
+      item &&
+      item.id &&
+      (MERCHANT_ALLOWED_PAGE_IDS.has(item.id) ||
+        (item.path && item.path.startsWith('/merchant')))
+  );
+
+  if (merchantOnly.length === 0) {
+    return DEFAULT_MERCHANT_SIDEBAR_ITEMS;
+  }
+
+  const merged = DEFAULT_MERCHANT_SIDEBAR_ITEMS.map((def) => {
+    const backendMatch = merchantOnly.find((m) => m.id === def.id);
+    if (backendMatch) {
+      return {
+        ...def,
+        label: backendMatch.label || def.label,
+        visible: backendMatch.visible ?? def.visible,
+        order: typeof backendMatch.order === 'number' ? backendMatch.order : def.order,
+        iconName: backendMatch.iconName || def.iconName,
+      };
+    }
+    return def;
+  });
+
+  return merged.filter((item) => item.visible).sort((a, b) => a.order - b.order);
+}
+
 const STORAGE_KEY = 'k2rty_admin_sidebar_config_v1';
 export const SIDEBAR_CONFIG_EVENT = 'k2rty-sidebar-config-changed';
 

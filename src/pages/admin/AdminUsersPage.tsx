@@ -327,7 +327,7 @@ export const AdminUsersPage: React.FC = () => {
           status: formStatus,
           permissions: {
             pages: formRole === 'merchant'
-              ? ['overview', 'cards', 'merchant_overview', 'merchant_cards', 'merchant_analytics', 'merchant_profile', 'merchant_guide', 'merchant_store']
+              ? ['merchant_overview', 'merchant_cards', 'merchant_analytics', 'merchant_profile', 'merchant_guide', 'merchant_store']
               : (formRole === 'super_admin' ? AVAILABLE_PAGES.map((p) => p.id) : formPages),
             actions: formRole === 'super_admin'
               ? ['*']
@@ -355,7 +355,7 @@ export const AdminUsersPage: React.FC = () => {
           status: formStatus,
           permissions: {
             pages: formRole === 'merchant'
-              ? ['overview', 'cards', 'merchant_overview', 'merchant_cards', 'merchant_analytics', 'merchant_profile', 'merchant_guide', 'merchant_store']
+              ? ['merchant_overview', 'merchant_cards', 'merchant_analytics', 'merchant_profile', 'merchant_guide', 'merchant_store']
               : (formRole === 'super_admin' ? AVAILABLE_PAGES.map((p) => p.id) : formPages),
             actions: formRole === 'super_admin'
               ? ['*']
