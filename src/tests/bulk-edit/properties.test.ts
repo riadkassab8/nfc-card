@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { ApiCard, BusinessData } from '../../types';
+import { ApiCard } from '../../types';
 
 /**
  * Property-Based Testing for Bulk Card Editing Feature
@@ -73,27 +73,27 @@ describe('Property 1: Bulk Edit Affects All Target Cards', () => {
         fc.record({
           business_name: fc.string({ minLength: 1, maxLength: 100 }),
           phone: fc.stringMatching(/^\d{10,}$/),
-        })
-      ),
-      (cards, businessDataUpdate) => {
-        // Simulate: in real scenario, all cards would be updated
-        const mockUpdates = cards.map(card => ({
-          ...card,
-          business_data: {
-            ...(card.business_data || {}),
-            ...businessDataUpdate,
-          },
-        }));
+        }),
+        (cards, businessDataUpdate) => {
+          // Simulate: in real scenario, all cards would be updated
+          const mockUpdates = cards.map(card => ({
+            ...card,
+            business_data: {
+              ...(card.business_data || {}),
+              ...businessDataUpdate,
+            },
+          }));
 
-        // Verify all cards have new business data
-        mockUpdates.forEach((card, index) => {
-          expect(card.business_data?.business_name).toBe(businessDataUpdate.business_name);
-          expect(card.business_data?.phone).toBe(businessDataUpdate.phone);
-        });
+          // Verify all cards have new business data
+          mockUpdates.forEach((card, index) => {
+            expect(card.business_data?.business_name).toBe(businessDataUpdate.business_name);
+            expect(card.business_data?.phone).toBe(businessDataUpdate.phone);
+          });
 
-        // Verify count matches
-        expect(mockUpdates.length).toBe(cards.length);
-      }
+          // Verify count matches
+          expect(mockUpdates.length).toBe(cards.length);
+        }
+      )
     );
   });
 
@@ -104,32 +104,32 @@ describe('Property 1: Bulk Edit Affects All Target Cards', () => {
         fc.record({
           business_name: fc.string({ minLength: 1 }),
           phone: fc.stringMatching(/^\d{10,}$/),
-        })
-      ),
-      (originalCards, businessDataUpdate) => {
-        // Store original Step 1 fields
-        const originalStep1Values = originalCards.map(card => ({
-          card_code: card.card_code,
-          category_id: card.category_id,
-          card_type: card.card_type,
-        }));
+        }),
+        (originalCards, businessDataUpdate) => {
+          // Store original Step 1 fields
+          const originalStep1Values = originalCards.map(card => ({
+            card_code: card.card_code,
+            category_id: card.category_id,
+            card_type: card.card_type,
+          }));
 
-        // Simulate bulk update (only Step 2+ fields)
-        const updatedCards = originalCards.map(card => ({
-          ...card,
-          business_data: {
-            ...(card.business_data || {}),
-            ...businessDataUpdate,
-          },
-        }));
+          // Simulate bulk update (only Step 2+ fields)
+          const updatedCards = originalCards.map(card => ({
+            ...card,
+            business_data: {
+              ...(card.business_data || {}),
+              ...businessDataUpdate,
+            },
+          }));
 
-        // Verify Step 1 fields unchanged
-        updatedCards.forEach((card, index) => {
-          expect(card.card_code).toBe(originalStep1Values[index].card_code);
-          expect(card.category_id).toBe(originalStep1Values[index].category_id);
-          expect(card.card_type).toBe(originalStep1Values[index].card_type);
-        });
-      }
+          // Verify Step 1 fields unchanged
+          updatedCards.forEach((card, index) => {
+            expect(card.card_code).toBe(originalStep1Values[index].card_code);
+            expect(card.category_id).toBe(originalStep1Values[index].category_id);
+            expect(card.card_type).toBe(originalStep1Values[index].card_type);
+          });
+        }
+      )
     );
   });
 });
@@ -149,33 +149,33 @@ describe('Property 2: Step 1 Fields Remain Unchanged', () => {
         fc.record({
           business_name: fc.string({ minLength: 1 }),
           description: fc.string({ maxLength: 500 }),
-        })
-      ),
-      (cards, businessDataChanges) => {
-        const step1Fields = ['card_code', 'category_id', 'card_type', 'template', 'requires_subscription'];
-        const originalValues: Record<string, any[]> = {};
+        }),
+        (cards, businessDataChanges) => {
+          const step1Fields = ['card_code', 'category_id', 'card_type', 'template', 'requires_subscription'];
+          const originalValues: Record<string, any[]> = {};
 
-        // Capture original Step 1 values
-        step1Fields.forEach(field => {
-          originalValues[field] = cards.map(c => (c as any)[field]);
-        });
-
-        // Simulate bulk edit with only business data changes
-        const updatedCards = cards.map(card => ({
-          ...card,
-          business_data: {
-            ...(card.business_data || {}),
-            ...businessDataChanges,
-          },
-        }));
-
-        // Verify Step 1 fields not changed
-        step1Fields.forEach(field => {
-          updatedCards.forEach((card, index) => {
-            expect((card as any)[field]).toEqual(originalValues[field][index]);
+          // Capture original Step 1 values
+          step1Fields.forEach(field => {
+            originalValues[field] = cards.map(c => (c as any)[field]);
           });
-        });
-      }
+
+          // Simulate bulk edit with only business data changes
+          const updatedCards = cards.map(card => ({
+            ...card,
+            business_data: {
+              ...(card.business_data || {}),
+              ...businessDataChanges,
+            },
+          }));
+
+          // Verify Step 1 fields not changed
+          step1Fields.forEach(field => {
+            updatedCards.forEach((card, index) => {
+              expect((card as any)[field]).toEqual(originalValues[field][index]);
+            });
+          });
+        }
+      )
     );
   });
 });
@@ -191,26 +191,26 @@ describe('Property 3: Bulk Mode Never Displays Step 1', () => {
   it('should filter out Step 1 from stepper when in bulk mode', () => {
     fc.assert(
       fc.property(
-        fc.hexadecimal({ minLength: 24, maxLength: 24 })
-      ),
-      (customerId) => {
-        // Simulate STEPS array
-        const STEPS = [
-          { id: 1, title: 'بيانات الكارت', desc: 'Step 1' },
-          { id: 2, title: 'هوية النشاط', desc: 'Step 2' },
-          { id: 3, title: 'الكاشير', desc: 'Step 3' },
-          { id: 4, title: 'مراجعة', desc: 'Step 4' },
-        ];
+        fc.hexadecimal({ minLength: 24, maxLength: 24 }),
+        (customerId) => {
+          // Simulate STEPS array
+          const STEPS = [
+            { id: 1, title: 'بيانات الكارت', desc: 'Step 1' },
+            { id: 2, title: 'هوية النشاط', desc: 'Step 2' },
+            { id: 3, title: 'الكاشير', desc: 'Step 3' },
+            { id: 4, title: 'مراجعة', desc: 'Step 4' },
+          ];
 
-        // Simulate bulk mode filtering
-        const bulkMode = true;
-        const filteredSteps = STEPS.filter(s => !bulkMode || s.id !== 1);
+          // Simulate bulk mode filtering
+          const bulkMode = true;
+          const filteredSteps = STEPS.filter(s => !bulkMode || s.id !== 1);
 
-        // Verify Step 1 not in filtered array
-        expect(filteredSteps.map(s => s.id)).not.toContain(1);
-        expect(filteredSteps.length).toBe(3);
-        expect(filteredSteps[0].id).toBe(2);
-      }
+          // Verify Step 1 not in filtered array
+          expect(filteredSteps.map(s => s.id)).not.toContain(1);
+          expect(filteredSteps.length).toBe(3);
+          expect(filteredSteps[0].id).toBe(2);
+        }
+      )
     );
   });
 });
@@ -226,38 +226,38 @@ describe('Property 4: Affected Cards List Matches Customer Cards', () => {
   it('should display all customer cards in affected cards list', () => {
     fc.assert(
       fc.property(
-        fc.array(arbitraryCard(), { minLength: 1, maxLength: 20 })
-      ),
-      (customerCards) => {
-        // Simulate fetched customer cards from API
-        const affectedCards = customerCards;
+        fc.array(arbitraryCard(), { minLength: 1, maxLength: 20 }),
+        (customerCards) => {
+          // Simulate fetched customer cards from API
+          const affectedCards = customerCards;
 
-        // Verify count matches
-        expect(affectedCards.length).toBe(customerCards.length);
+          // Verify count matches
+          expect(affectedCards.length).toBe(customerCards.length);
 
-        // Verify all cards are present
-        affectedCards.forEach((card, index) => {
-          expect(card.card_code).toBe(customerCards[index].card_code);
-          expect(card._id).toBe(customerCards[index]._id);
-        });
-      }
+          // Verify all cards are present
+          affectedCards.forEach((card, index) => {
+            expect(card.card_code).toBe(customerCards[index].card_code);
+            expect(card._id).toBe(customerCards[index]._id);
+          });
+        }
+      )
     );
   });
 
   it('should maintain order and exact data from API response', () => {
     fc.assert(
       fc.property(
-        fc.array(arbitraryCard(), { minLength: 1, maxLength: 15 })
-      ),
-      (customerCards) => {
-        const affectedCards = customerCards;
+        fc.array(arbitraryCard(), { minLength: 1, maxLength: 15 }),
+        (customerCards) => {
+          const affectedCards = customerCards;
 
-        // Deep equality check for each card
-        affectedCards.forEach((card, index) => {
-          const apiCard = customerCards[index];
-          expect(JSON.stringify(card)).toBe(JSON.stringify(apiCard));
-        });
-      }
+          // Deep equality check for each card
+          affectedCards.forEach((card, index) => {
+            const apiCard = customerCards[index];
+            expect(JSON.stringify(card)).toBe(JSON.stringify(apiCard));
+          });
+        }
+      )
     );
   });
 });
@@ -273,73 +273,61 @@ describe('Property 5: Template Handling Consistency', () => {
   it('should apply generic business fields to all templates', () => {
     fc.assert(
       fc.property(
-        fc.array(
-          fc.record({
-            ...arbitraryCard().generate(fc.random()).value,
-            template: fc.constantFrom('default', 'mobile_shop'),
-          }),
-          { minLength: 2, maxLength: 10 }
-        ),
+        fc.array(arbitraryCard(), { minLength: 2, maxLength: 10 }),
         fc.record({
           business_name: fc.string({ minLength: 1 }),
           phone: fc.stringMatching(/^\d{10,}$/),
-        })
-      ),
-      (cards: any, genericUpdate) => {
-        const updatedCards = cards.map((card: any) => ({
-          ...card,
-          business_data: {
-            ...(card.business_data || {}),
-            business_name: genericUpdate.business_name,
-            phone: genericUpdate.phone,
-          },
-        }));
+        }),
+        (cards, genericUpdate) => {
+          const updatedCards = cards.map((card) => ({
+            ...card,
+            business_data: {
+              ...(card.business_data || {}),
+              business_name: genericUpdate.business_name,
+              phone: genericUpdate.phone,
+            },
+          }));
 
-        // Verify all cards have generic fields regardless of template
-        updatedCards.forEach((card: any) => {
-          expect(card.business_data?.business_name).toBe(genericUpdate.business_name);
-          expect(card.business_data?.phone).toBe(genericUpdate.phone);
-        });
-      }
+          // Verify all cards have generic fields regardless of template
+          updatedCards.forEach((card) => {
+            expect(card.business_data?.business_name).toBe(genericUpdate.business_name);
+            expect(card.business_data?.phone).toBe(genericUpdate.phone);
+          });
+        }
+      )
     );
   });
 
   it('should apply template-specific fields only to matching templates', () => {
     fc.assert(
       fc.property(
-        fc.array(
-          fc.record({
-            ...arbitraryCard().generate(fc.random()).value,
-            template: fc.constantFrom('default', 'mobile_shop'),
-          }),
-          { minLength: 2, maxLength: 5 }
-        )
-      ),
-      (cards: any) => {
-        const mobileShopShifts = [
-          { label: 'Shift 1', cashier_name: 'Ahmed' },
-          { label: 'Shift 2', cashier_name: 'Mohamed' },
-        ];
+        fc.array(arbitraryCard(), { minLength: 2, maxLength: 5 }),
+        (cards) => {
+          const mobileShopShifts = [
+            { label: 'Shift 1', cashier_name: 'Ahmed' },
+            { label: 'Shift 2', cashier_name: 'Mohamed' },
+          ];
 
-        const updatedCards = cards.map((card: any) => {
-          if (card.template === 'mobile_shop') {
-            return {
-              ...card,
-              payment_shifts: mobileShopShifts,
-            };
-          }
-          return card;
-        });
+          const updatedCards = cards.map((card) => {
+            if (card.template === 'mobile_shop') {
+              return {
+                ...card,
+                payment_shifts: mobileShopShifts,
+              };
+            }
+            return card;
+          });
 
-        // Verify shifts applied only to mobile_shop template
-        updatedCards.forEach((card: any) => {
-          if (card.template === 'mobile_shop') {
-            expect(card.payment_shifts).toEqual(mobileShopShifts);
-          } else {
-            expect(card.payment_shifts).not.toEqual(mobileShopShifts);
-          }
-        });
-      }
+          // Verify shifts applied only to mobile_shop template
+          updatedCards.forEach((card) => {
+            if (card.template === 'mobile_shop') {
+              expect(card.payment_shifts).toEqual(mobileShopShifts);
+            } else {
+              expect(card.payment_shifts).not.toEqual(mobileShopShifts);
+            }
+          });
+        }
+      )
     );
   });
 });

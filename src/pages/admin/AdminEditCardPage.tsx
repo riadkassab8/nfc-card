@@ -711,8 +711,7 @@ export const AdminEditCardPage: React.FC = () => {
           try {
             const customerData = await customersApi.getCustomerById(customerId);
             if (!isMounted) return;
-            
-            const customer = customerData.customer || (customerData as any);
+
             const cards = customerData.cards || [];
             
             if (cards.length === 0) {
