@@ -55,6 +55,7 @@ export const MerchantSidebar: React.FC<MerchantSidebarProps> = ({
       { id: 'merchant_analytics', path: '/merchant/analytics', label: 'إحصائيات وزوار المحل', defaultLabel: 'إحصائيات وزوار المحل', iconName: 'BarChart2', visible: true, order: 2 },
       { id: 'merchant_profile', path: '/merchant/profile', label: 'إعدادات المتجر', defaultLabel: 'إعدادات المتجر', iconName: 'Store', visible: true, order: 3 },
       { id: 'merchant_guide', path: '/merchant/guide', label: 'دليل المستخدم', defaultLabel: 'دليل المستخدم', iconName: 'BookOpen', visible: true, order: 4 },
+      { id: 'merchant_store', path: '/merchant/store', label: 'طلب كوسترز وبطاقات', defaultLabel: 'طلب كوسترز وبطاقات', iconName: 'ShoppingCart', visible: true, order: 5 },
     ];
   });
 

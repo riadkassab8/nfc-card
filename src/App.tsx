@@ -34,6 +34,7 @@ import { MerchantCardsPage } from './pages/merchant/MerchantCardsPage';
 import { MerchantAnalyticsPage } from './pages/merchant/MerchantAnalyticsPage';
 import { MerchantProfilePage } from './pages/merchant/MerchantProfilePage';
 import { MerchantGuidePage } from './pages/merchant/MerchantGuidePage';
+import { MerchantStorePage } from './pages/merchant/MerchantStorePage';
 import { useActivityTracker } from './hooks/useActivityTracker';
 
 const ActivityTrackerListener: React.FC = () => {
@@ -104,7 +105,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin/website-content"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="website_content">
               <AdminShell title="محتوى الموقع (CMS)">
                 <AdminWebsiteContentPage />
               </AdminShell>
@@ -116,7 +117,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin/website-products"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="website_products">
               <AdminShell title="منتجات المتجر">
                 <AdminWebsiteProductsPage />
               </AdminShell>
@@ -128,7 +129,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin/website-links"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="website_links">
               <AdminShell title="روابط وقوائم الموقع">
                 <AdminWebsiteLinksPage />
               </AdminShell>
@@ -140,7 +141,7 @@ export const App: React.FC = () => (
         <Route
           path="/admin/orders"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredPage="orders">
               <AdminShell title="طلبات الشراء والمبيعات">
                 <AdminWebsiteOrdersPage />
               </AdminShell>
@@ -313,6 +314,16 @@ export const App: React.FC = () => (
             <ProtectedRoute requiredRole="merchant">
               <MerchantShell title="دليل المستخدم">
                 <MerchantGuidePage />
+              </MerchantShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/merchant/store"
+          element={
+            <ProtectedRoute requiredRole="merchant">
+              <MerchantShell title="طلب كوسترز وبطاقات جديدة">
+                <MerchantStorePage />
               </MerchantShell>
             </ProtectedRoute>
           }
