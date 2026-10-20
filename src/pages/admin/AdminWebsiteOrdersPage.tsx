@@ -397,14 +397,18 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
                         </div>
 
                         <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
-                          {(item.price || 0) * (item.quantity || 1)} جنيه
+                          {((item.price && item.price > 0 ? item.price : 450) * (item.quantity || 1))} جنيه
                         </div>
                       </div>
                     ))}
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', borderTop: '1px solid #e2e8f0', paddingTop: '8px' }}>
                       <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>المجموع الكلي:</span>
-                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f766e' }}>{order.totalAmount} جنيه</span>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f766e' }}>
+                        {order.totalAmount && order.totalAmount > 0
+                          ? order.totalAmount
+                          : (order.items || []).reduce((sum, it) => sum + ((it.price && it.price > 0 ? it.price : 450) * (it.quantity || 1)), 0)} جنيه
+                      </span>
                     </div>
                   </div>
                 </div>
