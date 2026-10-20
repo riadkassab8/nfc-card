@@ -12,7 +12,9 @@ import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
 import { AdminCustomersPage } from './pages/admin/AdminCustomersPage';
 import { CustomerDetailsPage } from './pages/admin/CustomerDetailsPage';
 import { AdminInventoryPage } from './pages/admin/AdminInventoryPage';
-import { AdminOrdersPage } from './pages/admin/AdminOrdersPage';
+import { AdminWebsiteOrdersPage } from './pages/admin/AdminWebsiteOrdersPage';
+import { AdminWebsiteContentPage } from './pages/admin/AdminWebsiteContentPage';
+import { AdminWebsiteProductsPage } from './pages/admin/AdminWebsiteProductsPage';
 import { AdminAddCardPage } from './pages/admin/AdminAddCardPage';
 import { AdminEditCardPage } from './pages/admin/AdminEditCardPage';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
@@ -97,15 +99,44 @@ export const App: React.FC = () => (
           }
         />
 
+        {/* Website Content (CMS) */}
         <Route
-          path="/admin/orders"
+          path="/admin/website-content"
           element={
-            <ProtectedRoute requiredPage="orders" requiredAction="orders:view">
-              <AdminShell title="الطلبات">
-                <AdminOrdersPage />
+            <ProtectedRoute>
+              <AdminShell title="محتوى الموقع (CMS)">
+                <AdminWebsiteContentPage />
               </AdminShell>
             </ProtectedRoute>
           }
+        />
+
+        {/* Website Products */}
+        <Route
+          path="/admin/website-products"
+          element={
+            <ProtectedRoute>
+              <AdminShell title="منتجات المتجر">
+                <AdminWebsiteProductsPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Orders */}
+        <Route
+          path="/admin/orders"
+          element={
+            <ProtectedRoute>
+              <AdminShell title="طلبات الشراء والمبيعات">
+                <AdminWebsiteOrdersPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/website-orders"
+          element={<Navigate to="/admin/orders" replace />}
         />
 
         <Route
