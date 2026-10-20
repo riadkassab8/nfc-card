@@ -11,6 +11,10 @@ import {
   Trash2,
   Loader2,
   AlertCircle,
+  CreditCard,
+  Eye,
+  ExternalLink,
+  X,
 } from 'lucide-react';
 import { websiteApi } from '../../services';
 import {
@@ -35,6 +39,7 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
   const showToast = (msg: string, type: 'success' | 'error') => {
@@ -367,6 +372,76 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
                         <strong>ملاحظة العميل:</strong> {order.notes}
                       </div>
                     )}
+
+                    {/* Payment Method & Transfer Receipt */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '6px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
+                      {order.paymentMethod && (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: '#f1f5f9',
+                            color: '#334155',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          <CreditCard size={13} style={{ color: '#0284c7' }} />
+                          {order.paymentMethod === 'vodafone_cash'
+                            ? 'فودافون كاش'
+                            : order.paymentMethod === 'instapay'
+                            ? 'إنستا باي'
+                            : order.paymentMethod === 'cod'
+                            ? 'الدفع عند الاستلام'
+                            : order.paymentMethod}
+                        </span>
+                      )}
+
+                      {order.receiptUrl ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedReceipt(order.receiptUrl!)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              background: '#e0f2fe',
+                              color: '#0369a1',
+                              border: '1px solid #bae6fd',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Eye size={13} />
+                            عرض إيصال التحويل 🧾
+                          </button>
+                          <a
+                            href={order.receiptUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              color: '#64748b',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                            }}
+                            title="فتح الرابط في نافذة جديدة"
+                          >
+                            <ExternalLink size={13} />
+                          </a>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                          بدون إيصال مرفق
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Items info */}
@@ -415,6 +490,115 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Full-Screen Receipt Preview Modal */}
+      {selectedReceipt && (
+        <div
+          onClick={() => setSelectedReceipt(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 20px',
+                borderBottom: '1px solid #e2e8f0',
+                background: '#f8fafc',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                  🧾 صورة إيصال التحويل
+                </span>
+                <a
+                  href={selectedReceipt}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '0.8rem',
+                    color: '#0284c7',
+                    textDecoration: 'none',
+                    fontWeight: 700,
+                  }}
+                >
+                  فتح الصورة بحجمها الأصلي
+                  <ExternalLink size={13} />
+                </a>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedReceipt(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Image Body */}
+            <div
+              style={{
+                padding: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                maxHeight: 'calc(90vh - 80px)',
+                overflow: 'auto',
+                background: '#090d16',
+              }}
+            >
+              <img
+                src={selectedReceipt}
+                alt="إيصال التحويل"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '75vh',
+                  objectFit: 'contain',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                }}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -180,6 +180,8 @@ export interface WebsiteOrder {
   items: OrderItem[];
   totalAmount: number;
   notes?: string;
+  receiptUrl?: string;
+  paymentMethod?: string;
   status: OrderStatus;
   createdAt: string;
   updatedAt?: string;
