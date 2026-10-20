@@ -173,6 +173,17 @@ export interface OrderStats {
   totalRevenue: number;
 }
 
+export interface WebsiteLink {
+  _id?: string;
+  title: string;
+  url: string;
+  location: 'header' | 'footer' | 'both';
+  target: '_self' | '_blank';
+  isActive: boolean;
+  order: number;
+  createdAt?: string;
+}
+
 export const websiteApi = {
   // CMS Content
   getContent: () =>
@@ -188,6 +199,36 @@ export const websiteApi = {
   resetContent: () =>
     apiClient<WebsiteContent>('/admin/website/content/reset', {
       method: 'POST',
+      requiresAuth: true,
+    }),
+
+  // Dynamic Links
+  getLinks: () =>
+    apiClient<WebsiteLink[]>('/admin/website/links', { requiresAuth: true }),
+
+  createLink: (link: Partial<WebsiteLink>) =>
+    apiClient<WebsiteLink>('/admin/website/links', {
+      method: 'POST',
+      body: link,
+      requiresAuth: true,
+    }),
+
+  updateLink: (id: string, link: Partial<WebsiteLink>) =>
+    apiClient<WebsiteLink>(`/admin/website/links/${id}`, {
+      method: 'PUT',
+      body: link,
+      requiresAuth: true,
+    }),
+
+  toggleLink: (id: string) =>
+    apiClient<WebsiteLink>(`/admin/website/links/${id}/toggle`, {
+      method: 'PATCH',
+      requiresAuth: true,
+    }),
+
+  deleteLink: (id: string) =>
+    apiClient<{ success: boolean; message: string }>(`/admin/website/links/${id}`, {
+      method: 'DELETE',
       requiresAuth: true,
     }),
 

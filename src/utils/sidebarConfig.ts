@@ -21,6 +21,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Globe,
+  Link2,
 } from 'lucide-react';
 import { authApi } from '../services/api';
 import { SidebarNavItemConfig } from '../types';
@@ -43,6 +44,7 @@ export const ICON_MAP: Record<string, React.ElementType> = {
   ShoppingBag,
   ShoppingCart,
   Globe,
+  Link2,
 };
 
 export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
@@ -101,13 +103,22 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     order: 5,
   },
   {
+    id: 'website_links',
+    path: '/admin/website-links',
+    label: 'روابط وقوائم الموقع',
+    defaultLabel: 'روابط وقوائم الموقع',
+    iconName: 'Link2',
+    visible: true,
+    order: 6,
+  },
+  {
     id: 'notifications',
     path: '/admin/notifications',
     label: 'الإشعارات',
     defaultLabel: 'الإشعارات',
     iconName: 'Bell',
     visible: true,
-    order: 6,
+    order: 7,
   },
   {
     id: 'analytics',
@@ -116,7 +127,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'الإحصائيات',
     iconName: 'BarChart2',
     visible: true,
-    order: 7,
+    order: 8,
   },
   {
     id: 'categories',
@@ -125,7 +136,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'التصنيفات',
     iconName: 'Tags',
     visible: true,
-    order: 8,
+    order: 9,
   },
   {
     id: 'scan',
@@ -134,7 +145,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'فحص وتجهيز',
     iconName: 'Scan',
     visible: true,
-    order: 9,
+    order: 10,
   },
   {
     id: 'users',
@@ -143,7 +154,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'المستخدمين والصلاحيات',
     iconName: 'ShieldAlert',
     visible: true,
-    order: 10,
+    order: 11,
   },
   {
     id: 'user_logs',
@@ -152,7 +163,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'سجل المستخدمين',
     iconName: 'History',
     visible: true,
-    order: 11,
+    order: 12,
   },
 ];
 

@@ -15,6 +15,7 @@ import { AdminInventoryPage } from './pages/admin/AdminInventoryPage';
 import { AdminWebsiteOrdersPage } from './pages/admin/AdminWebsiteOrdersPage';
 import { AdminWebsiteContentPage } from './pages/admin/AdminWebsiteContentPage';
 import { AdminWebsiteProductsPage } from './pages/admin/AdminWebsiteProductsPage';
+import { AdminWebsiteLinksPage } from './pages/admin/AdminWebsiteLinksPage';
 import { AdminAddCardPage } from './pages/admin/AdminAddCardPage';
 import { AdminEditCardPage } from './pages/admin/AdminEditCardPage';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
@@ -118,6 +119,18 @@ export const App: React.FC = () => (
             <ProtectedRoute>
               <AdminShell title="منتجات المتجر">
                 <AdminWebsiteProductsPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Dynamic Website Links */}
+        <Route
+          path="/admin/website-links"
+          element={
+            <ProtectedRoute>
+              <AdminShell title="روابط وقوائم الموقع">
+                <AdminWebsiteLinksPage />
               </AdminShell>
             </ProtectedRoute>
           }

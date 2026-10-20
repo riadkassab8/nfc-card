@@ -12,6 +12,7 @@ export type {
   WebsiteContent,
   WebsiteProduct,
   WebsiteOrder,
+  WebsiteLink,
   OrderStatus,
   OrderStats,
 } from './websiteApi';
