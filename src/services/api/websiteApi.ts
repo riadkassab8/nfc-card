@@ -185,6 +185,20 @@ export interface WebsiteLink {
 }
 
 export const websiteApi = {
+  // Media Upload (Cloudinary)
+  uploadMedia: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient<{ url: string; publicId: string; format: string; resourceType: string }>(
+      '/admin/website/upload',
+      {
+        method: 'POST',
+        body: formData,
+        requiresAuth: true,
+      },
+    );
+  },
+
   // CMS Content
   getContent: () =>
     apiClient<WebsiteContent>('/admin/website/content', { requiresAuth: true }),

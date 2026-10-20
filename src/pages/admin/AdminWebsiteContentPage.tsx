@@ -16,6 +16,7 @@ import {
   Plus,
   Trash2,
   Loader2,
+  Upload,
 } from 'lucide-react';
 import { websiteApi } from '../../services';
 import { WebsiteContent } from '../../services/api/websiteApi';
@@ -37,7 +38,30 @@ export const AdminWebsiteContentPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+  const handleUploadMedia = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    targetCallback: (url: string) => void,
+    fieldName: string,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingField(fieldName);
+      showToast('جاري رفع الملف إلى السحابة Cloudinary...', 'success');
+      const res = await websiteApi.uploadMedia(file);
+      if (res?.url) {
+        targetCallback(res.url);
+        showToast('تم رفع الملف بنجاح وتحديث الرابط السحابي!', 'success');
+      }
+    } catch (err: any) {
+      showToast('فشل رفع الملف: ' + (err.message || 'خطأ'), 'error');
+    } finally {
+      setUploadingField(null);
+    }
+  };
 
   const showToast = (msg: string, type: 'success' | 'error') => {
     setToast({ msg, type });
@@ -500,14 +524,41 @@ export const AdminWebsiteContentPage: React.FC = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  صورة المنتج الرئيسية (Hero Image URL)
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
+                    صورة المنتج الرئيسية (Hero Image URL)
+                  </label>
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      background: '#f0fdfa',
+                      color: '#0f766e',
+                      border: '1px solid #ccfbf1',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Upload size={13} />
+                    {uploadingField === 'heroImage' ? 'جاري الرفع...' : 'رفع صورة'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      disabled={uploadingField === 'heroImage'}
+                      onChange={(e) => handleUploadMedia(e, (url) => updateNested('hero', 'heroImage', url), 'heroImage')}
+                    />
+                  </label>
+                </div>
                 <input
                   type="text"
                   value={content.hero?.heroImage || ''}
                   onChange={(e) => updateNested('hero', 'heroImage', e.target.value)}
-                  placeholder="assets/images/product/sticker-white.png"
+                  placeholder="https://res.cloudinary.com/..."
                   style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.92rem' }}
                 />
               </div>
@@ -693,14 +744,41 @@ export const AdminWebsiteContentPage: React.FC = () => {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                مسار / رابط ملف الفيديو (Video URL or Path)
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
+                  مسار / رابط ملف الفيديو (Video URL or Path)
+                </label>
+                <label
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    background: '#f0fdfa',
+                    color: '#0f766e',
+                    border: '1px solid #ccfbf1',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Upload size={13} />
+                  {uploadingField === 'videoUrl' ? 'جاري رفع الفيديو...' : 'رفع فيديو إلى السحابة'}
+                  <input
+                    type="file"
+                    accept="video/*"
+                    hidden
+                    disabled={uploadingField === 'videoUrl'}
+                    onChange={(e) => handleUploadMedia(e, (url) => updateNested('video', 'videoUrl', url), 'videoUrl')}
+                  />
+                </label>
+              </div>
               <input
                 type="text"
                 value={content.video?.videoUrl || ''}
                 onChange={(e) => updateNested('video', 'videoUrl', e.target.value)}
-                placeholder="assets/images/New images/WhatsApp Video 2026-10-18 at 7.38.59 PM.mp4"
+                placeholder="https://res.cloudinary.com/.../video.mp4"
                 style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.92rem' }}
               />
             </div>
@@ -1088,14 +1166,41 @@ export const AdminWebsiteContentPage: React.FC = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  صورة الصفحة (Image URL)
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
+                    صورة الصفحة (Image URL)
+                  </label>
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      background: '#f0fdfa',
+                      color: '#0f766e',
+                      border: '1px solid #ccfbf1',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Upload size={13} />
+                    {uploadingField === 'aboutImage' ? 'جاري الرفع...' : 'رفع صورة'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      disabled={uploadingField === 'aboutImage'}
+                      onChange={(e) => handleUploadMedia(e, (url) => updateField('aboutImage', url), 'aboutImage')}
+                    />
+                  </label>
+                </div>
                 <input
                   type="text"
                   value={content.aboutImage}
                   onChange={(e) => updateField('aboutImage', e.target.value)}
-                  placeholder="assets/images/product/sticker-sage.jpg"
+                  placeholder="https://res.cloudinary.com/..."
                   style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.92rem' }}
                 />
               </div>

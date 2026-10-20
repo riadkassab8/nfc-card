@@ -8,6 +8,7 @@ import {
   AlertCircle,
   Loader2,
   X,
+  Upload,
 } from 'lucide-react';
 import { websiteApi } from '../../services';
 import { WebsiteProduct } from '../../services/api/websiteApi';
@@ -18,6 +19,7 @@ export const AdminWebsiteProductsPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<WebsiteProduct | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
   // Form State
@@ -37,6 +39,25 @@ export const AdminWebsiteProductsPage: React.FC = () => {
   const showToast = (msg: string, type: 'success' | 'error') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleUploadProductImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingImage(true);
+      showToast('جاري رفع صورة المنتج إلى السحابة Cloudinary...', 'success');
+      const res = await websiteApi.uploadMedia(file);
+      if (res?.url) {
+        setFormData((prev) => ({ ...prev, defaultImage: res.url }));
+        showToast('تم رفع صورة المنتج بنجاح وتحديث الرابط!', 'success');
+      }
+    } catch (err: any) {
+      showToast('فشل رفع الصورة: ' + (err.message || 'خطأ'), 'error');
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
+    }
   };
 
   const loadProducts = async () => {
@@ -70,13 +91,13 @@ export const AdminWebsiteProductsPage: React.FC = () => {
           label: 'اللون',
           required: true,
           choices: [
-            { value: 'white', label: 'أبيض', priceModifier: 0, image: 'assets/images/product/sticker-white.png' },
-            { value: 'black', label: 'أسود', priceModifier: 0, image: 'assets/images/product/sticker-black.png' },
-            { value: 'sage', label: 'زيتي', priceModifier: 0, image: 'assets/images/product/sticker-sage.jpg' },
+            { value: 'white', label: 'أبيض', priceModifier: 0, image: 'https://res.cloudinary.com/dls8ootj3/image/upload/v1792525351/k2rty/k2rty_sticker_white.png' },
+            { value: 'black', label: 'أسود', priceModifier: 0, image: 'https://res.cloudinary.com/dls8ootj3/image/upload/v1792525357/k2rty/k2rty_sticker_black.png' },
+            { value: 'sage', label: 'زيتي', priceModifier: 0, image: 'https://res.cloudinary.com/dls8ootj3/image/upload/v1792525358/k2rty/k2rty_sticker_sage.jpg' },
           ],
         },
       ],
-      defaultImage: 'assets/images/product/sticker-white.png',
+      defaultImage: 'https://res.cloudinary.com/dls8ootj3/image/upload/v1792525351/k2rty/k2rty_sticker_white.png',
       gallery: [],
       isAvailable: true,
     });
@@ -454,14 +475,41 @@ export const AdminWebsiteProductsPage: React.FC = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  رابط صورة المنتج الافتراضية
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>
+                    رابط صورة المنتج الافتراضية
+                  </label>
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      background: '#eef2ff',
+                      color: '#4f46e5',
+                      border: '1px solid #c7d2fe',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: uploadingImage ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    <Upload size={13} />
+                    {uploadingImage ? 'جاري الرفع...' : 'رفع صورة'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      disabled={uploadingImage}
+                      onChange={handleUploadProductImage}
+                    />
+                  </label>
+                </div>
                 <input
                   type="text"
                   value={formData.defaultImage || ''}
                   onChange={(e) => setFormData({ ...formData, defaultImage: e.target.value })}
-                  placeholder="assets/images/product/sticker-white.png"
+                  placeholder="https://res.cloudinary.com/..."
                   style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
                 />
               </div>
