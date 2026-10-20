@@ -33,7 +33,7 @@ const BarList: React.FC<{ items: { label: string; count: number }[]; color: stri
             <div style={{ height: '100%', borderRadius: '6px', width: `${(item.count / max) * 100}%`, backgroundColor: color, transition: 'width 0.4s ease' }} />
           </div>
           <span style={{ minWidth: '45px', fontSize: '12.5px', fontWeight: 800, color: 'var(--txt-heading)', textAlign: 'left' }}>
-            {item.count.toLocaleString('ar-EG')}
+            {item.count.toLocaleString('ar-EG-u-nu-latn')}
           </span>
         </div>
       ))}
@@ -76,7 +76,7 @@ const Tile: React.FC<{ label: string; value: number | string; icon: React.ReactN
         <div className="shimmer" style={{ width: '60px', height: '24px', borderRadius: '4px' }} />
       ) : (
         <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--txt-heading)', lineHeight: 1 }}>
-          {typeof value === 'number' ? value.toLocaleString('ar-EG') : value}
+          {typeof value === 'number' ? value.toLocaleString('ar-EG-u-nu-latn') : value}
         </div>
       )}
     </div>
@@ -198,7 +198,7 @@ const RecentScansTable: React.FC<{ scans: ApiCardAnalytics['recent_scans'] }> = 
           {scans.slice(0, 10).map((s, i) => (
             <tr key={i}>
               <td style={{ color: 'var(--txt-body)', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                {new Date(s.timestamp).toLocaleString('ar-EG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {new Date(s.timestamp).toLocaleString('ar-EG-u-nu-latn', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </td>
               <td>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700, color: 'var(--txt-heading)', fontSize: '12.5px' }}>

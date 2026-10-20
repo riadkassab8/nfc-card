@@ -309,7 +309,7 @@ export const BusinessProfilePage: React.FC = () => {
             <DetailItem
               label="الاشتراك ينتهي"
               value={card.requires_subscription && card.subscription_end_date
-                ? new Date(card.subscription_end_date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
+                ? new Date(card.subscription_end_date).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })
                 : 'دائم ♾'}
             />
           </div>

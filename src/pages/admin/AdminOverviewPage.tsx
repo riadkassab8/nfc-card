@@ -32,7 +32,7 @@ import {
   Tablet,
   Globe,
   Download,
-  Trash2,
+  Banknote,
   Plus,
   ShieldCheck,
   Award,
@@ -157,7 +157,7 @@ const StatCard: React.FC<StatCardProps> = ({
         <div className="shimmer" style={{ width: '60px', height: '26px', borderRadius: '4px' }} />
       ) : (
         <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--txt-heading)', lineHeight: 1.1 }}>
-          {value.toLocaleString('ar-EG')}
+          {value.toLocaleString('ar-EG-u-nu-latn')}
         </div>
       )}
       {subtext && (
@@ -322,19 +322,19 @@ const InteractiveScansChart: React.FC<InteractiveChartProps> = ({
         <div>
           <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', fontWeight: 600 }}>إجمالي مسحات الفترة:</span>
           <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--clr-primary-600)' }}>
-            {totalPeriodScans.toLocaleString('ar-EG')}
+            {totalPeriodScans.toLocaleString('ar-EG-u-nu-latn')}
           </div>
         </div>
         <div>
           <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', fontWeight: 600 }}>المتوسط اليومي:</span>
           <div style={{ fontSize: '18px', fontWeight: 800, color: '#10b981' }}>
-            {avgDailyScans.toLocaleString('ar-EG')}
+            {avgDailyScans.toLocaleString('ar-EG-u-nu-latn')}
           </div>
         </div>
         <div>
           <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', fontWeight: 600 }}>أعلى يوم (الذروة):</span>
           <div style={{ fontSize: '18px', fontWeight: 800, color: '#f59e0b' }}>
-            {peakDay ? peakDay.count.toLocaleString('ar-EG') : 0}
+            {peakDay ? peakDay.count.toLocaleString('ar-EG-u-nu-latn') : 0}
             {peakDay && <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginRight: '6px' }}>({peakDay.date})</span>}
           </div>
         </div>
@@ -342,7 +342,7 @@ const InteractiveScansChart: React.FC<InteractiveChartProps> = ({
           <div style={{ background: '#eff6ff', borderRadius: '8px', padding: '4px 10px', border: '1px solid #bfdbfe' }}>
             <span style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 700 }}>اليوم المحدد: {activeItem.date}</span>
             <div style={{ fontSize: '17px', fontWeight: 800, color: '#1d4ed8' }}>
-              {activeItem.count.toLocaleString('ar-EG')} مسحة
+              {activeItem.count.toLocaleString('ar-EG-u-nu-latn')} مسحة
             </div>
           </div>
         )}
@@ -728,7 +728,7 @@ const TopCardsWidget: React.FC<TopCardsProps> = ({ topCards, allCards, loading, 
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <span style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--clr-primary-700)' }}>
-                      {card.count.toLocaleString('ar-EG')}
+                      {card.count.toLocaleString('ar-EG-u-nu-latn')}
                     </span>
                     <span style={{ fontSize: '11px', color: 'var(--txt-muted)' }}>مسحة</span>
                   </div>
@@ -869,7 +869,7 @@ const DevicesBrowsersWidget: React.FC<DevicesBrowsersProps> = ({ deviceItems, br
                 />
               </div>
               <span style={{ minWidth: '40px', fontSize: '12px', fontWeight: 800, color: 'var(--txt-heading)', textAlign: 'left' }}>
-                {item.count.toLocaleString('ar-EG')}
+                {item.count.toLocaleString('ar-EG-u-nu-latn')}
               </span>
             </div>
           ))}
@@ -903,9 +903,8 @@ export const AdminOverviewPage: React.FC = () => {
   const [inactive, setInactive] = useState(0);
   const [expired, setExpired] = useState(0);
   const [totalCustomers, setTotalCustomers] = useState(0);
-  const [trashCustomersCount, setTrashCustomersCount] = useState(0);
-  const [trashCardsCount, setTrashCardsCount] = useState(0);
   const [assignedCount, setAssignedCount] = useState(0);
+  const [ordersIncome, setOrdersIncome] = useState(0);
 
   /* Analytics */
   const [analytics, setAnalytics] = useState<ApiGlobalAnalytics | null>(null);
@@ -934,8 +933,6 @@ export const AdminOverviewPage: React.FC = () => {
         allCards,
         catRes,
         custRes,
-        trashCustRes,
-        trashCardsRes,
       ] = await Promise.all([
         cardsApi.getCards({ limit: 1 }),
         cardsApi.getCards({ status: 'active', limit: 1 }),
@@ -943,8 +940,6 @@ export const AdminOverviewPage: React.FC = () => {
         cardsApi.getAllCardsForStats(),
         categoriesApi.getCategories({ limit: 100 }),
         customersApi.getCustomers({ page: 1, limit: 5 }).catch(() => ({ data: [], total: 0 })),
-        customersApi.getTrash().catch(() => []),
-        cardsApi.getTrash().catch(() => []),
       ]);
 
       setCards(allCards);
@@ -957,12 +952,6 @@ export const AdminOverviewPage: React.FC = () => {
       // Customers & CRM counts
       setTotalCustomers(custRes.total ?? 0);
       setRecentCustomers(custRes.data ?? []);
-
-      // Trash counts
-      const tCustLen = Array.isArray(trashCustRes) ? trashCustRes.length : (trashCustRes as any)?.data?.length ?? 0;
-      const tCardLen = Array.isArray(trashCardsRes) ? trashCardsRes.length : (trashCardsRes as any)?.data?.length ?? 0;
-      setTrashCustomersCount(tCustLen);
-      setTrashCardsCount(tCardLen);
 
       // Assigned cards count
       const assigned = allCards.filter((c) => !!c.customer_id || !!c.customer).length;
@@ -988,6 +977,28 @@ export const AdminOverviewPage: React.FC = () => {
 
   useEffect(() => {
     load();
+  }, []);
+
+  useEffect(() => {
+    const syncOrdersIncome = () => {
+      try {
+        const savedOrders = JSON.parse(localStorage.getItem('nfc_store_orders_v1') || '[]');
+        const totalIncome = Array.isArray(savedOrders)
+          ? savedOrders.filter((order) => order.status !== 'cancelled')
+            .reduce((sum, order) => sum + Math.max(0, Number(order.total) || 0), 0)
+          : 0;
+        setOrdersIncome(totalIncome);
+      } catch {
+        setOrdersIncome(0);
+      }
+    };
+    syncOrdersIncome();
+    window.addEventListener('nfc-store-orders-changed', syncOrdersIncome);
+    window.addEventListener('storage', syncOrdersIncome);
+    return () => {
+      window.removeEventListener('nfc-store-orders-changed', syncOrdersIncome);
+      window.removeEventListener('storage', syncOrdersIncome);
+    };
   }, []);
 
   useEffect(() => {
@@ -1048,8 +1059,6 @@ export const AdminOverviewPage: React.FC = () => {
   }, [cards]);
 
   const unassignedCount = Math.max(0, total - assignedCount);
-  const totalTrashCount = trashCardsCount + trashCustomersCount;
-
   const deviceItems = (analytics?.scans_by_device ?? []).map((d) => ({ label: d.device_type, count: d.count }));
   const browserItems = (analytics?.scans_by_browser ?? []).map((b) => ({ label: b.browser, count: b.count }));
 
@@ -1297,7 +1306,7 @@ export const AdminOverviewPage: React.FC = () => {
         <StatCard
           label="إجمالي المسحات"
           value={analytics?.total_scans ?? 0}
-          subtext={`${(analytics?.scans_last_N_days ?? 0).toLocaleString('ar-EG')} في 30 يوم`}
+          subtext={`${(analytics?.scans_last_N_days ?? 0).toLocaleString('ar-EG-u-nu-latn')} في 30 يوم`}
           icon={<Activity size={20} />}
           color="#3b82f6"
           bg="#eff6ff"
@@ -1317,15 +1326,15 @@ export const AdminOverviewPage: React.FC = () => {
           onClick={() => navigate('/admin/cards?status=expired')}
         />
         <StatCard
-          label="سلة المهملات"
-          value={totalTrashCount}
-          subtext={`${trashCardsCount} كروت • ${trashCustomersCount} عملاء`}
-          icon={<Trash2 size={20} />}
-          color="#64748b"
-          bg="#f8fafc"
-          border="#e2e8f0"
-          loading={loading}
-          onClick={() => navigate('/admin/cards')}
+          label="الدخل من الطلبات"
+          value={ordersIncome}
+          subtext="جنيه من الطلبات غير الملغاة"
+          icon={<Banknote size={20} />}
+          color="#059669"
+          bg="#ecfdf5"
+          border="#a7f3d0"
+          loading={false}
+          onClick={() => navigate('/admin/orders')}
         />
       </div>
 

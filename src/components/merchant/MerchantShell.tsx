@@ -22,7 +22,7 @@ export const MerchantShell: React.FC<MerchantShellProps> = ({ title, children })
     const end = new Date(admin.subscription_end_date);
     const now = new Date();
     const diffDays = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    const endDateStr = end.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+    const endDateStr = end.toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' });
 
     if (diffDays <= 0) {
       subWarning = { type: 'expired', daysLeft: 0, endDateStr };

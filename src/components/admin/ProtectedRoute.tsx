@@ -25,12 +25,15 @@ export const getDefaultAdminPath = (admin: any): string => {
 
   const pagePathMap: Record<string, string> = {
     cards: '/admin/cards',
+    orders: '/admin/orders',
     customers: '/admin/customers',
     categories: '/admin/categories',
     scan: '/admin/scan',
     analytics: '/admin/analytics',
     notifications: '/admin/notifications',
   };
+
+  if (pages.includes('orders')) return '/admin/orders';
 
   for (const page of pages) {
     if (pagePathMap[page]) return pagePathMap[page];

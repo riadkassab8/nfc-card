@@ -47,6 +47,7 @@ import {
   Store,
   Star,
   Edit2,
+  Copy,
 } from 'lucide-react';
 
 /* ── Field definitions ─────────────────────────────────────────── */
@@ -207,7 +208,6 @@ export const AdminAddCardPage: React.FC = () => {
   const [cardCode, setCardCode] = useState(editCard?.card_code || '');
   const [customSlug, setCustomSlug] = useState(editCard?.custom_slug || '');
   const [cardType, setCardType] = useState<string>(editCard?.card_type || CardType.CARD);
-  const [redirectUrl, setRedirectUrl] = useState(editCard?.current_redirect_url || '');
   const [categoryId, setCategoryId] = useState(getCategoryId(editCard?.category_id) || '');
   const [requiresSubscription, setRequiresSubscription] = useState<boolean>(
     editCard ? (editCard.requires_subscription ?? true) : true
@@ -344,7 +344,6 @@ export const AdminAddCardPage: React.FC = () => {
         setCardCode(card.card_code || '');
         setCustomSlug(card.custom_slug || '');
         setCardType(card.card_type || CardType.CARD);
-        setRedirectUrl(card.current_redirect_url || '');
         setCategoryId(getCategoryId(card.category_id) || '');
         setRequiresSubscription(card.requires_subscription ?? true);
         setTemplate(card.template || 'default');
@@ -521,11 +520,11 @@ export const AdminAddCardPage: React.FC = () => {
     } finally {
       setFetchingData(false);
     }
-  }, [categoryId, autoCode, editCard]);
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, []);
 
   const updateBiz = (key: string, val: string) => {
     setBizData((prev) => ({ ...prev, [key]: val }));
@@ -690,10 +689,17 @@ export const AdminAddCardPage: React.FC = () => {
   };
 
   /* ── Submit Handler ── */
-  const handleSubmit = async (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent, isQuickSave: boolean = false) => {
     if (e) e.preventDefault();
 
-    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) return;
+    console.log('🔍 [handleSubmit] Starting - currentStep:', currentStep, 'isQuickSave:', isQuickSave);
+    console.log('🔍 [handleSubmit] bizData:', bizData);
+    console.log('🔍 [handleSubmit] locations:', locations);
+
+    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
+      console.log('❌ [handleSubmit] Validation failed');
+      return;
+    }
 
     const trimmedSlug = customSlug.trim().toLowerCase();
 
@@ -745,17 +751,9 @@ export const AdminAddCardPage: React.FC = () => {
       }));
     }
 
-    // Handle redirect URL
-    const domainOrigin = window.location.origin.replace(
-      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i,
-      'https://smart-card-qr-api.koyeb.app'
-    );
-    let formattedUrl = redirectUrl.trim();
-    if (!formattedUrl) {
-      formattedUrl = `${domainOrigin}/r/${cardCode.trim().toUpperCase()}`;
-    } else if (!/^https?:\/\//i.test(formattedUrl)) {
-      formattedUrl = `https://${formattedUrl}`;
-    }
+    // Handle redirect URL - always use Frontend domain
+    const frontendDomain = 'https://k2rty.vercel.app';
+    const formattedUrl = `${frontendDomain}/social/${cardCode.trim().toUpperCase()}`;
 
     const baseDto = {
       card_type: cardType,
@@ -778,6 +776,9 @@ export const AdminAddCardPage: React.FC = () => {
 
         const updated = await cardsApi.updateCard(editCard._id, updateDto);
 
+        // Update Frontend state with the response from Backend
+        setCustomSlug(updated.custom_slug || '');
+
         // Handle customer assignment change
         if (selectedCustomer?._id !== initialCustomer?._id) {
           if (initialCustomer) {
@@ -788,14 +789,27 @@ export const AdminAddCardPage: React.FC = () => {
           }
         }
 
-        await Swal.fire({
-          icon: 'success',
-          title: 'تم تعديل البطاقة بنجاح!',
-          text: `تم حفظ التعديلات للبطاقة ${updated.card_code}`,
-          confirmButtonText: 'حسناً',
-          confirmButtonColor: '#3b82f6',
-        });
-        navigate('/admin/cards');
+        // If this is Quick Save (not final step), stay on current page and show success
+        if (isQuickSave) {
+          await Swal.fire({
+            icon: 'success',
+            title: 'تم الحفظ السريع!',
+            text: `تم حفظ التعديلات للبطاقة ${updated.card_code}`,
+            confirmButtonText: 'حسناً',
+            confirmButtonColor: '#3b82f6',
+            timer: 2000,
+          });
+        } else {
+          // Final submission
+          await Swal.fire({
+            icon: 'success',
+            title: 'تم تعديل البطاقة بنجاح!',
+            text: `تم حفظ التعديلات للبطاقة ${updated.card_code}`,
+            confirmButtonText: 'حسناً',
+            confirmButtonColor: '#3b82f6',
+          });
+          navigate('/admin/cards');
+        }
       } else {
         // Create mode
         const createDto: ApiCreateCardDto = {
@@ -808,6 +822,8 @@ export const AdminAddCardPage: React.FC = () => {
         if (isBusinessProfileCategory && hasBiz) createDto.business_data = business;
 
         const created = await cardsApi.createCard(createDto);
+
+        console.log('✅ [handleSubmit] Card created:', created);
 
         // Assign to customer if selected
         if (selectedCustomer) {
@@ -841,7 +857,6 @@ export const AdminAddCardPage: React.FC = () => {
             // Reset form for next card
             setAutoCode(true);
             setCustomSlug('');
-            setRedirectUrl('');
             setBizData({
               business_name: '', logo: '', description: '', phone: '',
               email: '', whatsapp: '', instagram: '', facebook: '',
@@ -876,7 +891,7 @@ export const AdminAddCardPage: React.FC = () => {
             ]);
             setSelectedCustomer(null);
             setCurrentStep(1);
-            loadData();
+            // Don't call loadData() here - it's not needed for form reset
           }
         });
       }
@@ -2168,42 +2183,59 @@ export const AdminAddCardPage: React.FC = () => {
               </div>
             )}
 
-            {/* Direct Redirect URL (Optional) */}
+            {/* Direct Redirect URL (Automatic Frontend) */}
             <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <LinkIcon size={15} style={{ color: 'var(--clr-primary-500)' }} />
                     رابط التوجيه المباشر (Redirect URL)
-                    <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)' }}>(اختياري)</span>
+                    <span style={{ fontSize: '11.5px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', backgroundColor: 'var(--clr-primary-50)', color: 'var(--clr-primary-700)' }}>تلقائي</span>
                   </span>
                 </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    className="form-input"
-                    dir="ltr"
-                    type="text"
-                    value={redirectUrl}
-                    onChange={(e) => setRedirectUrl(e.target.value)}
-                    placeholder="https://example.com أو اتركه فارغاً لعرض صفحة الكارت التفاعلية"
-                    style={{ fontSize: '13.5px', backgroundColor: '#fff', textAlign: 'left' }}
-                  />
-                  {redirectUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setRedirectUrl('')}
-                      style={{
-                        position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
-                        background: 'none', border: 'none', color: 'var(--txt-muted)', cursor: 'pointer',
-                      }}
-                      title="تفريغ الرابط"
-                    >
-                      ✕
-                    </button>
-                  )}
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: '#fff',
+                  border: '1px solid var(--bdr-light)',
+                  fontSize: '13.5px',
+                  color: 'var(--clr-primary-700)',
+                  fontFamily: 'monospace',
+                  wordBreak: 'break-all',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                }}>
+                  <span>{`https://k2rty.vercel.app/social/${cardCode.trim().toUpperCase() || 'CARD-XXXX'}`}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = `https://k2rty.vercel.app/social/${cardCode.trim().toUpperCase()}`;
+                      navigator.clipboard.writeText(url);
+                      Swal.fire({
+                        icon: 'success',
+                        title: 'تم النسخ',
+                        text: 'تم نسخ الرابط إلى الحافظة',
+                        timer: 1500,
+                        showConfirmButton: false,
+                      });
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--clr-primary-600)',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      padding: '4px',
+                    }}
+                    title="نسخ الرابط"
+                  >
+                    <Copy size={16} />
+                  </button>
                 </div>
                 <span style={{ fontSize: '12px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
-                  💡 تركه فارغاً يُوجّه العميل تلقائياً لصفحة البطاقة التفاعلية (Social Page) بجميع الأزرار وطرق الدفع.
+                  ✅ الرابط يُنشأ تلقائياً من كود البطاقة. عند الضغط عليه أو الـ QR code، العميل بيُوجَّه مباشرة لصفحة البطاقة التفاعلية.
                 </span>
               </div>
             </div>
@@ -2419,44 +2451,126 @@ export const AdminAddCardPage: React.FC = () => {
           </div>
 
           {/* Next / Final Submit Button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
             {currentStep < 4 ? (
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleNext}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  fontWeight: 800,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <span>متابعة للخطوة التالية</span>
-                <ArrowLeft size={16} />
-              </button>
+              <>
+                {/* Quick Save Button (Steps 1-3) */}
+                <button
+                  type="button"
+                  className="btn-outline"
+                  onClick={() => {
+                    if (validateStep(currentStep)) {
+                      handleSubmit(undefined, true);
+                    }
+                  }}
+                  disabled={loading}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '10px',
+                    fontSize: '13.5px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    whiteSpace: 'nowrap',
+                    border: '2px solid #10b981',
+                    color: '#10b981',
+                    backgroundColor: '#ecfdf5',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: loading ? 0.6 : 1,
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw size={14} className="spin" />
+                      <span>جاري الحفظ...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={14} />
+                      <span>حفظ سريع</span>
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleNext}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <span>متابعة للخطوة التالية</span>
+                  <ArrowLeft size={16} />
+                </button>
+              </>
             ) : (
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => handleSubmit()}
-                disabled={loading || !isFormValid}
-                style={{
-                  minWidth: '200px',
-                  padding: '10px 24px',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  fontWeight: 800,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                }}
-              >
+              <>
+                {/* Quick Save Button in Step 4 */}
+                <button
+                  type="button"
+                  className="btn-outline"
+                  onClick={() => {
+                    if (validateStep(1) && validateStep(2) && validateStep(3)) {
+                      handleSubmit(undefined, true);
+                    }
+                  }}
+                  disabled={loading}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '10px',
+                    fontSize: '13.5px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    whiteSpace: 'nowrap',
+                    border: '2px solid #10b981',
+                    color: '#10b981',
+                    backgroundColor: '#ecfdf5',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: loading ? 0.6 : 1,
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw size={14} className="spin" />
+                      <span>جاري الحفظ...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={14} />
+                      <span>حفظ سريع</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => handleSubmit()}
+                  disabled={loading || !isFormValid}
+                  style={{
+                    minWidth: '200px',
+                    padding: '10px 24px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  }}
+                >
                 {loading ? (
                   <>
                     <RefreshCw size={16} className="spin" />
@@ -2469,6 +2583,7 @@ export const AdminAddCardPage: React.FC = () => {
                   </>
                 )}
               </button>
+              </>
             )}
           </div>
         </div>

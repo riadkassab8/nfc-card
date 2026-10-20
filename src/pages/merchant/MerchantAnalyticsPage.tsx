@@ -45,7 +45,7 @@ const BarList: React.FC<{ items: { label: string; count: number }[]; color: stri
             />
           </div>
           <span style={{ minWidth: '40px', fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', textAlign: 'left' }}>
-            {item.count.toLocaleString('ar-EG')}
+            {item.count.toLocaleString('ar-EG-u-nu-latn')}
           </span>
         </div>
       ))}
@@ -99,7 +99,7 @@ const Tile: React.FC<{
         <div style={{ width: '60px', height: '24px', backgroundColor: '#f1f5f9', borderRadius: '4px' }} />
       ) : (
         <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>
-          {typeof value === 'number' ? value.toLocaleString('ar-EG') : value}
+          {typeof value === 'number' ? value.toLocaleString('ar-EG-u-nu-latn') : value}
         </div>
       )}
     </div>
@@ -206,7 +206,7 @@ export const MerchantAnalyticsPage: React.FC = () => {
     csv += `كود البطاقة,${selectedCard.card_code}\n`;
     csv += `إجمالي المسحات الكلية,${analytics.total_scans}\n`;
     csv += `مسحات آخر ${days} يوم,${analytics.scans_last_N_days}\n`;
-    csv += `تاريخ التصدير,${new Date().toLocaleDateString('ar-EG')}\n\n`;
+    csv += `تاريخ التصدير,${new Date().toLocaleDateString('ar-EG-u-nu-latn')}\n\n`;
 
     // 1. Daily Scans
     csv += `--- المسحات اليومية ---\n`;
@@ -237,7 +237,7 @@ export const MerchantAnalyticsPage: React.FC = () => {
     csv += `--- سجل الزيارات التفصيلي الأخير ---\n`;
     csv += `وقت الزيارة,نوع الجهاز,المتصفح\n`;
     (analytics.recent_scans || []).forEach(s => {
-      const timeStr = new Date(s.timestamp).toLocaleString('ar-EG');
+      const timeStr = new Date(s.timestamp).toLocaleString('ar-EG-u-nu-latn');
       const dev = s.device_type === 'mobile' ? 'هاتف ذكي' : s.device_type === 'desktop' ? 'كمبيوتر مكتبي' : s.device_type;
       csv += `"${timeStr}",${dev},${s.browser}\n`;
     });
@@ -669,7 +669,7 @@ export const MerchantAnalyticsPage: React.FC = () => {
                     {analytics.recent_scans.slice(0, 10).map((s, idx) => (
                       <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '12px 14px', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
-                          {new Date(s.timestamp).toLocaleString('ar-EG', {
+                          {new Date(s.timestamp).toLocaleString('ar-EG-u-nu-latn', {
                             month: 'short',
                             day: 'numeric',
                             hour: '2-digit',

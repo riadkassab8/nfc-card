@@ -428,7 +428,7 @@ const RulesTab: React.FC<{ card: ApiCard; onUpdated: (c: ApiCard) => void; onToa
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '10px 13px', border: '1px solid var(--bdr-light)' }}>
         <AlertCircle size={14} style={{ color: 'var(--txt-muted)', flexShrink: 0, marginTop: '1px' }} />
         <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', lineHeight: 1.6 }}>
-          الساعات بالتوقيت المصري (ص = صباح، م = مساء). مثال: نهار ٩ص–٥م، ليل ١٠م–٨ص.
+          الساعات بالتوقيت المصري (ص = صباح، م = مساء). مثال: نهار 9ص–5م، ليل 10م–8ص.
           النظام بيحوّل تلقائياً للتوقيت العالمي (UTC) قبل الحفظ.
         </span>
       </div>
@@ -464,7 +464,8 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
     if (!card) return;
     setTab('info');
     setShowDeleteModal(false);
-    setNewUrl(card.current_redirect_url ? card.current_redirect_url.replace(/https?:\/\/[^\/]+\/social\//, 'https://smart-card-qr-api.koyeb.app/r/').replace(/https?:\/\/smartcard-app\.com/g, 'https://smart-card-qr-api.koyeb.app') : '');
+    // Set the new URL field to the current redirect URL (no transformation)
+    setNewUrl(card.current_redirect_url || '');
 
     setQrDataUrl(null); setHistory([]); setHistLoaded(false);
 
@@ -974,7 +975,7 @@ export const CardDetailsDrawer: React.FC<CardDetailsDrawerProps> = ({
               <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--r-md)', padding: '11px 14px', border: '1px solid var(--bdr-light)', overflow: 'hidden', minWidth: 0 }}>
                 <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '4px' }}>الرابط الحالي</div>
                 <code style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-primary-700)', wordBreak: 'break-all', overflowWrap: 'anywhere', display: 'block', maxWidth: '100%' }}>
-                  {card.current_redirect_url ? card.current_redirect_url.replace(/https?:\/\/[^\/]+\/social\//, 'https://smart-card-qr-api.koyeb.app/r/').replace(/https?:\/\/smartcard-app\.com/g, 'https://smart-card-qr-api.koyeb.app') : ''}
+                  {card.current_redirect_url || 'لم يتم تحديد رابط'}
                 </code>
               </div>
               <div className="form-group">

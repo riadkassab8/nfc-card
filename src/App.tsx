@@ -12,6 +12,7 @@ import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
 import { AdminCustomersPage } from './pages/admin/AdminCustomersPage';
 import { CustomerDetailsPage } from './pages/admin/CustomerDetailsPage';
 import { AdminInventoryPage } from './pages/admin/AdminInventoryPage';
+import { AdminOrdersPage } from './pages/admin/AdminOrdersPage';
 import { AdminAddCardPage } from './pages/admin/AdminAddCardPage';
 import { AdminEditCardPage } from './pages/admin/AdminEditCardPage';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
@@ -91,6 +92,17 @@ export const App: React.FC = () => (
             <ProtectedRoute requiredPage="cards">
               <AdminShell title="إدارة البطاقات">
                 <AdminInventoryPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/orders"
+          element={
+            <ProtectedRoute requiredPage="orders" requiredAction="orders:view">
+              <AdminShell title="الطلبات">
+                <AdminOrdersPage />
               </AdminShell>
             </ProtectedRoute>
           }
@@ -183,6 +195,17 @@ export const App: React.FC = () => (
             <ProtectedRoute requiredPage="cards" requiredAction="cards:create">
               <AdminShell title="إضافة بطاقة">
                 <AdminAddCardPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/cards/bulk-edit"
+          element={
+            <ProtectedRoute requiredPage="cards" requiredAction="cards:edit">
+              <AdminShell title="تعديل الكروت">
+                <AdminEditCardPage />
               </AdminShell>
             </ProtectedRoute>
           }

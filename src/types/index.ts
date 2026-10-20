@@ -517,7 +517,7 @@ export const getCategoryId = (categoryId: ApiCard['category_id']): string | null
 /** Format an ISO date string to a localised Arabic date */
 export const fmtDate = (iso?: string | null): string => {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('ar-EG', {
+  return new Date(iso).toLocaleDateString('ar-EG-u-nu-latn', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -528,12 +528,12 @@ export const fmtDate = (iso?: string | null): string => {
 export const fmtDateTime = (iso?: string | null): string => {
   if (!iso) return '—';
   const d = new Date(iso);
-  const datePart = d.toLocaleDateString('ar-EG', {
+  const datePart = d.toLocaleDateString('ar-EG-u-nu-latn', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
-  const timePart = d.toLocaleTimeString('ar-EG', {
+  const timePart = d.toLocaleTimeString('ar-EG-u-nu-latn', {
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -827,3 +827,101 @@ export interface TrackActivityPayload {
   details?: Record<string, any>;
   status?: string;
 }
+
+
+// ── Bulk Card Editing ─────────────────────────────────────────────────────
+
+/**
+ * Represents the state for bulk edit mode
+ */
+export interface BulkEditState {
+  mode: 'single' | 'bulk';
+  customerId?: string;
+  cardIds: string[];
+  affectedCards: ApiCard[];
+}
+
+/**
+ * Update DTO for bulk edit mode
+ * Excludes Step 1 fields (card_code, category_id, card_type, custom_slug, etc.)
+ * Only includes Step 2-4 fields that should be applied to ALL cards
+ */
+export interface ApiBulkCardUpdateDto {
+  // Step 2 fields (Business Profile & Contact)
+  business_data?: BusinessData | null;
+  
+  // Step 3 fields (Cashier & Payment)
+  payment_shifts?: PaymentShift[];
+  
+  // Template can be updated in bulk for some cases
+  template?: string;
+}
+
+/**
+ * Result of a bulk card update operation
+ */
+export interface BulkUpdateResult {
+  totalCards: number;
+  successCount: number;
+  failCount: number;
+  failedCardIds: Array<{ cardId: string; code: string; error: string }>;
+}
+
+/**
+ * Helper function to detect if bulk mode from URL params
+ */
+export const isBulkMode = (id?: string, customerId?: string): boolean => {
+  return !id && !!customerId;
+};
+
+/**
+ * Helper function to build bulk update DTO (excludes Step 1 fields)
+ */
+export const buildBulkUpdateDto = (formData: {
+  bizData: Record<string, string>;
+  shifts: PaymentShiftFormItem[];
+  enableReviewGate: boolean;
+  template: string;
+}): ApiBulkCardUpdateDto => {
+  const dto: ApiBulkCardUpdateDto = {};
+
+  // Build business data from form
+  const business: BusinessData = {};
+  let hasBizData = false;
+  
+  for (const [k, v] of Object.entries(formData.bizData)) {
+    if (typeof v === 'string' && v.trim()) {
+      (business as any)[k] = v.trim();
+      hasBizData = true;
+    }
+  }
+
+  if (formData.template === 'mobile_shop') {
+    business.enable_review_gate = formData.enableReviewGate;
+    hasBizData = true;
+  }
+
+  if (hasBizData) {
+    dto.business_data = business;
+  }
+
+  // Build payment shifts
+  if (formData.template === 'mobile_shop' && formData.shifts.length > 0) {
+    dto.payment_shifts = formData.shifts.map((s, index) => ({
+      label: s.label.trim() || `شيفت ${index + 1}`,
+      cashier_name: s.cashier_name.trim() || undefined,
+      hour_from: s.hour_from !== '' ? Number(s.hour_from) : undefined,
+      period_from: s.period_from,
+      hour_to: s.hour_to !== '' ? Number(s.hour_to) : undefined,
+      period_to: s.period_to,
+      instapay: s.instapay.trim() || undefined,
+      vodafone_cash: s.vodafone_cash.trim() || undefined,
+      priority: index,
+      is_active: s.is_active,
+    }));
+  }
+
+  dto.template = formData.template;
+
+  return dto;
+};

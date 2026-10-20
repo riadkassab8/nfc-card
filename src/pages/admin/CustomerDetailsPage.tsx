@@ -851,6 +851,28 @@ export const CustomerDetailsPage: React.FC = () => {
           >
             <Plus size={15} /> + ربط كروت بهذا العميل
           </button>
+
+          {cards.length > 0 && (
+            <button
+              onClick={() => navigate(`/admin/cards/bulk-edit?customerId=${customer._id}`)}
+              className="btn-outline"
+              style={{
+                padding: '7px 16px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: '#f0f9ff',
+                borderColor: '#bfdbfe',
+                color: '#1d4ed8',
+              }}
+              title="تعديل البيانات المشتركة لجميع الكروت المرتبطة بهذا العميل"
+            >
+              <Edit2 size={15} /> تعديل جميع الكروت المرتبطة
+            </button>
+          )}
         </div>
 
         {cards.length === 0 ? (

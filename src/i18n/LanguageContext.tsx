@@ -105,7 +105,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const formatNumber = (val: number): string => {
-    return val.toLocaleString(language === 'ar' ? 'ar-EG' : 'en-US');
+    return val.toLocaleString(language === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US');
   };
 
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { cardsApi } from '../../services/api/cardsApi';
 import { categoriesApi } from '../../services/api/categoriesApi';
@@ -15,6 +15,8 @@ import {
   BusinessData,
   PaymentShift,
   PaymentShiftFormItem,
+  isBulkMode,
+  ApiBulkCardUpdateDto,
 } from '../../types';
 import {
   ArrowRight,
@@ -130,13 +132,21 @@ const STEPS = [
 
 export const AdminEditCardPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const customerId = searchParams.get('customerId');
   const navigate = useNavigate();
+
+  /* ── Detect bulk vs single mode ── */
+  const bulkMode = isBulkMode(id, customerId ?? undefined);
 
   const [loadingCard, setLoadingCard] = useState<boolean>(true);
   const [currentCard, setCurrentCard] = useState<ApiCard | null>(null);
+  
+  /* Bulk mode state */
+  const [affectedCards, setAffectedCards] = useState<ApiCard[]>([]);
 
   /* Step state */
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [currentStep, setCurrentStep] = useState<number>(bulkMode ? 2 : 1);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -327,6 +337,207 @@ export const AdminEditCardPage: React.FC = () => {
     }
   };
 
+  /* Initialize form for bulk edit mode - populate common data from cards */
+  const initializeFormForBulkMode = useCallback((cards: ApiCard[]) => {
+    // Set current step to 2 for bulk mode (skip step 1)
+    setCurrentStep(2);
+    
+    // Initialize with default/empty values as baseline
+    setCardCode('');
+    setCustomSlug('');
+    setCardType(CardType.CARD);
+    setRedirectUrl('');
+    setCategoryId('');
+    setRequiresSubscription(true);
+    
+    // Detect common template and business data across all cards
+    if (cards.length > 0) {
+      // Find common template
+      const templates = cards.map(c => c.template || 'default');
+      const commonTemplate = templates.every(t => t === templates[0]) ? templates[0] : 'default';
+      setTemplate(commonTemplate);
+
+      // Extract common business data
+      const businessDataList = cards.map(c => c.business_data || {});
+      
+      // Helper to check if all cards have same value for a field
+      const getCommonValue = (field: string): string => {
+        const values = businessDataList.map((b: any) => b[field] || '');
+        return values.every((v: string) => v === values[0]) ? values[0] : '';
+      };
+
+      // Populate business data with common values
+      setBizData({
+        business_name: getCommonValue('business_name'),
+        logo: getCommonValue('logo'),
+        description: getCommonValue('description'),
+        phone: getCommonValue('phone'),
+        email: getCommonValue('email'),
+        whatsapp: getCommonValue('whatsapp'),
+        instagram: getCommonValue('instagram'),
+        facebook: getCommonValue('facebook'),
+        tiktok: getCommonValue('tiktok'),
+        google_maps: getCommonValue('google_maps'),
+        website: getCommonValue('website'),
+        instapay: getCommonValue('instapay'),
+        vodafone_cash: getCommonValue('vodafone_cash'),
+        maintenance_whatsapp: getCommonValue('maintenance_whatsapp'),
+        offers_url: getCommonValue('offers_url'),
+        telegram_group: getCommonValue('telegram_group'),
+        google_review_url: getCommonValue('google_review_url'),
+      });
+
+      // Check if all cards have enable_review_gate setting
+      const reviewGateSettings = businessDataList.map((b: any) => b.enable_review_gate ?? true);
+      const commonReviewGate = reviewGateSettings.every((v: boolean) => v === reviewGateSettings[0]) ? reviewGateSettings[0] : true;
+      setEnableReviewGate(commonReviewGate);
+
+      // Extract common payment shifts for mobile_shop
+      if (commonTemplate === 'mobile_shop') {
+        const shiftsList = cards.map(c => c.payment_shifts || []);
+        
+        // Check if all cards have the same shifts structure
+        const shiftsJSON = shiftsList.map(s => JSON.stringify(s));
+        const allSame = shiftsJSON.every(s => s === shiftsJSON[0]);
+        
+        if (allSame && shiftsList[0].length > 0) {
+          // Use existing shifts from first card (they're all the same)
+          setShifts(
+            shiftsList[0].map((s: any) => ({
+              label: s.label || 'شيفت الكاشير',
+              cashier_name: s.cashier_name || '',
+              hour_from: s.hour_from ?? '',
+              period_from: s.period_from || 'pm',
+              hour_to: s.hour_to ?? '',
+              period_to: s.period_to || 'am',
+              instapay: s.instapay || '',
+              vodafone_cash: s.vodafone_cash || '',
+              is_active: s.is_active ?? true,
+            }))
+          );
+        } else {
+          // Shifts differ - use defaults
+          setShifts([
+            {
+              label: 'شيفت الصباح',
+              cashier_name: '',
+              hour_from: 10,
+              period_from: 'am',
+              hour_to: 6,
+              period_to: 'pm',
+              instapay: '',
+              vodafone_cash: '',
+              is_active: true,
+            },
+            {
+              label: 'شيفت المساء',
+              cashier_name: '',
+              hour_from: 6,
+              period_from: 'pm',
+              hour_to: 2,
+              period_to: 'am',
+              instapay: '',
+              vodafone_cash: '',
+              is_active: true,
+            },
+          ]);
+        }
+      } else {
+        // Not mobile_shop - use default shifts
+        setShifts([
+          {
+            label: 'شيفت الصباح',
+            cashier_name: '',
+            hour_from: 10,
+            period_from: 'am',
+            hour_to: 6,
+            period_to: 'pm',
+            instapay: '',
+            vodafone_cash: '',
+            is_active: true,
+          },
+          {
+            label: 'شيفت المساء',
+            cashier_name: '',
+            hour_from: 6,
+            period_from: 'pm',
+            hour_to: 2,
+            period_to: 'am',
+            instapay: '',
+            vodafone_cash: '',
+            is_active: true,
+          },
+        ]);
+      }
+
+      // Extract common locations
+      const locationsList = businessDataList.map((b: any) => b.locations || []);
+      const locationsJSON = locationsList.map(l => JSON.stringify(l));
+      const allLocationsSame = locationsJSON.every(l => l === locationsJSON[0]);
+      
+      if (allLocationsSame && locationsList[0].length > 0) {
+        setLocations(locationsList[0].map((loc: any, index: number) => ({
+          id: `loc-${index}`,
+          name: loc.name || `فرع ${index + 1}`,
+          google_maps_url: loc.google_maps_url || '',
+        })));
+      } else {
+        setLocations([]);
+      }
+
+      setSelectedCustomer(null);
+      setInitialCustomer(null);
+    } else {
+      // Fallback if no cards (shouldn't happen)
+      setTemplate('default');
+      setBizData({
+        business_name: '',
+        logo: '',
+        description: '',
+        phone: '',
+        email: '',
+        whatsapp: '',
+        instagram: '',
+        facebook: '',
+        tiktok: '',
+        google_maps: '',
+        website: '',
+        instapay: '',
+        vodafone_cash: '',
+        maintenance_whatsapp: '',
+        offers_url: '',
+        telegram_group: '',
+        google_review_url: '',
+      });
+      setEnableReviewGate(true);
+      setShifts([
+        {
+          label: 'شيفت الصباح',
+          cashier_name: '',
+          hour_from: 10,
+          period_from: 'am',
+          hour_to: 6,
+          period_to: 'pm',
+          instapay: '',
+          vodafone_cash: '',
+          is_active: true,
+        },
+        {
+          label: 'شيفت المساء',
+          cashier_name: '',
+          hour_from: 6,
+          period_from: 'pm',
+          hour_to: 2,
+          period_to: 'am',
+          instapay: '',
+          vodafone_cash: '',
+          is_active: true,
+        },
+      ]);
+      setLocations([]);
+    }
+  }, []);
+
   /* Populate form from card */
   const populateFromCard = useCallback(async (card: ApiCard) => {
     setCurrentCard(card);
@@ -466,7 +677,8 @@ export const AdminEditCardPage: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     async function init() {
-      if (!id) {
+      // Single mode: require card ID
+      if (!bulkMode && !id) {
         Swal.fire({
           icon: 'error',
           title: 'معرف غير صالح',
@@ -476,16 +688,62 @@ export const AdminEditCardPage: React.FC = () => {
         return;
       }
 
+      // Bulk mode: require customer ID
+      if (bulkMode && !customerId) {
+        Swal.fire({
+          icon: 'error',
+          title: 'معرف غير صالح',
+          text: 'لم يتم تمرير معرف العميل',
+          confirmButtonColor: '#3b82f6',
+        }).then(() => navigate('/admin/customers'));
+        return;
+      }
+
       setLoadingCard(true);
       try {
-        const [catsRes, cardData] = await Promise.all([
-          categoriesApi.getCategories({ limit: 100, is_active: true }),
-          cardsApi.getCardById(id),
-        ]);
+        const catsRes = await categoriesApi.getCategories({ limit: 100, is_active: true });
 
         if (!isMounted) return;
         setCategories(catsRes.data ?? []);
-        await populateFromCard(cardData);
+
+        if (bulkMode && customerId) {
+          // Bulk mode: Fetch all cards for customer
+          try {
+            const customerData = await customersApi.getCustomerById(customerId);
+            if (!isMounted) return;
+            
+            const customer = customerData.customer || (customerData as any);
+            const cards = customerData.cards || [];
+            
+            if (cards.length === 0) {
+              Swal.fire({
+                icon: 'warning',
+                title: 'لا توجد بطاقات',
+                text: 'هذا العميل لا يملك أي بطاقات مرتبطة به',
+                confirmButtonColor: '#3b82f6',
+              }).then(() => navigate(`/admin/customers/${customerId}`));
+              return;
+            }
+
+            setAffectedCards(cards as ApiCard[]);
+            
+            // Initialize form with smart population from existing card data
+            initializeFormForBulkMode(cards as ApiCard[]);
+          } catch (err: any) {
+            if (!isMounted) return;
+            Swal.fire({
+              icon: 'error',
+              title: 'فشل تحميل بيانات العميل',
+              text: err?.message || 'تعذر جلب بيانات العميل والبطاقات',
+              confirmButtonColor: '#3b82f6',
+            }).then(() => navigate('/admin/customers'));
+          }
+        } else {
+          // Single mode: Fetch single card and populate form
+          const cardData = await cardsApi.getCardById(id!);
+          if (!isMounted) return;
+          await populateFromCard(cardData);
+        }
       } catch (err: any) {
         if (!isMounted) return;
         Swal.fire({
@@ -503,7 +761,7 @@ export const AdminEditCardPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [id, navigate, populateFromCard]);
+  }, [id, customerId, bulkMode, navigate]);
 
   /* Category ID for Business Profile */
   const BUSINESS_PROFILE_CATEGORY_ID = '6ac46e143883b08344234133';
@@ -592,6 +850,11 @@ export const AdminEditCardPage: React.FC = () => {
   };
 
   const handlePrev = () => {
+    // In bulk mode on Step 2, go back to customer page instead of Step 1
+    if (bulkMode && currentStep === 2) {
+      navigate(`/admin/customers/${customerId}`);
+      return;
+    }
     setCurrentStep((prev) => Math.max(prev - 1, 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -604,6 +867,155 @@ export const AdminEditCardPage: React.FC = () => {
   /* ── Submit Handler ── */
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    
+    // Bulk mode: different logic
+    if (bulkMode) {
+      if (!affectedCards || affectedCards.length === 0) {
+        Swal.fire({
+          icon: 'error',
+          title: 'لا توجد بطاقات',
+          text: 'لم يتم العثور على بطاقات مرتبطة بهذا العميل',
+          confirmButtonColor: '#3b82f6',
+        });
+        return;
+      }
+
+      // Validate steps 2 and 3
+      if (!validateStep(2) || !validateStep(3)) return;
+
+      // Build business data
+      const business: BusinessData = {};
+      let hasBiz = false;
+      
+      for (const [k, v] of Object.entries(bizData)) {
+        if (typeof v === 'string' && v.trim()) {
+          (business as any)[k] = v.trim();
+          hasBiz = true;
+        }
+      }
+
+      if (template === 'mobile_shop') {
+        business.enable_review_gate = enableReviewGate;
+        hasBiz = true;
+      }
+
+      const validLocations = locations.filter(
+        (loc) => loc.name.trim() && loc.google_maps_url.trim()
+      );
+      if (validLocations.length > 0) {
+        business.locations = validLocations.map((loc) => ({
+          name: loc.name.trim(),
+          google_maps_url: loc.google_maps_url.trim(),
+        }));
+        hasBiz = true;
+      }
+
+      // Build payment shifts for mobile_shop
+      let paymentShiftsList: PaymentShift[] | undefined = undefined;
+      if (template === 'mobile_shop') {
+        paymentShiftsList = shifts.map((s, index) => ({
+          label: s.label.trim() || `شيفت ${index + 1}`,
+          cashier_name: s.cashier_name.trim() || undefined,
+          hour_from: s.hour_from !== '' ? Number(s.hour_from) : undefined,
+          period_from: s.period_from,
+          hour_to: s.hour_to !== '' ? Number(s.hour_to) : undefined,
+          period_to: s.period_to,
+          instapay: s.instapay.trim() || undefined,
+          vodafone_cash: s.vodafone_cash.trim() || undefined,
+          priority: index,
+          is_active: s.is_active,
+        }));
+      }
+
+      // Build bulk update DTO
+      const bulkUpdateDto: ApiBulkCardUpdateDto = {
+        business_data: hasBiz ? business : null,
+        payment_shifts: paymentShiftsList,
+        template: template,
+      };
+
+      setSaving(true);
+      const failedCards: { cardId: string; code: string; error: string }[] = [];
+      let successCount = 0;
+
+      try {
+        // Update each card
+        for (const card of affectedCards) {
+          try {
+            await cardsApi.updateCard(card._id, bulkUpdateDto as any);
+            successCount++;
+          } catch (err: any) {
+            failedCards.push({
+              cardId: card._id,
+              code: card.card_code,
+              error: err?.message || 'خطأ غير معروف',
+            });
+          }
+        }
+
+        // Check if all succeeded
+        if (failedCards.length === 0) {
+          // All succeeded
+          await Swal.fire({
+            icon: 'success',
+            title: 'تم التحديث بنجاح!',
+            text: `تم تحديث ${successCount} بطاقة بنجاح`,
+            confirmButtonText: 'العودة للعميل',
+            confirmButtonColor: '#3b82f6',
+          });
+          navigate(`/admin/customers/${customerId}`);
+        } else if (successCount > 0) {
+          // Partial success
+          await Swal.fire({
+            icon: 'warning',
+            title: 'تم التحديث جزئياً',
+            html: `
+              <div style="text-align: right; direction: rtl;">
+                <p>تم تحديث <strong>${successCount}</strong> من <strong>${affectedCards.length}</strong> بطاقة بنجاح</p>
+                <details style="margin: 12px 0; text-align: right;">
+                  <summary style="cursor: pointer; font-weight: bold;">البطاقات التي فشلت (${failedCards.length})</summary>
+                  <ul style="text-align: right; margin-top: 8px;">
+                    ${failedCards.map(f => `<li>${f.code}: ${f.error}</li>`).join('')}
+                  </ul>
+                </details>
+              </div>
+            `,
+            confirmButtonText: 'العودة للعميل',
+            confirmButtonColor: '#3b82f6',
+          });
+          navigate(`/admin/customers/${customerId}`);
+        } else {
+          // All failed
+          await Swal.fire({
+            icon: 'error',
+            title: 'فشل التحديث',
+            html: `
+              <div style="text-align: right; direction: rtl;">
+                <p>فشل تحديث جميع البطاقات</p>
+                <ul style="text-align: right;">
+                  ${failedCards.map(f => `<li>${f.code}: ${f.error}</li>`).join('')}
+                </ul>
+              </div>
+            `,
+            confirmButtonText: 'حاول مرة أخرى',
+            confirmButtonColor: '#3b82f6',
+          });
+        }
+      } catch (err: any) {
+        console.error('Unexpected error during bulk update:', err);
+        Swal.fire({
+          icon: 'error',
+          title: 'خطأ غير متوقع',
+          text: err?.message || 'حدث خطأ أثناء تحديث البطاقات',
+          confirmButtonColor: '#3b82f6',
+        });
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    // Single mode: existing logic
     if (!currentCard || !id) return;
 
     if (!validateStep(1) || !validateStep(2) || !validateStep(3)) return;
@@ -689,11 +1101,15 @@ export const AdminEditCardPage: React.FC = () => {
 
       // Handle customer assignment change
       if (!selectedCustomer) {
-        await cardsApi.unassignCard(id).catch(console.error);
+        // No customer selected - unassign from any customer
         if (initialCustomer?._id) {
           await customersApi.unassignCard(initialCustomer._id, updated._id).catch(console.error);
         }
       } else if (selectedCustomer._id !== initialCustomer?._id) {
+        // Customer changed - unassign old, assign new
+        if (initialCustomer?._id) {
+          await customersApi.unassignCard(initialCustomer._id, updated._id).catch(console.error);
+        }
         await customersApi.assignCards(selectedCustomer._id, { card_ids: [updated._id] }).catch(console.error);
       }
 
@@ -829,8 +1245,8 @@ export const AdminEditCardPage: React.FC = () => {
           boxShadow: 'var(--shadow-xs)',
         }}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${STEPS.length}, 1fr)`, gap: '10px' , overflow: 'auto' }}>
-          {STEPS.map((s) => {
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${bulkMode ? STEPS.length - 1 : STEPS.length}, 1fr)`, gap: '10px' , overflow: 'auto' }}>
+          {STEPS.filter(s => !bulkMode || s.id !== 1).map((s) => {
             const isCurrent = currentStep === s.id;
             const isPassed = currentStep > s.id;
             return (
@@ -913,8 +1329,8 @@ export const AdminEditCardPage: React.FC = () => {
 
       {/* ══════ Steps Content ══════ */}
       <form onSubmit={(e) => { e.preventDefault(); if (currentStep === 4) handleSubmit(); else handleNext(); }}>
-        {/* ── STEP 1: Card & Template ────────────────────────────── */}
-        {currentStep === 1 && (
+        {/* ── STEP 1: Card & Template (Hidden in bulk mode) ────────────────────────────── */}
+        {!bulkMode && currentStep === 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Template Selector Card */}
             <div
@@ -2187,11 +2603,13 @@ export const AdminEditCardPage: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              gap: '10px',
               marginTop: '10px',
               backgroundColor: '#fff',
               padding: '14px 20px',
               borderRadius: '14px',
               border: '1px solid var(--bdr-light)',
+              flexWrap: 'wrap',
             }}
           >
             {currentStep > 1 ? (
@@ -2205,15 +2623,50 @@ export const AdminEditCardPage: React.FC = () => {
               </button>
             ) : <div />}
 
-            <button
-              type="button"
-              onClick={handleNext}
-              className="btn-primary"
-              style={{ padding: '9px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            >
-              <span>التالي: {STEPS[currentStep].title}</span>
-              <ChevronLeft size={16} />
-            </button>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              {/* Quick Save Button */}
+              <button
+                type="button"
+                onClick={() => handleSubmit()}
+                disabled={saving}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  border: '2px solid #10b981',
+                  color: '#10b981',
+                  backgroundColor: '#ecfdf5',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                {saving ? (
+                  <>
+                    <RefreshCw className="animate-spin" size={14} />
+                    <span>جاري الحفظ...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={14} />
+                    <span>حفظ سريع</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleNext}
+                className="btn-primary"
+                style={{ padding: '9px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span>التالي: {STEPS[currentStep].title}</span>
+                <ChevronLeft size={16} />
+              </button>
+            </div>
           </div>
         )}
       </form>

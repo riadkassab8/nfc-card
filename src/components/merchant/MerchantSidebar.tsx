@@ -42,7 +42,7 @@ export const MerchantSidebar: React.FC<MerchantSidebarProps> = ({
   const subEndDate = admin?.subscription_end_date ? new Date(admin.subscription_end_date) : null;
   const now = new Date();
   const diffDays = subEndDate ? Math.ceil((subEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
-  const endDateFormatted = subEndDate ? subEndDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+  const endDateFormatted = subEndDate ? subEndDate.toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
 
   // جلب روابط القائمة الجانبية مباشرة من الباك إند
   const [navItems, setNavItems] = useState<SidebarNavItemConfig[]>(() => {

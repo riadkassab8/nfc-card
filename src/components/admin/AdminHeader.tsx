@@ -42,7 +42,7 @@ const formatTimeAgo = (dateStr: string) => {
     const diffDays = Math.floor(diffHours / 24);
     if (diffDays === 1) return 'أمس';
     if (diffDays < 7) return `منذ ${diffDays} أيام`;
-    return new Date(dateStr).toLocaleDateString('ar-EG');
+    return new Date(dateStr).toLocaleDateString('ar-EG-u-nu-latn');
   } catch {
     return '';
   }

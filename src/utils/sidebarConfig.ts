@@ -19,6 +19,7 @@ import {
   Activity,
   Store,
   BookOpen,
+  ShoppingBag,
 } from 'lucide-react';
 import { authApi } from '../services/api';
 import { SidebarNavItemConfig } from '../types';
@@ -38,6 +39,7 @@ export const ICON_MAP: Record<string, React.ElementType> = {
   Activity,
   Store,
   BookOpen,
+  ShoppingBag,
 };
 
 export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
@@ -69,13 +71,22 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     order: 2,
   },
   {
+    id: 'orders',
+    path: '/admin/orders',
+    label: 'الطلبات',
+    defaultLabel: 'الطلبات',
+    iconName: 'ShoppingBag',
+    visible: true,
+    order: 3,
+  },
+  {
     id: 'notifications',
     path: '/admin/notifications',
     label: 'الإشعارات',
     defaultLabel: 'الإشعارات',
     iconName: 'Bell',
     visible: true,
-    order: 3,
+    order: 4,
   },
   {
     id: 'analytics',
@@ -84,7 +95,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'الإحصائيات',
     iconName: 'BarChart2',
     visible: true,
-    order: 4,
+    order: 5,
   },
   {
     id: 'categories',
@@ -93,7 +104,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'التصنيفات',
     iconName: 'Tags',
     visible: true,
-    order: 5,
+    order: 6,
   },
   {
     id: 'scan',
@@ -102,7 +113,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'فحص وتجهيز',
     iconName: 'Scan',
     visible: true,
-    order: 6,
+    order: 7,
   },
   {
     id: 'users',
@@ -111,7 +122,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'المستخدمين والصلاحيات',
     iconName: 'ShieldAlert',
     visible: true,
-    order: 7,
+    order: 8,
   },
   {
     id: 'user_logs',
@@ -120,7 +131,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'سجل المستخدمين',
     iconName: 'History',
     visible: true,
-    order: 8,
+    order: 9,
   },
 ];
 
@@ -136,7 +147,7 @@ export function normalizeSidebarItems(items: Partial<SidebarNavItemConfig>[]): S
     return DEFAULT_SIDEBAR_ITEMS;
   }
 
-  return items
+  const normalized = items
     .filter((item): item is Partial<SidebarNavItemConfig> & { id: string; path: string } => !!item && !!item.id && !!item.path)
     .map((item, idx) => {
       const def = DEFAULT_SIDEBAR_ITEMS.find((d) => d.id === item.id);
@@ -149,8 +160,14 @@ export function normalizeSidebarItems(items: Partial<SidebarNavItemConfig>[]): S
         visible: item.visible ?? true,
         order: typeof item.order === 'number' ? item.order : idx,
       };
-    })
-    .sort((a, b) => a.order - b.order);
+    });
+
+  if (!normalized.some((item) => item.id === 'orders')) {
+    const ordersItem = DEFAULT_SIDEBAR_ITEMS.find((item) => item.id === 'orders');
+    if (ordersItem) normalized.push({ ...ordersItem, order: Math.max(-1, ...normalized.map((item) => item.order)) + 1 });
+  }
+
+  return normalized.sort((a, b) => a.order - b.order);
 }
 
 /**

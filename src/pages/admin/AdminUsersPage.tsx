@@ -40,6 +40,7 @@ import {
 const AVAILABLE_PAGES = [
   { id: 'overview', label: 'نظرة عامة (الرئيسية)', description: 'رؤية ملخص الإحصائيات العامة' },
   { id: 'cards', label: 'إدارة البطاقات', description: 'عرض والتحكم بالبطاقات الذكية' },
+  { id: 'orders', label: 'الطلبات', description: 'استقبال الطلبات ومتابعة حالتها وإدارتها' },
   { id: 'customers', label: 'العملاء (CRM)', description: 'إدارة العملاء وبياناتهم' },
   { id: 'notifications', label: 'الإشعارات', description: 'مركز التنبيهات والإشعارات' },
   { id: 'analytics', label: 'الإحصائيات المتقدمة', description: 'الرسوم البيانية وسجلات المسح' },
@@ -56,6 +57,10 @@ const AVAILABLE_ACTIONS = [
   { id: 'customers:create', label: 'إضافة عملاء', group: 'العملاء' },
   { id: 'customers:edit', label: 'تعديل العملاء', group: 'العملاء' },
   { id: 'customers:delete', label: 'حذف العملاء', group: 'العملاء' },
+  { id: 'orders:view', label: 'عرض الطلبات', group: 'الطلبات' },
+  { id: 'orders:create', label: 'إضافة طلبات', group: 'الطلبات' },
+  { id: 'orders:edit', label: 'تعديل الطلبات وحالاتها', group: 'الطلبات' },
+  { id: 'orders:delete', label: 'حذف الطلبات', group: 'الطلبات' },
   { id: 'categories:manage', label: 'إدارة وتعديل التصنيفات', group: 'التصنيفات' },
   { id: 'analytics:view', label: 'عرض سجلات وإحصائيات المسح', group: 'الإحصائيات' },
   { id: 'export', label: 'تصدير ملفات إكسل وتقارير', group: 'عام' },
@@ -96,8 +101,8 @@ export const AdminUsersPage: React.FC = () => {
   const [formStoreName, setFormStoreName] = useState('');
   const [formRole, setFormRole] = useState<UserRole>('staff');
   const [formStatus, setFormStatus] = useState<UserStatus>('active');
-  const [formPages, setFormPages] = useState<string[]>(['overview', 'cards']);
-  const [formActions, setFormActions] = useState<string[]>(['cards:view', 'cards:edit']);
+  const [formPages, setFormPages] = useState<string[]>(['overview', 'cards', 'orders']);
+  const [formActions, setFormActions] = useState<string[]>(['cards:view', 'cards:edit', 'orders:view', 'orders:create', 'orders:edit', 'orders:delete']);
   const [formAssignedCards, setFormAssignedCards] = useState<string[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [formSubType, setFormSubType] = useState<SubscriptionType>('yearly');
@@ -164,8 +169,8 @@ export const AdminUsersPage: React.FC = () => {
     setFormStoreName('');
     setFormRole('staff');
     setFormStatus('active');
-    setFormPages(['overview', 'cards']);
-    setFormActions(['cards:view', 'cards:edit', 'cards:create']);
+    setFormPages(['overview', 'cards', 'orders']);
+    setFormActions(['cards:view', 'cards:edit', 'cards:create', 'orders:view', 'orders:create', 'orders:edit', 'orders:delete']);
     setFormAssignedCards([]);
     setShowPassword(false);
     setFormSubType('permanent');
@@ -247,8 +252,8 @@ export const AdminUsersPage: React.FC = () => {
       }
     } else {
       // staff: اشتراك دائم بدون انتهاء
-      setFormPages(['overview', 'cards', 'customers']);
-      setFormActions(['cards:view', 'cards:create', 'cards:edit', 'customers:view']);
+      setFormPages(['overview', 'cards', 'customers', 'orders']);
+      setFormActions(['cards:view', 'cards:create', 'cards:edit', 'customers:view', 'orders:view', 'orders:create', 'orders:edit', 'orders:delete']);
       setFormSubType('permanent');
       setFormSubEndDate('');
     }

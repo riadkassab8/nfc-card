@@ -42,7 +42,7 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
       let next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
       console.log('[BatchModal] Next card number:', next);
       
-      const domainOrigin = window.location.origin.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, 'https://smart-card-qr-api.koyeb.app');
+      const domainOrigin = 'https://k2rty.vercel.app';
 
       // Use bulk endpoint for chunks of up to 100 cards
       const CHUNK = 100;
@@ -53,7 +53,7 @@ export const BatchGenerateCardsModal: React.FC<Props> = ({ categories, onClose, 
           return {
             card_code: code,
             card_type: bType,
-            current_redirect_url: `${domainOrigin}/r/${code}`,
+            current_redirect_url: `${domainOrigin}/social/${code}`,
             category_id: bCat,
           };
         });
