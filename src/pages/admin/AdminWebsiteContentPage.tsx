@@ -17,6 +17,7 @@ import {
   Trash2,
   Loader2,
   Upload,
+  CheckSquare,
 } from 'lucide-react';
 import { websiteApi } from '../../services';
 import { WebsiteContent } from '../../services/api/websiteApi';
@@ -30,6 +31,7 @@ type TabType =
   | 'cta'
   | 'about'
   | 'how'
+  | 'checkout'
   | 'footer';
 
 export const AdminWebsiteContentPage: React.FC = () => {
@@ -131,6 +133,24 @@ export const AdminWebsiteContentPage: React.FC = () => {
     });
   };
 
+  const updateCheckoutField = (index: number, key: string, val: any) => {
+    if (!content) return;
+    const list = [...(content.checkoutFields || [])];
+    if (list[index]) {
+      list[index] = { ...list[index], [key]: val };
+      setContent({ ...content, checkoutFields: list });
+    }
+  };
+
+  const updatePaymentMethod = (index: number, key: string, val: any) => {
+    if (!content) return;
+    const list = [...(content.paymentMethods || [])];
+    if (list[index]) {
+      list[index] = { ...list[index], [key]: val };
+      setContent({ ...content, paymentMethods: list });
+    }
+  };
+
   if (loading || !content) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '16px' }}>
@@ -149,6 +169,7 @@ export const AdminWebsiteContentPage: React.FC = () => {
     { id: 'cta', label: 'شريط الحث (CTA)', icon: Compass },
     { id: 'about', label: 'صفحة من نحن', icon: Info },
     { id: 'how', label: 'صفحة كيف تعمل', icon: HelpCircle },
+    { id: 'checkout', label: 'نموذج الطلب والدفع', icon: CheckSquare },
     { id: 'footer', label: 'تذييل الموقع (Footer)', icon: PhoneCall },
   ];
 
@@ -1435,7 +1456,215 @@ export const AdminWebsiteContentPage: React.FC = () => {
           </div>
         )}
 
-        {/* ── 9. Footer ── */}
+        {/* ── 9. Checkout & Payment Form ── */}
+        {activeTab === 'checkout' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                إعدادات نموذج الطلب والتحقق (Checkout Form & Validation)
+              </h2>
+              <p style={{ margin: '4px 0 0', fontSize: '0.88rem', color: '#64748b' }}>
+                تحكم في الحقول المطلوبة من العميل في صفحة إتمام الطلب، ونصوص رسائل الخطأ التي تظهر في تنبيهات SweetAlert (Swal).
+              </p>
+            </div>
+
+            {/* Dynamic Checkout Fields List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                حقول إدخال البيانات ورسائل التحقق (Swal Error Messages)
+              </h3>
+
+              {(content.checkoutFields || []).map((field, idx) => (
+                <div
+                  key={field.id || idx}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '14px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
+                        الحقل: {field.label}
+                      </span>
+                      <span style={{ fontSize: '0.78rem', fontFamily: 'monospace', color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                        id: {field.id}
+                      </span>
+                    </div>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={field.required ?? true}
+                        onChange={(e) => updateCheckoutField(idx, 'required', e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#0f766e' }}
+                      />
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: field.required ? '#0f766e' : '#64748b' }}>
+                        {field.required ? 'حقل إلزامي *' : 'حقل اختياري'}
+                      </span>
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                        عنوان الحقل (Label)
+                      </label>
+                      <input
+                        type="text"
+                        value={field.label || ''}
+                        onChange={(e) => updateCheckoutField(idx, 'label', e.target.value)}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                        النص التوضيحي (Placeholder)
+                      </label>
+                      <input
+                        type="text"
+                        value={field.placeholder || ''}
+                        onChange={(e) => updateCheckoutField(idx, 'placeholder', e.target.value)}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                        أقل عدد أحرف (Min Length)
+                      </label>
+                      <input
+                        type="number"
+                        value={field.minLength ?? 0}
+                        onChange={(e) => updateCheckoutField(idx, 'minLength', Number(e.target.value))}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#b91c1c', marginBottom: '4px' }}>
+                      رسالة التنبيه (SweetAlert / Swal Error Message) عند ترك الحقل أو إدخال بيانات خاطئة:
+                    </label>
+                    <input
+                      type="text"
+                      value={field.errorMessage || ''}
+                      onChange={(e) => updateCheckoutField(idx, 'errorMessage', e.target.value)}
+                      placeholder="رسالة الخطأ التي ستظهر للمستخدم في نافذة Swal..."
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fecaca', background: '#fff5f5', fontSize: '0.88rem', color: '#991b1b', fontWeight: 600 }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Payment Methods Section */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                طرق الدفع وأرقام المحافظ (Payment Methods & Wallets)
+              </h3>
+
+              {(content.paymentMethods || []).map((pm, idx) => (
+                <div
+                  key={pm.id || idx}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '14px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
+                        {pm.label}
+                      </span>
+                      <span style={{ fontSize: '0.78rem', fontFamily: 'monospace', color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                        id: {pm.id}
+                      </span>
+                    </div>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={pm.enabled ?? true}
+                        onChange={(e) => updatePaymentMethod(idx, 'enabled', e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#0f766e' }}
+                      />
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: pm.enabled ? '#15803d' : '#94a3b8' }}>
+                        {pm.enabled ? 'مفعل بالموقع' : 'معطل'}
+                      </span>
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                        اسم وسيلة الدفع
+                      </label>
+                      <input
+                        type="text"
+                        value={pm.label || ''}
+                        onChange={(e) => updatePaymentMethod(idx, 'label', e.target.value)}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                        رقم المحفظة / رقم التحويل (يظهر للعميل)
+                      </label>
+                      <input
+                        type="text"
+                        value={pm.walletNumber || ''}
+                        onChange={(e) => updatePaymentMethod(idx, 'walletNumber', e.target.value)}
+                        placeholder="201098277229"
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem', direction: 'ltr' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                      وصف تعليمات التحويل
+                    </label>
+                    <input
+                      type="text"
+                      value={pm.description || ''}
+                      onChange={(e) => updatePaymentMethod(idx, 'description', e.target.value)}
+                      placeholder="تحويل فوري عبر إنستا باي أو المحفظة..."
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}
+                    />
+                  </div>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '4px' }}>
+                    <input
+                      type="checkbox"
+                      checked={pm.requireReceipt ?? false}
+                      onChange={(e) => updatePaymentMethod(idx, 'requireReceipt', e.target.checked)}
+                      style={{ width: '16px', height: '16px', accentColor: '#0f766e' }}
+                    />
+                    <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#334155' }}>
+                      إلزام العميل برفع صورة إيصال التحويل قبل تأكيد الطلب
+                    </span>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── 10. Footer ── */}
         {activeTab === 'footer' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
