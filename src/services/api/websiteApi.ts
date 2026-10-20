@@ -59,6 +59,27 @@ export interface ContactSocialConfig {
   linkedinUrl: string;
 }
 
+export interface CheckoutFormFieldConfig {
+  id: string;
+  label: string;
+  placeholder?: string;
+  type?: string;
+  required?: boolean;
+  minLength?: number;
+  pattern?: string;
+  errorMessage?: string;
+  order?: number;
+}
+
+export interface PaymentMethodConfig {
+  id: string;
+  label: string;
+  description?: string;
+  walletNumber?: string;
+  requireReceipt?: boolean;
+  enabled?: boolean;
+}
+
 export interface WebsiteContent {
   brandName: string;
   tagline: string;
@@ -91,6 +112,8 @@ export interface WebsiteContent {
   howQrSteps: StepItemConfig[];
   howCtaText: string;
   contact: ContactSocialConfig;
+  checkoutFields?: CheckoutFormFieldConfig[];
+  paymentMethods?: PaymentMethodConfig[];
   footerLogo: string;
   footerTagline: string;
   footerCopyright: string;
