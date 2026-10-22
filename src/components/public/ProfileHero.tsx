@@ -71,7 +71,7 @@ export const ProfileHero: React.FC<{ card: ApiCard }> = ({ card }) => {
         </div>
       </div>
 
-      <div style={{ color: '#A68250', fontSize: '1rem', fontWeight: 600, marginBottom: '8px' }}>
+      <div style={{ color: 'var(--theme-accent, #A68250)', fontSize: '1rem', fontWeight: 600, marginBottom: '8px' }}>
         أهلاً بكم في
       </div>
 

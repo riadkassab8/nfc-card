@@ -5,7 +5,7 @@ export const PublicCardFooter: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+    <footer style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', marginTop: 'auto' }}>
       <div style={{
         fontSize: '0.75rem',
         color: 'var(--text-secondary)',

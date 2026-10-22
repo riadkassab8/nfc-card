@@ -40,7 +40,7 @@ export const SocialPage: React.FC = () => {
       }
 
       // If template is 'mobile_shop' or other dedicated template, do not auto-redirect to single links
-      if (res.template !== 'mobile_shop') {
+      if (res.template !== 'mobile_shop' && res.template !== 'dark') {
         // Collect non-empty links for single-link auto-redirect
         const links: string[] = [];
         if (biz.whatsapp?.trim())       links.push(biz.whatsapp.trim());
@@ -104,6 +104,7 @@ export const SocialPage: React.FC = () => {
       card_code:              social.card_code,
       custom_slug:            social.custom_slug || null,
       card_type:              social.card_type,
+      template:               social.template || 'default',
       requires_subscription:  social.requires_subscription ?? true,
       business_data:          social.business_data,
       visit_count:            social.visit_count,

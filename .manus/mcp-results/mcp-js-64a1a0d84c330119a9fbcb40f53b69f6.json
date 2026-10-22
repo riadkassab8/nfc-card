@@ -1,0 +1,4 @@
+In-app Browser JS state was preserved. Completed actions were not rolled back; refresh stale UI handles and continue only the remaining work.
+{"code":"INVALID_ARGUMENT","location":"at <anonymous> (in-app-browser.js:2:309)"}
+Expected options: cursor
+{"snapshotId":"snap_57014b29-a9a1-4bdf-863b-0128f5eebf35","complete":true,"nodeRef":"ref_196","textPrefix":"import React, { useEffect, useRef, useState } from 'react'; import { ApiCard } from '../../types'; i"}

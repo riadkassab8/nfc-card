@@ -390,7 +390,7 @@ export interface ApiSocialPageResponse {
   card_code: string;
   custom_slug?: string | null;
   card_type: string;
-  template?: 'default' | 'mobile_shop' | string;
+  template?: 'default' | 'mobile_shop' | 'dark' | string;
   active_shift?: ActiveShift | null;
   payment_shifts?: PaymentShift[];
   visit_count?: number;

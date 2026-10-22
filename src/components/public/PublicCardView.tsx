@@ -145,7 +145,6 @@ const PremiumTile = ({ link, onClick }: { link: any, onClick: (e: React.MouseEve
       target={link.url.startsWith('tel:') || link.url.startsWith('mailto:') ? '_self' : '_blank'}
       rel="noopener noreferrer"
       className="nfc-tile gsap-tile"
-      style={{ '--brand-color': link.brandColor } as React.CSSProperties}
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
@@ -160,7 +159,7 @@ const PremiumTile = ({ link, onClick }: { link: any, onClick: (e: React.MouseEve
             left: '50%',
             width: '100%',
             height: '100%',
-            backgroundColor: link.brandColor,
+            backgroundColor: 'currentColor',
             transform: 'translate(-50%, -50%)',
             borderRadius: '50%',
             filter: 'blur(15px)',
@@ -501,15 +500,185 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800;900&display=swap');
 
         :root {
-          --bg-base: #FAF8F5;
-          --bg-solid: #FAF8F5;
+          --bg-base: #ffffff;
+          --bg-solid: #ffffff;
           --surface: #ffffff;
-          --text-primary: #111827;
-          --text-secondary: #6b7280;
-          --border-light: rgba(0, 0, 0, 0.04);
+          --text-primary: #111111;
+          --text-secondary: #666666;
+          --border-light: rgba(0, 0, 0, 0.08);
           --shadow-subtle: 0 4px 16px rgba(0, 0, 0, 0.02);
           --shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.05);
           --radius-card: 24px;
+          --theme-accent: #111111;
+        }
+
+        .nfc-page[data-template='dark'] {
+          --bg-base: #000000;
+          --bg-solid: #050505;
+          --surface: rgba(20, 20, 20, 0.96);
+          --text-primary: #f5f5f5;
+          --text-secondary: #b5b5b5;
+          --border-light: rgba(255, 255, 255, 0.14);
+          --shadow-subtle: 0 18px 44px rgba(0, 0, 0, 0.3);
+          --shadow-hover: 0 24px 58px rgba(0, 0, 0, 0.42);
+          --radius-card: 26px;
+          --theme-accent: #ffffff;
+          background: linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+        }
+
+        .nfc-page[data-template='dark']::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          z-index: 0;
+          background: radial-gradient(ellipse at 50% 8%, rgba(255, 255, 255, 0.045), transparent 44%);
+        }
+
+        .nfc-page[data-template='dark'] > .nfc-container {
+          position: relative;
+          z-index: 1;
+        }
+
+        .nfc-page[data-template='dark'] .hero-img-wrap {
+          background: linear-gradient(145deg, #1b1b1b, #080808) !important;
+          border: 1px solid rgba(255, 255, 255, 0.18) !important;
+          box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.025), 0 24px 60px rgba(0, 0, 0, 0.42) !important;
+        }
+
+        .nfc-page[data-template='dark'] .hero-img-wrap > div {
+          color: #ffffff !important;
+          background: linear-gradient(145deg, #262626, #111111) !important;
+        }
+
+        .nfc-page[data-template='dark'] .nfc-tile {
+          background: linear-gradient(145deg, rgba(26, 26, 26, 0.98), rgba(10, 10, 10, 0.98));
+          border-color: rgba(255, 255, 255, 0.14);
+          color: var(--text-primary);
+          backdrop-filter: blur(18px);
+          box-shadow: 0 18px 42px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+          transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+        }
+
+        .nfc-page[data-template='dark'] .nfc-tile::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 18%;
+          right: 18%;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+        }
+
+        .nfc-page[data-template='dark'] .nfc-tile:hover {
+          border-color: rgba(255, 255, 255, 0.3);
+          background: linear-gradient(145deg, rgba(34, 34, 34, 0.98), rgba(15, 15, 15, 0.98));
+          box-shadow: 0 24px 52px rgba(0, 0, 0, 0.42), 0 0 24px rgba(255, 255, 255, 0.035) !important;
+        }
+
+        .nfc-page[data-template='dark'] .nfc-empty {
+          background: rgba(18, 18, 18, 0.92);
+          border-color: rgba(255, 255, 255, 0.16);
+          box-shadow: var(--shadow-subtle);
+        }
+
+        .nfc-page[data-template='dark'] .nfc-btn-primary,
+        .nfc-page[data-template='dark'] .nfc-save-contact {
+          background: linear-gradient(110deg, #ffffff, #e8e8e8) !important;
+          color: #111111 !important;
+          box-shadow: 0 12px 32px rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .nfc-booking-wrap {
+          position: fixed;
+          left: max(16px, env(safe-area-inset-left));
+          bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+          z-index: 900;
+          display: flex;
+          justify-content: flex-start;
+          width: auto;
+          box-sizing: border-box;
+          padding: 0;
+          pointer-events: none;
+        }
+
+        .nfc-booking-cta {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 10px;
+          width: auto;
+          min-width: 164px;
+          max-width: calc(100vw - 32px);
+          min-height: 56px;
+          padding: 5px 14px 5px 6px;
+          box-sizing: border-box;
+          border: 1px solid #d4d4d4;
+          border-radius: 999px;
+          background: #ffffff;
+          color: #111111;
+          direction: ltr;
+          text-align: right;
+          text-decoration: none;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.035);
+          opacity: 0.84;
+          transition: border-color 160ms ease, opacity 160ms ease;
+          pointer-events: auto;
+        }
+
+        .nfc-booking-cta:hover {
+          border-color: #888888;
+          opacity: 1;
+        }
+
+        .nfc-booking-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex: 0 0 42px;
+          width: 42px;
+          height: 42px;
+          border: 1px solid #e5e5e5;
+          border-radius: 50%;
+          background: #f5f5f5;
+        }
+
+        .nfc-booking-copy {
+          display: flex;
+          flex: 1;
+          align-items: center;
+          justify-content: center;
+          min-width: 0;
+          text-align: right;
+        }
+
+        .nfc-booking-label {
+          color: #111111;
+          font-size: 0.9rem;
+          font-weight: 700;
+          line-height: 1.35;
+        }
+
+        .nfc-page[data-template='dark'] .nfc-booking-cta {
+          border-color: #484848;
+          background: #111111;
+          color: #f5f5f5;
+          box-shadow: none;
+        }
+
+        .nfc-page[data-template='dark'] .nfc-booking-icon {
+          border-color: #393939;
+          background: #202020;
+        }
+
+        .nfc-page[data-template='dark'] .nfc-booking-label {
+          color: #f5f5f5;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .nfc-booking-cta {
+            transition: none;
+          }
         }
 
         body {
@@ -527,7 +696,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 48px 20px;
+          padding: 48px 20px 104px;
           overflow-x: hidden;
           z-index: 1;
           background-color: var(--bg-solid);
@@ -565,7 +734,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         /* Mobile phones: 2 columns grid for sleek tile layout */
         @media (max-width: 600px) {
           .nfc-page {
-            padding: 24px 12px;
+            padding: 24px 12px 96px;
           }
           .nfc-grid {
             grid-template-columns: repeat(2, 1fr);
@@ -685,7 +854,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         }
         
         .footer-wrap {
-          margin-top: 64px;
+          margin-top: 32px;
           padding-top: 32px;
           width: 100%;
           display: flex;
@@ -705,7 +874,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         }
       `}</style>
       
-      <div className="nfc-page" dir="rtl" ref={containerRef}>
+      <div className="nfc-page" data-template={card.template || 'default'} dir="rtl" ref={containerRef}>
         <div className="nfc-container">
           <div className="gsap-hero" style={{ width: '100%' }}>
             <ProfileHero card={card} />
@@ -715,6 +884,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
                 <a
                   href="#"
+                  className="nfc-save-contact"
                   onClick={handleSaveContact}
                   style={{
                     display: 'inline-flex',
@@ -753,6 +923,24 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           
           {renderContent()}
 
+          {/* Booking CTA Button */}
+          <div className="nfc-booking-wrap">
+            <a
+              className="nfc-booking-cta"
+              href="https://wa.me/201098277229"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="احجز كارتك على واتساب 01098277229"
+            >
+              <span className="nfc-booking-icon" aria-hidden="true">
+                <WhatsAppIcon size={26} />
+              </span>
+              <span className="nfc-booking-copy" dir="rtl">
+                <span className="nfc-booking-label">احجز كارتك</span>
+              </span>
+            </a>
+          </div>
+
           <div className="gsap-footer footer-wrap">
             <PublicCardFooter />
           </div>
@@ -768,7 +956,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
             bottom: '28px',
             left: '50%',
             transform: 'translateX(-50%)',
-            backgroundColor: '#0f172a',
+            backgroundColor: '#111111',
             color: '#ffffff',
             padding: '12px 24px',
             borderRadius: '50px',
@@ -783,7 +971,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
             fontFamily: 'Tajawal, sans-serif',
           }}
         >
-          <Check size={16} style={{ color: '#22c55e' }} />
+          <Check size={16} style={{ color: '#ffffff' }} />
           <span>{toastMsg}</span>
         </div>
       )}
@@ -819,7 +1007,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '16px', textAlign: 'center' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111111', marginBottom: '16px', textAlign: 'center' }}>
               اختر رقم للاتصال
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -832,31 +1020,31 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '16px 20px',
-                    backgroundColor: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    backgroundColor: '#f7f7f7',
+                    border: '1px solid #e5e5e5',
                     borderRadius: '12px',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     fontFamily: 'Tajawal, sans-serif',
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = '#e2e8f0';
-                    (e.currentTarget as HTMLElement).style.borderColor = '#cbd5e1';
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '#e5e5e5';
+                    (e.currentTarget as HTMLElement).style.borderColor = '#c7c7c7';
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = '#f8fafc';
-                    (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0';
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '#f7f7f7';
+                    (e.currentTarget as HTMLElement).style.borderColor = '#e5e5e5';
                   }}
                 >
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#666666', marginBottom: '4px' }}>
                       {phone.label}
                     </div>
-                    <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a', direction: 'ltr' }}>
+                    <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#111111', direction: 'ltr' }}>
                       {phone.number}
                     </div>
                   </div>
-                  <PhoneIcon size={20} style={{ color: '#2563EB' }} />
+                  <PhoneIcon size={20} style={{ color: '#111111' }} />
                 </button>
               ))}
             </div>
@@ -866,21 +1054,21 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
                 marginTop: '20px',
                 width: '100%',
                 padding: '14px',
-                backgroundColor: '#f1f5f9',
+                backgroundColor: '#f2f2f2',
                 border: 'none',
                 borderRadius: '12px',
                 fontSize: '0.9375rem',
                 fontWeight: 700,
-                color: '#64748b',
+                color: '#666666',
                 cursor: 'pointer',
                 fontFamily: 'Tajawal, sans-serif',
                 transition: 'all 0.2s ease',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.backgroundColor = '#e2e8f0';
+                (e.currentTarget as HTMLElement).style.backgroundColor = '#e5e5e5';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.backgroundColor = '#f1f5f9';
+                (e.currentTarget as HTMLElement).style.backgroundColor = '#f2f2f2';
               }}
             >
               إلغاء

@@ -837,7 +837,7 @@ export const AdminAddCardPage: React.FC = () => {
             <div style="text-align:right;direction:rtl;font-family:Tajawal,sans-serif">
               <p style="margin:8px 0;font-size:15px">البطاقة <strong style="color:#2563eb">${created.card_code}</strong> جاهزة تماماً</p>
               ${created.custom_slug ? `<p style="margin:4px 0;font-size:13.5px;color:#16a34a">الرابط المخصص: <strong>/social/${created.custom_slug}</strong></p>` : ''}
-              <p style="margin:4px 0;font-size:13px;color:#64748b">النوع: ${created.card_type} | القالب: ${created.template === 'mobile_shop' ? 'كاشير محلات الموبايل' : 'الافتراضي'}</p>
+              <p style="margin:4px 0;font-size:13px;color:#64748b">النوع: ${created.card_type} | القالب: ${created.template === 'mobile_shop' ? 'كاشير محلات الموبايل' : created.template === 'dark' ? 'القالب الليلي الفاخر' : 'الافتراضي'}</p>
               <div style="margin-top:16px;text-align:center">
                 <a href="/social/${created.custom_slug || created.card_code}" target="_blank" style="display:inline-block;padding:9px 20px;background:#16a34a;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">
                   🚀 فتح صفحة البطاقة التفاعلية
@@ -1243,6 +1243,37 @@ export const AdminAddCardPage: React.FC = () => {
                     </div>
                     <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--txt-muted)', lineHeight: 1.5 }}>
                       مخصص لنقاط البيع: تبديل الشيفتات، إنستاباي، فودافون كاش، وخدمات الصيانة والتقييم.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Dark Theme Template */}
+                <div
+                  onClick={() => setTemplate('dark')}
+                  style={{
+                    border: template === 'dark' ? '2px solid #0f172a' : '1px solid var(--bdr-light)',
+                    backgroundColor: template === 'dark' ? 'rgba(15, 23, 42, 0.06)' : 'var(--bg-subtle)',
+                    borderRadius: '14px',
+                    padding: '14px 16px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: '#0f172a', color: '#67e8f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Sparkles size={20} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 800, fontSize: '13.5px', color: template === 'dark' ? '#0f172a' : 'var(--txt-heading)' }}>
+                        القالب الليلي الفاخر (Dark)
+                      </span>
+                      {template === 'dark' && <Check size={16} style={{ color: '#0f172a' }} />}
+                    </div>
+                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--txt-muted)', lineHeight: 1.5 }}>
+                      واجهة كحلية عميقة بلمسات سماوية مضيئة، مع الحفاظ على نفس ترتيب المحتوى والروابط.
                     </p>
                   </div>
                 </div>
@@ -2295,8 +2326,8 @@ export const AdminAddCardPage: React.FC = () => {
                   <div><span style={{ color: 'var(--txt-muted)' }}>الاشتراك:</span> <strong>{requiresSubscription ? 'سنوي' : 'دائم مدى الحياة ♾'}</strong></div>
                   <div>
                     <span style={{ color: 'var(--txt-muted)' }}>القالب:</span>{' '}
-                    <span style={{ backgroundColor: template === 'mobile_shop' ? '#f3e8ff' : '#eff6ff', color: template === 'mobile_shop' ? '#7e22ce' : '#1d4ed8', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11.5px' }}>
-                      {template === 'mobile_shop' ? '📱 كاشير محلات الموبايل' : '🌟 القالب الافتراضي'}
+                    <span style={{ backgroundColor: template === 'mobile_shop' ? '#f3e8ff' : template === 'dark' ? '#e0f2fe' : '#eff6ff', color: template === 'mobile_shop' ? '#7e22ce' : template === 'dark' ? '#0f172a' : '#1d4ed8', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11.5px' }}>
+                      {template === 'mobile_shop' ? '📱 كاشير محلات الموبايل' : template === 'dark' ? '🌙 القالب الليلي الفاخر' : '🌟 القالب الافتراضي'}
                     </span>
                   </div>
                   {customSlug && (

@@ -1453,6 +1453,37 @@ export const AdminEditCardPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
+
+                {/* Dark Theme Template Option */}
+                <div
+                  onClick={() => setTemplate('dark')}
+                  style={{
+                    border: `2px solid ${template === 'dark' ? '#0f172a' : 'var(--bdr-light)'}`,
+                    backgroundColor: template === 'dark' ? 'rgba(15, 23, 42, 0.06)' : '#fff',
+                    borderRadius: '14px',
+                    padding: '16px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#0f172a', color: '#67e8f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Sparkles size={20} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '14px', color: template === 'dark' ? '#0f172a' : 'var(--txt-heading)' }}>
+                        القالب الليلي الفاخر (Dark)
+                      </span>
+                      {template === 'dark' && <CheckCircle2 size={16} style={{ color: '#0f172a' }} />}
+                    </div>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--txt-secondary)', lineHeight: '1.5' }}>
+                      خلفية كحلية عميقة وتفاصيل زجاجية بتوهج سماوي، مع بقاء ترتيب الصفحة كما هو.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2462,16 +2493,16 @@ export const AdminEditCardPage: React.FC = () => {
 
                 <span
                   style={{
-                    backgroundColor: template === 'mobile_shop' ? '#f0fdf4' : 'var(--clr-primary-50)',
-                    color: template === 'mobile_shop' ? '#15803d' : 'var(--clr-primary-700)',
-                    border: `1px solid ${template === 'mobile_shop' ? '#bbf7d0' : 'var(--clr-primary-200)'}`,
+                    backgroundColor: template === 'mobile_shop' ? '#f0fdf4' : template === 'dark' ? '#e0f2fe' : 'var(--clr-primary-50)',
+                    color: template === 'mobile_shop' ? '#15803d' : template === 'dark' ? '#0f172a' : 'var(--clr-primary-700)',
+                    border: `1px solid ${template === 'mobile_shop' ? '#bbf7d0' : template === 'dark' ? '#7dd3fc' : 'var(--clr-primary-200)'}`,
                     padding: '6px 14px',
                     borderRadius: '20px',
                     fontSize: '12.5px',
                     fontWeight: 800,
                   }}
                 >
-                  {template === 'mobile_shop' ? '📱 قالب كاشير محلات الموبايل' : '🌐 القالب الافتراضي'}
+                  {template === 'mobile_shop' ? '📱 قالب كاشير محلات الموبايل' : template === 'dark' ? '🌙 القالب الليلي الفاخر' : '🌐 القالب الافتراضي'}
                 </span>
               </div>
 
