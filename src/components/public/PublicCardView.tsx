@@ -203,8 +203,18 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
       `FN:${biz.business_name || card.custom_slug || card.card_code}`,
     ];
     
+    // Add all phone numbers
     if (biz.phone?.trim()) {
       lines.push(`TEL;TYPE=CELL:${biz.phone.trim()}`);
+    }
+    if (biz.phone1?.trim()) {
+      lines.push(`TEL;TYPE=CELL:${biz.phone1.trim()}`);
+    }
+    if (biz.phone2?.trim()) {
+      lines.push(`TEL;TYPE=CELL:${biz.phone2.trim()}`);
+    }
+    if (biz.phone3?.trim()) {
+      lines.push(`TEL;TYPE=CELL:${biz.phone3.trim()}`);
     }
     if (biz.email?.trim()) {
       lines.push(`EMAIL;TYPE=WORK:${biz.email.trim()}`);
@@ -301,7 +311,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   // 2. LOCATIONS (الفروع والمواقع)
   // ═══════════════════════════════════════════════════════════
   if (biz?.google_maps?.trim()) {
-    links.push({ id: 'gm', platform: 'google_maps', title: 'Google Review', subtitle: 'موقعنا على الخريطة', url: biz.google_maps, icon: <GoogleMapsIcon size={60} />, brandColor: '#EA4335' });
+    links.push({ id: 'gm', platform: 'google_maps', title: 'Google Review', subtitle: 'قيمنا على الخريطة', url: biz.google_maps, icon: <GoogleMapsIcon size={60} />, brandColor: '#EA4335' });
   }
 
   // Add multiple locations if available

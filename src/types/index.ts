@@ -233,6 +233,9 @@ export interface BusinessData {
   logo?: string | null;
   description?: string | null;
   phone?: string | null;
+  phone1?: string | null;
+  phone2?: string | null;
+  phone3?: string | null;
   whatsapp?: string | null;
   instagram?: string | null;
   facebook?: string | null;

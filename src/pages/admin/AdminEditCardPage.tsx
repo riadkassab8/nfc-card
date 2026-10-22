@@ -63,7 +63,6 @@ interface BizFieldDef {
 const CUSTOM_SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 function getCategoryId(val: any): string {
-  if (!val) return '';
   if (typeof val === 'string') return val;
   if (typeof val === 'object' && val._id) return val._id;
   return '';
@@ -71,10 +70,13 @@ function getCategoryId(val: any): string {
 
 const BIZ_GENERAL_FIELDS: BizFieldDef[] = [
   { key: 'phone', label: 'رقم الهاتف المباشر', placeholder: '01012345678', type: 'tel', icon: <Phone size={16} />, dir: 'ltr' },
+  { key: 'phone1', label: 'رقم هاتف إضافي 1', placeholder: '01012345678', type: 'tel', icon: <Phone size={16} />, dir: 'ltr' },
+  { key: 'phone2', label: 'رقم هاتف إضافي 2', placeholder: '01012345678', type: 'tel', icon: <Phone size={16} />, dir: 'ltr' },
+  { key: 'phone3', label: 'رقم هاتف إضافي 3', placeholder: '01012345678', type: 'tel', icon: <Phone size={16} />, dir: 'ltr' },
   { key: 'whatsapp', label: 'رابط واتساب مباشر', placeholder: 'https://wa.me/201012345678', type: 'url', icon: <MessageCircle size={16} />, hint: 'يجب أن يبدأ بـ https://wa.me/', dir: 'ltr' },
   { key: 'email', label: 'البريد الإلكتروني للعمل', placeholder: 'contact@store.com', type: 'email', icon: <Mail size={16} />, dir: 'ltr' },
   { key: 'website', label: 'الموقع الإلكتروني أو المتجر', placeholder: 'https://example.com', type: 'url', icon: <Globe size={16} />, dir: 'ltr' },
-  { key: 'google_maps', label: 'رابط خرائط جوجل (Google Maps)', placeholder: 'https://maps.app.goo.gl/...', type: 'url', icon: <MapPin size={16} />, dir: 'ltr' },
+  { key: 'google_maps', label: 'رابط تقييمات جوجل', placeholder: 'https://maps.app.goo.gl/...', type: 'url', icon: <MapPin size={16} />, dir: 'ltr' },
 ];
 
 const BIZ_SOCIAL_FIELDS: BizFieldDef[] = [
@@ -197,6 +199,9 @@ export const AdminEditCardPage: React.FC = () => {
     logo: '',
     description: '',
     phone: '',
+    phone1: '',
+    phone2: '',
+    phone3: '',
     email: '',
     whatsapp: '',
     instagram: '',
@@ -372,6 +377,9 @@ export const AdminEditCardPage: React.FC = () => {
         logo: getCommonValue('logo'),
         description: getCommonValue('description'),
         phone: getCommonValue('phone'),
+        phone1: getCommonValue('phone1'),
+        phone2: getCommonValue('phone2'),
+        phone3: getCommonValue('phone3'),
         email: getCommonValue('email'),
         whatsapp: getCommonValue('whatsapp'),
         instagram: getCommonValue('instagram'),
@@ -495,6 +503,9 @@ export const AdminEditCardPage: React.FC = () => {
         logo: '',
         description: '',
         phone: '',
+        phone1: '',
+        phone2: '',
+        phone3: '',
         email: '',
         whatsapp: '',
         instagram: '',
@@ -615,6 +626,9 @@ export const AdminEditCardPage: React.FC = () => {
       logo: b.logo || '',
       description: b.description || '',
       phone: b.phone || '',
+      phone1: b.phone1 || '',
+      phone2: b.phone2 || '',
+      phone3: b.phone3 || '',
       email: b.email || '',
       whatsapp: b.whatsapp || '',
       instagram: b.instagram || '',
