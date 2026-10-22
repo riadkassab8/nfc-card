@@ -197,9 +197,9 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   const getAvailablePhones = () => {
     const phones: { label: string; number: string }[] = [];
     if (biz?.phone?.trim()) phones.push({ label: 'رقم رئيسي', number: biz.phone.trim() });
-    if (biz?.phone1?.trim()) phones.push({ label: 'رقم إضافي 1', number: biz.phone1.trim() });
-    if (biz?.phone2?.trim()) phones.push({ label: 'رقم إضافي 2', number: biz.phone2.trim() });
-    if (biz?.phone3?.trim()) phones.push({ label: 'رقم إضافي 3', number: biz.phone3.trim() });
+    if (biz?.phone1?.trim()) phones.push({ label: 'رقم هاتف آخر', number: biz.phone1.trim() });
+    if (biz?.phone2?.trim()) phones.push({ label: 'رقم هاتف آخر', number: biz.phone2.trim() });
+    if (biz?.phone3?.trim()) phones.push({ label: 'رقم هاتف آخر', number: biz.phone3.trim() });
     return phones;
   };
 

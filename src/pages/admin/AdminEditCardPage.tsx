@@ -70,9 +70,9 @@ function getCategoryId(val: any): string {
 
 const BIZ_GENERAL_FIELDS: BizFieldDef[] = [
   { key: 'phone', label: 'رقم الهاتف المباشر', placeholder: '01012345678', type: 'tel', icon: <Phone size={16} />, dir: 'ltr' },
-  { key: 'phone1', label: 'رقم هاتف إضافي 1', placeholder: '01012345678', type: 'tel', icon: <Phone size={16} />, dir: 'ltr' },
-  { key: 'phone2', label: 'رقم هاتف إضافي 2', placeholder: '01012345678', type: 'tel', icon: <Phone size={16} />, dir: 'ltr' },
-  { key: 'phone3', label: 'رقم هاتف إضافي 3', placeholder: '01012345678', type: 'tel', icon: <Phone size={16} />, dir: 'ltr' },
+  { key: 'phone1', label: 'رقم هاتف آخر', placeholder: '01012345678', type: 'tel', icon: <Phone size={16} />, dir: 'ltr' },
+  { key: 'phone2', label: 'رقم هاتف آخر', placeholder: '01012345678', type: 'tel', icon: <Phone size={16} />, dir: 'ltr' },
+  { key: 'phone3', label: 'رقم هاتف آخر', placeholder: '01012345678', type: 'tel', icon: <Phone size={16} />, dir: 'ltr' },
   { key: 'whatsapp', label: 'رابط واتساب مباشر', placeholder: 'https://wa.me/201012345678', type: 'url', icon: <MessageCircle size={16} />, hint: 'يجب أن يبدأ بـ https://wa.me/', dir: 'ltr' },
   { key: 'email', label: 'البريد الإلكتروني للعمل', placeholder: 'contact@store.com', type: 'email', icon: <Mail size={16} />, dir: 'ltr' },
   { key: 'website', label: 'الموقع الإلكتروني أو المتجر', placeholder: 'https://example.com', type: 'url', icon: <Globe size={16} />, dir: 'ltr' },
