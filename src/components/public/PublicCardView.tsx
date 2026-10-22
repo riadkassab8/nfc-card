@@ -184,12 +184,40 @@ const PremiumTile = ({ link, onClick }: { link: any, onClick: (e: React.MouseEve
 export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false);
   const biz = card.business_data;
 
   const copyToClipboard = (text: string, msg: string) => {
     navigator.clipboard.writeText(text);
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 2500);
+  };
+
+  // Get all available phone numbers
+  const getAvailablePhones = () => {
+    const phones: { label: string; number: string }[] = [];
+    if (biz?.phone?.trim()) phones.push({ label: 'رقم رئيسي', number: biz.phone.trim() });
+    if (biz?.phone1?.trim()) phones.push({ label: 'رقم إضافي 1', number: biz.phone1.trim() });
+    if (biz?.phone2?.trim()) phones.push({ label: 'رقم إضافي 2', number: biz.phone2.trim() });
+    if (biz?.phone3?.trim()) phones.push({ label: 'رقم إضافي 3', number: biz.phone3.trim() });
+    return phones;
+  };
+
+  const handlePhoneClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const phones = getAvailablePhones();
+    if (phones.length === 1) {
+      // Only one phone, call directly
+      window.location.href = `tel:${phones[0].number}`;
+    } else if (phones.length > 1) {
+      // Multiple phones, show selection modal
+      setPhoneModalOpen(true);
+    }
+  };
+
+  const handleCallPhone = (number: string) => {
+    setPhoneModalOpen(false);
+    window.location.href = `tel:${number}`;
   };
   
   const handleSaveContact = (e: React.MouseEvent) => {
@@ -251,13 +279,11 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   // Extract links
   // Build in order: Social → Locations → Payment Methods → Contact → Website
   const links: any[] = [];
-  
+
   const waUrl = biz?.whatsapp?.trim() || 'https://wa.me/201098277229';
   const igUrl = biz?.instagram?.trim() || 'https://www.instagram.com/nasma.brand';
   const fbUrl = biz?.facebook?.trim() || 'https://www.facebook.com/nasma.brand.official';
   const ttUrl = biz?.tiktok?.trim() || 'https://www.tiktok.com/@nasma.brand';
-  const phRaw = biz?.phone?.trim() || '01098277229';
-  const phUrl = phRaw.startsWith('tel:') ? phRaw : `tel:${phRaw}`;
 
   // ═══════════════════════════════════════════════════════════
   // 1. SOCIAL MEDIA (الشبكات الاجتماعية)
@@ -367,13 +393,15 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   // ═══════════════════════════════════════════════════════════
   // 4. CONTACT (وسائل الاتصال)
   // ═══════════════════════════════════════════════════════════
-  if (biz?.phone?.trim() || !biz) {
+  const availablePhones = getAvailablePhones();
+  if (availablePhones.length > 0 || !biz) {
     links.push({
       id: 'ph',
       platform: 'phone',
       title: 'Call',
       subtitle: 'يسعدنا استقبال مكالمتك',
-      url: phUrl,
+      url: '#',
+      onClick: handlePhoneClick,
       icon: <PhoneIcon size={60} />,
       brandColor: '#2563EB'
     });
@@ -457,6 +485,8 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
               if (link.copyValue && (link.platform === 'vodafone_cash' || (link.platform === 'instapay' && !link.url.startsWith('http')))) {
                 e.preventDefault();
                 copyToClipboard(link.copyValue, link.copyMessage);
+              } else if (link.onClick) {
+                link.onClick(e);
               }
             }}
           />
@@ -755,6 +785,107 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         >
           <Check size={16} style={{ color: '#22c55e' }} />
           <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* Phone Selection Modal */}
+      {phoneModalOpen && (
+        <div
+          dir="rtl"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            zIndex: 100000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+          onClick={() => setPhoneModalOpen(false)}
+        >
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '20px',
+              padding: '28px',
+              maxWidth: '400px',
+              width: '100%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              fontFamily: 'Tajawal, sans-serif',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '16px', textAlign: 'center' }}>
+              اختر رقم للاتصال
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {getAvailablePhones().map((phone, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleCallPhone(phone.number)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '16px 20px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    fontFamily: 'Tajawal, sans-serif',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '#e2e8f0';
+                    (e.currentTarget as HTMLElement).style.borderColor = '#cbd5e1';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '#f8fafc';
+                    (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0';
+                  }}
+                >
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>
+                      {phone.label}
+                    </div>
+                    <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a', direction: 'ltr' }}>
+                      {phone.number}
+                    </div>
+                  </div>
+                  <PhoneIcon size={20} style={{ color: '#2563EB' }} />
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setPhoneModalOpen(false)}
+              style={{
+                marginTop: '20px',
+                width: '100%',
+                padding: '14px',
+                backgroundColor: '#f1f5f9',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '0.9375rem',
+                fontWeight: 700,
+                color: '#64748b',
+                cursor: 'pointer',
+                fontFamily: 'Tajawal, sans-serif',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = '#e2e8f0';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = '#f1f5f9';
+              }}
+            >
+              إلغاء
+            </button>
+          </div>
         </div>
       )}
     </>
