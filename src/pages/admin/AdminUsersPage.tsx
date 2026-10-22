@@ -38,14 +38,17 @@ import {
 
 /* ── Available System Permissions Definition ── */
 const AVAILABLE_PAGES = [
-  { id: 'overview', label: 'نظرة عامة (الرئيسية)', description: 'رؤية ملخص الإحصائيات العامة' },
-  { id: 'cards', label: 'إدارة البطاقات', description: 'عرض والتحكم بالبطاقات الذكية' },
-  { id: 'orders', label: 'الطلبات', description: 'استقبال الطلبات ومتابعة حالتها وإدارتها' },
-  { id: 'customers', label: 'العملاء (CRM)', description: 'إدارة العملاء وبياناتهم' },
-  { id: 'notifications', label: 'الإشعارات', description: 'مركز التنبيهات والإشعارات' },
-  { id: 'analytics', label: 'الإحصائيات المتقدمة', description: 'الرسوم البيانية وسجلات المسح' },
-  { id: 'categories', label: 'التصنيفات', description: 'إدارة تصنيفات البطاقات' },
-  { id: 'scan', label: 'فحص وتجهيز', description: 'فحص البطاقات الفيزيائية السريع' },
+  { id: 'overview', label: 'نظرة عامة (الرئيسية)', description: 'رؤية ملخص الإحصائيات العامة للمنصة' },
+  { id: 'cards', label: 'إدارة البطاقات', description: 'عرض والتحكم بالبطاقات الذكية وإنشائها وتعديلها' },
+  { id: 'orders', label: 'الطلبات والمبيعات', description: 'استقبال وفحص طلبات الشراء وتعديل حالاتها ومراجعة الإيصالات' },
+  { id: 'website_content', label: 'محتوى الموقع (CMS)', description: 'التحكم في البانر، النصوص، الفيديوهات، وسائل الدفع والحقول' },
+  { id: 'website_products', label: 'منتجات المتجر', description: 'إضافة وتعديل وحذف منتجات المتجر، والأسعار والصور والخيارات' },
+  { id: 'website_links', label: 'روابط وقوائم الموقع', description: 'إدارة وتفعيل الروابط الديناميكية في الهيدر والفوتر' },
+  { id: 'customers', label: 'العملاء (CRM)', description: 'إدارة العملاء وبياناتهم وسجلات التواصل' },
+  { id: 'notifications', label: 'الإشعارات', description: 'مركز التنبيهات والإشعارات العامة' },
+  { id: 'analytics', label: 'الإحصائيات المتقدمة', description: 'الرسوم البيانية ومصادر الزيارات وسجلات المسح' },
+  { id: 'categories', label: 'التصنيفات', description: 'إدارة تصنيفات البطاقات والمجموعات' },
+  { id: 'scan', label: 'فحص وتجهيز', description: 'فحص البطاقات الفيزيائية السريع وتعيينها' },
 ];
 
 const AVAILABLE_ACTIONS = [
@@ -53,14 +56,16 @@ const AVAILABLE_ACTIONS = [
   { id: 'cards:create', label: 'إضافة بطاقات جديدة', group: 'البطاقات' },
   { id: 'cards:edit', label: 'تعديل بيانات وروابط البطاقات', group: 'البطاقات' },
   { id: 'cards:delete', label: 'حذف البطاقات ونقلها للمهملات', group: 'البطاقات' },
+  { id: 'orders:view', label: 'عرض طلبات الشراء', group: 'الطلبات' },
+  { id: 'orders:edit', label: 'تعديل حالات الطلبات ومراجعة الإيصالات', group: 'الطلبات' },
+  { id: 'orders:delete', label: 'حذف الطلبات', group: 'الطلبات' },
+  { id: 'website_content:manage', label: 'تعديل محتوى وإعدادات الموقع', group: 'المتجر والموقع' },
+  { id: 'website_products:manage', label: 'إدارة منتجات المتجر والأسعار', group: 'المتجر والموقع' },
+  { id: 'website_links:manage', label: 'إدارة قوائم وروابط الموقع', group: 'المتجر والموقع' },
   { id: 'customers:view', label: 'عرض العملاء', group: 'العملاء' },
   { id: 'customers:create', label: 'إضافة عملاء', group: 'العملاء' },
   { id: 'customers:edit', label: 'تعديل العملاء', group: 'العملاء' },
   { id: 'customers:delete', label: 'حذف العملاء', group: 'العملاء' },
-  { id: 'orders:view', label: 'عرض الطلبات', group: 'الطلبات' },
-  { id: 'orders:create', label: 'إضافة طلبات', group: 'الطلبات' },
-  { id: 'orders:edit', label: 'تعديل الطلبات وحالاتها', group: 'الطلبات' },
-  { id: 'orders:delete', label: 'حذف الطلبات', group: 'الطلبات' },
   { id: 'categories:manage', label: 'إدارة وتعديل التصنيفات', group: 'التصنيفات' },
   { id: 'analytics:view', label: 'عرض سجلات وإحصائيات المسح', group: 'الإحصائيات' },
   { id: 'export', label: 'تصدير ملفات إكسل وتقارير', group: 'عام' },
@@ -321,8 +326,12 @@ export const AdminUsersPage: React.FC = () => {
           role: formRole,
           status: formStatus,
           permissions: {
-            pages: formRole === 'merchant' ? ['cards', 'overview'] : (formRole === 'super_admin' ? AVAILABLE_PAGES.map((p) => p.id) : formPages),
-            actions: formRole === 'super_admin' ? ['*'] : (formRole === 'merchant' ? ['cards:view', 'cards:edit'] : formActions),
+            pages: formRole === 'merchant'
+              ? ['merchant_overview', 'merchant_cards', 'merchant_analytics', 'merchant_profile', 'merchant_guide', 'merchant_store']
+              : (formRole === 'super_admin' ? AVAILABLE_PAGES.map((p) => p.id) : formPages),
+            actions: formRole === 'super_admin'
+              ? ['*']
+              : (formRole === 'merchant' ? ['cards:view', 'cards:edit', 'merchant:access', 'analytics:view'] : formActions),
           },
           assigned_cards: formRole === 'merchant' ? formAssignedCards : [],
           ...subPayload,
@@ -345,8 +354,12 @@ export const AdminUsersPage: React.FC = () => {
           role: formRole,
           status: formStatus,
           permissions: {
-            pages: formRole === 'merchant' ? ['cards', 'overview'] : (formRole === 'super_admin' ? AVAILABLE_PAGES.map((p) => p.id) : formPages),
-            actions: formRole === 'super_admin' ? ['*'] : (formRole === 'merchant' ? ['cards:view', 'cards:edit'] : formActions),
+            pages: formRole === 'merchant'
+              ? ['merchant_overview', 'merchant_cards', 'merchant_analytics', 'merchant_profile', 'merchant_guide', 'merchant_store']
+              : (formRole === 'super_admin' ? AVAILABLE_PAGES.map((p) => p.id) : formPages),
+            actions: formRole === 'super_admin'
+              ? ['*']
+              : (formRole === 'merchant' ? ['cards:view', 'cards:edit', 'merchant:access', 'analytics:view'] : formActions),
           },
           assigned_cards: formRole === 'merchant' ? formAssignedCards : [],
           ...subPayload,

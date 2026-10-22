@@ -113,7 +113,7 @@ export const MerchantOverviewPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="responsive-hero-actions">
+        <div className="responsive-hero-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
           <Link
             to="/merchant/cards"
             style={{
@@ -133,6 +133,25 @@ export const MerchantOverviewPage: React.FC = () => {
           >
             <span>إدارة بطاقات المحل</span>
             <ArrowLeft size={16} />
+          </Link>
+          <Link
+            to="/merchant/store"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'rgba(255, 255, 255, 0.18)',
+              color: '#ffffff',
+              border: '1.5px solid rgba(255, 255, 255, 0.4)',
+              padding: '12px 22px',
+              borderRadius: '12px',
+              fontWeight: 800,
+              fontSize: '14px',
+              textDecoration: 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>طلب كوسترز وبطاقات جديدة 🛒</span>
           </Link>
         </div>
       </div>

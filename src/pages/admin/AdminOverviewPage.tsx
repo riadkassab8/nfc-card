@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { cardsApi, categoriesApi, customersApi } from '../../services';
+import { cardsApi, categoriesApi, customersApi, websiteApi } from '../../services';
 import {
   ApiCard,
   ApiCategory,
@@ -980,7 +980,14 @@ export const AdminOverviewPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const syncOrdersIncome = () => {
+    const syncOrdersIncome = async () => {
+      try {
+        const stats = await websiteApi.getOrderStats().catch(() => null);
+        if (stats && typeof stats.totalRevenue === 'number' && stats.totalRevenue > 0) {
+          setOrdersIncome(stats.totalRevenue);
+          return;
+        }
+      } catch {}
       try {
         const savedOrders = JSON.parse(localStorage.getItem('nfc_store_orders_v1') || '[]');
         const totalIncome = Array.isArray(savedOrders)

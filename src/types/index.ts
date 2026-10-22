@@ -764,6 +764,7 @@ export interface ApiNotification {
   link?: string | null;
   is_read: boolean;
   card_id?: string | null;
+  target_role?: string | null;
   createdAt: string;
   updatedAt?: string;
 }

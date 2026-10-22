@@ -13,6 +13,7 @@ import {
   Info,
   CheckCircle2,
   ExternalLink,
+  ShoppingCart,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { notificationsApi } from '../../services';
@@ -172,7 +173,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
     }
   };
 
-  const renderNotifIcon = (type: string) => {
+  const renderNotifIcon = (type: string, link?: string | null) => {
+    if (link?.includes('/admin/orders')) {
+      return <ShoppingCart size={18} style={{ color: '#10b981' }} />;
+    }
     switch (type) {
       case 'danger':
         return <AlertCircle size={18} style={{ color: '#ef4444' }} />;
@@ -402,7 +406,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
                             flexShrink: 0,
                           }}
                         >
-                          {renderNotifIcon(notif.type)}
+                          {renderNotifIcon(notif.type, notif.link)}
                         </div>
 
                         {/* Content */}

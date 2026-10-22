@@ -4,7 +4,6 @@
    Supports API sync (GET / PUT / POST reset) with localStorage caching.
    ========================================================================== */
 
-   
 import React from 'react';
 import {
   LayoutDashboard,
@@ -20,6 +19,9 @@ import {
   Store,
   BookOpen,
   ShoppingBag,
+  ShoppingCart,
+  Globe,
+  Link2,
 } from 'lucide-react';
 import { authApi } from '../services/api';
 import { SidebarNavItemConfig } from '../types';
@@ -40,6 +42,9 @@ export const ICON_MAP: Record<string, React.ElementType> = {
   Store,
   BookOpen,
   ShoppingBag,
+  ShoppingCart,
+  Globe,
+  Link2,
 };
 
 export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
@@ -71,13 +76,40 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     order: 2,
   },
   {
-    id: 'orders',
-    path: '/admin/orders',
-    label: 'الطلبات',
-    defaultLabel: 'الطلبات',
-    iconName: 'ShoppingBag',
+    id: 'website_content',
+    path: '/admin/website-content',
+    label: 'محتوى الموقع (CMS)',
+    defaultLabel: 'محتوى الموقع (CMS)',
+    iconName: 'Globe',
     visible: true,
     order: 3,
+  },
+  {
+    id: 'website_products',
+    path: '/admin/website-products',
+    label: 'منتجات المتجر',
+    defaultLabel: 'منتجات المتجر',
+    iconName: 'ShoppingBag',
+    visible: true,
+    order: 4,
+  },
+  {
+    id: 'orders',
+    path: '/admin/orders',
+    label: 'طلبات الشراء',
+    defaultLabel: 'طلبات الشراء',
+    iconName: 'ShoppingCart',
+    visible: true,
+    order: 5,
+  },
+  {
+    id: 'website_links',
+    path: '/admin/website-links',
+    label: 'روابط وقوائم الموقع',
+    defaultLabel: 'روابط وقوائم الموقع',
+    iconName: 'Link2',
+    visible: true,
+    order: 6,
   },
   {
     id: 'notifications',
@@ -86,7 +118,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'الإشعارات',
     iconName: 'Bell',
     visible: true,
-    order: 4,
+    order: 7,
   },
   {
     id: 'analytics',
@@ -95,7 +127,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'الإحصائيات',
     iconName: 'BarChart2',
     visible: true,
-    order: 5,
+    order: 8,
   },
   {
     id: 'categories',
@@ -104,7 +136,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'التصنيفات',
     iconName: 'Tags',
     visible: true,
-    order: 6,
+    order: 9,
   },
   {
     id: 'scan',
@@ -113,7 +145,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'فحص وتجهيز',
     iconName: 'Scan',
     visible: true,
-    order: 7,
+    order: 10,
   },
   {
     id: 'users',
@@ -122,7 +154,7 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'المستخدمين والصلاحيات',
     iconName: 'ShieldAlert',
     visible: true,
-    order: 8,
+    order: 11,
   },
   {
     id: 'user_logs',
@@ -131,47 +163,153 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     defaultLabel: 'سجل المستخدمين',
     iconName: 'History',
     visible: true,
-    order: 9,
+    order: 12,
   },
 ];
+
+export const DEFAULT_MERCHANT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
+  {
+    id: 'merchant_overview',
+    path: '/merchant',
+    label: 'الرئيسية للمتجر',
+    defaultLabel: 'الرئيسية للمتجر',
+    iconName: 'LayoutDashboard',
+    visible: true,
+    order: 0,
+  },
+  {
+    id: 'merchant_cards',
+    path: '/merchant/cards',
+    label: 'بطاقاتي الذكية',
+    defaultLabel: 'بطاقاتي الذكية',
+    iconName: 'CreditCard',
+    visible: true,
+    order: 1,
+  },
+  {
+    id: 'merchant_analytics',
+    path: '/merchant/analytics',
+    label: 'إحصائيات وزوار المحل',
+    defaultLabel: 'إحصائيات وزوار المحل',
+    iconName: 'BarChart2',
+    visible: true,
+    order: 2,
+  },
+  {
+    id: 'merchant_store',
+    path: '/merchant/store',
+    label: 'طلب كوسترز وبطاقات',
+    defaultLabel: 'طلب كوسترز وبطاقات',
+    iconName: 'ShoppingCart',
+    visible: true,
+    order: 3,
+  },
+  {
+    id: 'merchant_profile',
+    path: '/merchant/profile',
+    label: 'إعدادات المتجر',
+    defaultLabel: 'إعدادات المتجر',
+    iconName: 'Store',
+    visible: true,
+    order: 4,
+  },
+  {
+    id: 'merchant_guide',
+    path: '/merchant/guide',
+    label: 'دليل المستخدم',
+    defaultLabel: 'دليل المستخدم',
+    iconName: 'BookOpen',
+    visible: true,
+    order: 5,
+  },
+];
+
+export const MERCHANT_ALLOWED_PAGE_IDS = new Set(
+  DEFAULT_MERCHANT_SIDEBAR_ITEMS.map((item) => item.id)
+);
+
+/**
+ * تطبيع عناصر القائمة الجانبية الخاصة بصاحب المحل (Merchant) حصراً
+ * واستبعاد أي روابط إدارة أو لوحة تحكم عامة نهائياً.
+ */
+export function normalizeMerchantSidebarItems(
+  items?: Partial<SidebarNavItemConfig>[]
+): SidebarNavItemConfig[] {
+  if (!Array.isArray(items) || items.length === 0) {
+    return DEFAULT_MERCHANT_SIDEBAR_ITEMS;
+  }
+
+  // فلترة الروابط التابعة للمتجر فقط لا غير
+  const merchantOnly = items.filter(
+    (item) =>
+      item &&
+      item.id &&
+      (MERCHANT_ALLOWED_PAGE_IDS.has(item.id) ||
+        (item.path && item.path.startsWith('/merchant')))
+  );
+
+  if (merchantOnly.length === 0) {
+    return DEFAULT_MERCHANT_SIDEBAR_ITEMS;
+  }
+
+  const merged = DEFAULT_MERCHANT_SIDEBAR_ITEMS.map((def) => {
+    const backendMatch = merchantOnly.find((m) => m.id === def.id);
+    if (backendMatch) {
+      return {
+        ...def,
+        label: backendMatch.label || def.label,
+        visible: backendMatch.visible ?? def.visible,
+        order: typeof backendMatch.order === 'number' ? backendMatch.order : def.order,
+        iconName: backendMatch.iconName || def.iconName,
+      };
+    }
+    return def;
+  });
+
+  return merged.filter((item) => item.visible).sort((a, b) => a.order - b.order);
+}
 
 const STORAGE_KEY = 'k2rty_admin_sidebar_config_v1';
 export const SIDEBAR_CONFIG_EVENT = 'k2rty-sidebar-config-changed';
 
 /**
  * تطبيع عناصر القائمة القادمة من الباك إند
- * تضمن الحفاظ التام على الروابط والخصائص المرسلة من الخادم بالكامل
  */
 export function normalizeSidebarItems(items: Partial<SidebarNavItemConfig>[]): SidebarNavItemConfig[] {
   if (!Array.isArray(items) || items.length === 0) {
     return DEFAULT_SIDEBAR_ITEMS;
   }
 
-  const normalized = items
-    .filter((item): item is Partial<SidebarNavItemConfig> & { id: string; path: string } => !!item && !!item.id && !!item.path)
-    .map((item, idx) => {
-      const def = DEFAULT_SIDEBAR_ITEMS.find((d) => d.id === item.id);
-      return {
-        id: item.id,
-        path: item.path,
-        label: item.label || item.defaultLabel || def?.label || item.id,
-        defaultLabel: item.defaultLabel || item.label || def?.defaultLabel || item.id,
-        iconName: item.iconName || def?.iconName || 'LayoutDashboard',
-        visible: item.visible ?? true,
-        order: typeof item.order === 'number' ? item.order : idx,
+  const merged = [...DEFAULT_SIDEBAR_ITEMS];
+  items.forEach((backendItem) => {
+    if (!backendItem || !backendItem.id) return;
+    const existingIndex = merged.findIndex((m) => m.id === backendItem.id);
+    if (existingIndex >= 0) {
+      merged[existingIndex] = {
+        ...merged[existingIndex],
+        label: backendItem.label || merged[existingIndex].label,
+        visible: backendItem.visible ?? merged[existingIndex].visible,
+        order: typeof backendItem.order === 'number' ? backendItem.order : merged[existingIndex].order,
+        iconName: backendItem.iconName || merged[existingIndex].iconName,
       };
-    });
+    } else if (backendItem.path) {
+      merged.push({
+        id: backendItem.id,
+        path: backendItem.path,
+        label: backendItem.label || backendItem.id,
+        defaultLabel: backendItem.defaultLabel || backendItem.label || backendItem.id,
+        iconName: backendItem.iconName || 'LayoutDashboard',
+        visible: backendItem.visible ?? true,
+        order: typeof backendItem.order === 'number' ? backendItem.order : merged.length,
+      });
+    }
+  });
 
-  if (!normalized.some((item) => item.id === 'orders')) {
-    const ordersItem = DEFAULT_SIDEBAR_ITEMS.find((item) => item.id === 'orders');
-    if (ordersItem) normalized.push({ ...ordersItem, order: Math.max(-1, ...normalized.map((item) => item.order)) + 1 });
-  }
-
-  return normalized.sort((a, b) => a.order - b.order);
+  return merged.sort((a, b) => a.order - b.order);
 }
 
 /**
- * جلب إعدادات القائمة الحالية المتزامنة محلياً (للبناء اللحظي)
+ * جلب إعدادات القائمة الحالية المتزامنة محلياً
  */
 export function getSidebarConfig(): SidebarNavItemConfig[] {
   try {
@@ -215,64 +353,49 @@ export function resetSidebarConfig(): SidebarNavItemConfig[] {
 }
 
 /**
- * جلب إعدادات القائمة من الـ Backend API ومزامنتها محلياً
+ * مزامنة الإعدادات من الخادم
  */
 export async function fetchSidebarConfigFromApi(): Promise<SidebarNavItemConfig[]> {
   try {
-    if (!authApi.isAuthenticated()) {
-      return getSidebarConfig();
+    const items = await authApi.getSidebarMenu();
+    if (items && Array.isArray(items) && items.length > 0) {
+      const normalized = normalizeSidebarItems(items);
+      saveSidebarConfig(normalized);
+      return normalized;
     }
-    const apiItems = await authApi.getSidebarMenu();
-    const normalized = normalizeSidebarItems(apiItems);
-    saveSidebarConfig(normalized);
-    return normalized;
   } catch (err) {
-    console.warn('Could not fetch sidebar menu from API, using cached config:', err);
-    return getSidebarConfig();
+    console.warn('Could not fetch sidebar config from API, using local fallback:', err);
   }
+  return getSidebarConfig();
 }
 
 /**
- * حفظ إعدادات القائمة في الـ Backend API ومزامنتها محلياً
+ * حفظ إعدادات القائمة على الخادم
  */
 export async function saveSidebarConfigToApi(items: SidebarNavItemConfig[]): Promise<SidebarNavItemConfig[]> {
-  const normalized = items.map((item, index) => ({
-    ...item,
-    order: index,
-  }));
-
-  // حفظ محلي فوري
-  saveSidebarConfig(normalized);
-
+  saveSidebarConfig(items);
   try {
-    if (authApi.isAuthenticated()) {
-      const saved = await authApi.updateSidebarMenu(normalized);
-      const res = normalizeSidebarItems(saved);
-      saveSidebarConfig(res);
-      return res;
+    const res = await authApi.updateSidebarMenu(items);
+    if (res && Array.isArray(res)) {
+      const normalized = normalizeSidebarItems(res);
+      saveSidebarConfig(normalized);
+      return normalized;
     }
   } catch (err) {
-    console.error('Failed to save sidebar menu to API:', err);
-    throw err;
+    console.warn('Could not save sidebar config to server:', err);
   }
-
-  return normalized;
+  return items;
 }
 
 /**
- * استعادة الإعدادات الافتراضية عبر الـ Backend API ومزامنتها محلياً
+ * استعادة الترتيب الافتراضي على الخادم
  */
 export async function resetSidebarConfigToApi(): Promise<SidebarNavItemConfig[]> {
+  const defaults = resetSidebarConfig();
   try {
-    if (authApi.isAuthenticated()) {
-      const resetItems = await authApi.resetSidebarMenu();
-      const res = normalizeSidebarItems(resetItems);
-      saveSidebarConfig(res);
-      return res;
-    }
+    await authApi.resetSidebarMenu();
   } catch (err) {
-    console.error('Failed to reset sidebar menu via API:', err);
+    console.warn('Could not reset sidebar config on server:', err);
   }
-
-  return resetSidebarConfig();
+  return defaults;
 }

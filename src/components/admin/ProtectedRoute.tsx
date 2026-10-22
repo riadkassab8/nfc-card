@@ -26,6 +26,9 @@ export const getDefaultAdminPath = (admin: any): string => {
   const pagePathMap: Record<string, string> = {
     cards: '/admin/cards',
     orders: '/admin/orders',
+    website_content: '/admin/website-content',
+    website_products: '/admin/website-products',
+    website_links: '/admin/website-links',
     customers: '/admin/customers',
     categories: '/admin/categories',
     scan: '/admin/scan',

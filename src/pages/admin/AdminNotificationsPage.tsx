@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   RefreshCw,
   Filter,
+  ShoppingCart,
 } from 'lucide-react';
 import { notificationsApi } from '../../services';
 import { ApiNotification } from '../../types';
@@ -120,7 +121,10 @@ export const AdminNotificationsPage: React.FC = () => {
     return true;
   });
 
-  const renderIcon = (type: string) => {
+  const renderIcon = (type: string, link?: string | null) => {
+    if (link?.includes('/admin/orders')) {
+      return <ShoppingCart size={20} style={{ color: '#10b981' }} />;
+    }
     switch (type) {
       case 'danger':
         return <AlertCircle size={20} style={{ color: '#ef4444' }} />;
@@ -320,7 +324,7 @@ export const AdminNotificationsPage: React.FC = () => {
                     marginTop: '2px',
                   }}
                 >
-                  {renderIcon(notif.type)}
+                  {renderIcon(notif.type, notif.link)}
                 </div>
 
                 {/* Content */}

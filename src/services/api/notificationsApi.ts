@@ -17,22 +17,36 @@ export const notificationsApi = {
     }),
 
   /**
-   * PATCH /api/notifications/read-all
-   * تحديد جميع الإشعارات كمقروءة
+   * PATCH / PUT / POST /api/notifications/read-all
+   * تحديد جميع الإشعارات كمقروءة (مع محاولة احتياطية بـ POST لضمان التوافق المطلق)
    */
-  markAllAsRead: (): Promise<{ modifiedCount: number }> =>
-    apiClient<{ modifiedCount: number }>('/notifications/read-all', {
-      method: 'PATCH',
-    }),
+  markAllAsRead: async (): Promise<{ modifiedCount: number }> => {
+    try {
+      return await apiClient<{ modifiedCount: number }>('/notifications/read-all', {
+        method: 'PATCH',
+      });
+    } catch (err) {
+      return await apiClient<{ modifiedCount: number }>('/notifications/read-all', {
+        method: 'POST',
+      });
+    }
+  },
 
   /**
-   * PATCH /api/notifications/:id/read
-   * تحديد إشعار محدد كمقروء
+   * PATCH / PUT / POST /api/notifications/:id/read
+   * تحديد إشعار محدد كمقروء (مع محاولة احتياطية بـ POST لضمان التوافق المطلق)
    */
-  markAsRead: (id: string): Promise<ApiNotification> =>
-    apiClient<ApiNotification>(`/notifications/${id}/read`, {
-      method: 'PATCH',
-    }),
+  markAsRead: async (id: string): Promise<ApiNotification> => {
+    try {
+      return await apiClient<ApiNotification>(`/notifications/${id}/read`, {
+        method: 'PATCH',
+      });
+    } catch (err) {
+      return await apiClient<ApiNotification>(`/notifications/${id}/read`, {
+        method: 'POST',
+      });
+    }
+  },
 
   /**
    * DELETE /api/notifications/:id

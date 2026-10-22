@@ -12,7 +12,10 @@ import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
 import { AdminCustomersPage } from './pages/admin/AdminCustomersPage';
 import { CustomerDetailsPage } from './pages/admin/CustomerDetailsPage';
 import { AdminInventoryPage } from './pages/admin/AdminInventoryPage';
-import { AdminOrdersPage } from './pages/admin/AdminOrdersPage';
+import { AdminWebsiteOrdersPage } from './pages/admin/AdminWebsiteOrdersPage';
+import { AdminWebsiteContentPage } from './pages/admin/AdminWebsiteContentPage';
+import { AdminWebsiteProductsPage } from './pages/admin/AdminWebsiteProductsPage';
+import { AdminWebsiteLinksPage } from './pages/admin/AdminWebsiteLinksPage';
 import { AdminAddCardPage } from './pages/admin/AdminAddCardPage';
 import { AdminEditCardPage } from './pages/admin/AdminEditCardPage';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
@@ -31,6 +34,7 @@ import { MerchantCardsPage } from './pages/merchant/MerchantCardsPage';
 import { MerchantAnalyticsPage } from './pages/merchant/MerchantAnalyticsPage';
 import { MerchantProfilePage } from './pages/merchant/MerchantProfilePage';
 import { MerchantGuidePage } from './pages/merchant/MerchantGuidePage';
+import { MerchantStorePage } from './pages/merchant/MerchantStorePage';
 import { useActivityTracker } from './hooks/useActivityTracker';
 
 const ActivityTrackerListener: React.FC = () => {
@@ -97,15 +101,56 @@ export const App: React.FC = () => (
           }
         />
 
+        {/* Website Content (CMS) */}
         <Route
-          path="/admin/orders"
+          path="/admin/website-content"
           element={
-            <ProtectedRoute requiredPage="orders" requiredAction="orders:view">
-              <AdminShell title="الطلبات">
-                <AdminOrdersPage />
+            <ProtectedRoute requiredPage="website_content">
+              <AdminShell title="محتوى الموقع (CMS)">
+                <AdminWebsiteContentPage />
               </AdminShell>
             </ProtectedRoute>
           }
+        />
+
+        {/* Website Products */}
+        <Route
+          path="/admin/website-products"
+          element={
+            <ProtectedRoute requiredPage="website_products">
+              <AdminShell title="منتجات المتجر">
+                <AdminWebsiteProductsPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Dynamic Website Links */}
+        <Route
+          path="/admin/website-links"
+          element={
+            <ProtectedRoute requiredPage="website_links">
+              <AdminShell title="روابط وقوائم الموقع">
+                <AdminWebsiteLinksPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Orders */}
+        <Route
+          path="/admin/orders"
+          element={
+            <ProtectedRoute requiredPage="orders">
+              <AdminShell title="طلبات الشراء والمبيعات">
+                <AdminWebsiteOrdersPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/website-orders"
+          element={<Navigate to="/admin/orders" replace />}
         />
 
         <Route
@@ -269,6 +314,16 @@ export const App: React.FC = () => (
             <ProtectedRoute requiredRole="merchant">
               <MerchantShell title="دليل المستخدم">
                 <MerchantGuidePage />
+              </MerchantShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/merchant/store"
+          element={
+            <ProtectedRoute requiredRole="merchant">
+              <MerchantShell title="طلب كوسترز وبطاقات جديدة">
+                <MerchantStorePage />
               </MerchantShell>
             </ProtectedRoute>
           }

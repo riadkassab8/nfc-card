@@ -223,9 +223,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ) {
         return true;
       }
-      // التاجر / صاحب المحل: يمكنه فقط استعراض وتعديل بطاقاته الخاصة
+      // التاجر / صاحب المحل: استعراض وتعديل بطاقاته وإحصائياته وطلب المنتجات
       if (state.admin.role === 'merchant') {
-        return ['cards:view', 'cards:edit'].includes(action);
+        return ['cards:view', 'cards:edit', 'merchant:access', 'analytics:view', 'orders:create'].includes(action);
       }
       // الموظف: نتحقق من مصفوفة الإجراءات
       const actions = state.admin.permissions?.actions || [];
@@ -248,9 +248,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (pageId === 'users' || pageId === 'user_logs') {
         return false;
       }
-      // التاجر / صاحب المحل: يصل فقط للرئيسية والبطاقات
+      // التاجر / صاحب المحل: يصل لبوابته وبطاقاته وإحصائياته ودليله ومتجره
       if (state.admin.role === 'merchant') {
-        return ['overview', 'cards'].includes(pageId);
+        return [
+          'merchant_overview',
+          'merchant_cards',
+          'merchant_analytics',
+          'merchant_profile',
+          'merchant_guide',
+          'merchant_store'
+        ].includes(pageId);
       }
       // الموظف: نتحقق من مصفوفة الصفحات المسموحة
       const pages = state.admin.permissions?.pages || [];
