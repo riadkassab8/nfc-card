@@ -49,7 +49,7 @@ export const MerchantStorePage: React.FC = () => {
           productId: 'sticker',
           name: 'كوستر K2rty الذكي',
           description: 'كوستر ذكي يعمل بتقنية NFC وQR معاً. ضعه على طاولة المحل أو الكاونتر للوصول السريع لصفحتك ومنيوهاتك.',
-          basePrice: 450,
+          basePrice: 650,
           currency: 'جنيه',
           features: [
             'يعمل بتقنية NFC وQR معاً',
@@ -101,7 +101,7 @@ export const MerchantStorePage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const unitPrice = orderingProduct.basePrice || 450;
+      const unitPrice = orderingProduct.basePrice || 650;
       const totalAmount = unitPrice * quantity;
       const storeName = admin?.store_name || admin?.name || 'متجر معتمد';
       const phone = admin?.phone || '01000000000';
@@ -338,7 +338,7 @@ export const MerchantStorePage: React.FC = () => {
 
                     <div style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
                       <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0284c7' }}>
-                        {prod.basePrice || 450}
+                        {prod.basePrice || 650}
                       </span>
                       <span style={{ fontSize: '0.8rem', color: '#64748b', marginRight: '4px' }}>
                         {prod.currency || 'جنيه'}
@@ -537,7 +537,7 @@ export const MerchantStorePage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderTop: '1px solid #f1f5f9' }}>
                   <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>الإجمالي التقديري:</span>
                   <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0284c7' }}>
-                    {(orderingProduct.basePrice || 450) * quantity} جنيه
+                    {(orderingProduct.basePrice || 650) * quantity} جنيه
                   </span>
                 </div>
 

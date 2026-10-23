@@ -27,7 +27,7 @@ export const AdminWebsiteProductsPage: React.FC = () => {
     productId: '',
     name: '',
     description: '',
-    basePrice: 450,
+    basePrice: 650,
     currency: 'جنيه',
     features: [],
     options: [],
@@ -452,7 +452,7 @@ export const AdminWebsiteProductsPage: React.FC = () => {
                   <input
                     type="number"
                     required
-                    value={formData.basePrice ?? 450}
+                    value={formData.basePrice ?? 650}
                     onChange={(e) => setFormData({ ...formData, basePrice: Number(e.target.value) })}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
                   />
@@ -479,6 +479,24 @@ export const AdminWebsiteProductsPage: React.FC = () => {
                   rows={2}
                   value={formData.description || ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontFamily: 'inherit' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  مميزات المنتج (سطر لكل ميزة تظهر في صفحة المنتج)
+                </label>
+                <textarea
+                  rows={4}
+                  value={(formData.features || []).join('\n')}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      features: e.target.value.split('\n').filter((line) => line.trim().length > 0),
+                    })
+                  }
+                  placeholder="يعمل بتقنية NFC وQR معًا&#10;بدون تطبيق — أي هاتف حديث يكفي&#10;مقاوم للاستخدام اليومي"
                   style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontFamily: 'inherit' }}
                 />
               </div>
