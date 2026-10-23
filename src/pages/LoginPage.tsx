@@ -1,9 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  Eye, EyeOff, Lock, User, Zap, ShieldCheck, RefreshCw, CheckCircle2,
-  AlertCircle, Nfc, QrCode, BarChart3,
+  Eye,
+  EyeOff,
+  Lock,
+  User,
+  Zap,
+  ShieldCheck,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  Shield,
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -12,11 +20,10 @@ export const LoginPage: React.FC = () => {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw]     = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [shakeKey, setShakeKey] = useState(0);
-  const cardRef = useRef<HTMLDivElement>(null);
 
   const successMessage = (location.state as any)?.successMessage as string | undefined;
 
@@ -44,8 +51,6 @@ export const LoginPage: React.FC = () => {
     setSubmitting(true);
     setError(null);
     try {
-      // On success the auth state flips and <GuestRoute> redirects to the dashboard
-      // (or to the admin page the user originally requested).
       await login(username.trim(), password);
     } catch (err: any) {
       fail(err?.message || 'بيانات الدخول غير صحيحة');
@@ -53,162 +58,348 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  // Subtle 3D tilt for the showcase card
-  const handleTilt = (e: React.MouseEvent<HTMLDivElement>) => {
-    const el = cardRef.current;
-    if (!el) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    el.style.transform = `rotateY(${x * 18}deg) rotateX(${-y * 14}deg)`;
-  };
-  const resetTilt = () => {
-    if (cardRef.current) cardRef.current.style.transform = '';
-  };
-
   return (
-    <div dir="rtl" className="auth-page">
-      <div className="auth-bg" aria-hidden>
-        <div className="auth-blob b1" />
-        <div className="auth-blob b2" />
-        <div className="auth-blob b3" />
-        <div className="auth-grid" />
-      </div>
+    <div
+      dir="rtl"
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '32px 16px',
+        backgroundColor: '#f8fafc',
+        backgroundImage: 'radial-gradient(at top center, rgba(99, 102, 241, 0.08) 0%, transparent 60%)',
+        position: 'relative',
+        fontFamily: 'inherit',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '430px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '24px',
+        }}
+      >
+        {/* Brand Header */}
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+              boxShadow: '0 10px 24px -6px rgba(79, 70, 229, 0.35)',
+              marginBottom: '16px',
+            }}
+          >
+            <Zap size={28} color="#ffffff" />
+          </div>
 
-      <div className="login-shell">
-        {/* ── Form side ── */}
-        <div className="login-form-side">
-          <div style={{ marginBottom: 28 }}>
-            <div className="auth-brand-logo" style={{ marginBottom: 18 }}>
-              <Zap size={28} color="#fff" />
+          <h1
+            style={{
+              fontSize: '1.55rem',
+              fontWeight: 800,
+              color: '#0f172a',
+              margin: '0 0 6px',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            تسجيل الدخول
+          </h1>
+          <p style={{ fontSize: '0.88rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+            أهلاً بك، أدخل بياناتك للمتابعة إلى لوحة التحكم
+          </p>
+        </div>
+
+        {/* Clean Login Card */}
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 20px 45px -15px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(15, 23, 42, 0.03)',
+            padding: '32px 28px',
+          }}
+        >
+          {/* Alerts */}
+          {successMessage && !error && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '12px 14px',
+                borderRadius: '12px',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                color: '#15803d',
+                fontSize: '0.86rem',
+                fontWeight: 600,
+                marginBottom: '20px',
+              }}
+            >
+              <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+              <span>{successMessage}</span>
             </div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--txt-heading)', lineHeight: 1.25 }}>
-              مرحباً بعودتك
-            </h1>
-            <p style={{ color: 'var(--txt-secondary)', fontSize: 'var(--fs-sm)', marginTop: 6 }}>
-              سجّل الدخول للوصول إلى لوحة إدارة k2rty
-            </p>
-          </div>
+          )}
 
-          <div>
-            {successMessage && !error && (
-              <div className="auth-alert success">
-                <CheckCircle2 size={18} />
-                <span>{successMessage}</span>
-              </div>
-            )}
-            {error && (
-              <div key={shakeKey} className="auth-alert error shake" role="alert">
-                <AlertCircle size={18} />
-                <span>{error}</span>
-              </div>
-            )}
-          </div>
+          {error && (
+            <div
+              key={shakeKey}
+              className="shake"
+              role="alert"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '12px 14px',
+                borderRadius: '12px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#dc2626',
+                fontSize: '0.86rem',
+                fontWeight: 600,
+                marginBottom: '20px',
+              }}
+            >
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
+          )}
 
-          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <div className="form-group">
-              <label className="form-label" htmlFor="login-username">اسم المستخدم أو البريد الإلكتروني</label>
-              <div className="input-icon-wrap">
-                <User size={18} className="input-icon" />
+          {/* Form */}
+          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div>
+              <label
+                htmlFor="login-username"
+                style={{
+                  display: 'block',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  color: '#334155',
+                  marginBottom: '8px',
+                }}
+              >
+                اسم المستخدم أو البريد الإلكتروني
+              </label>
+              <div style={{ position: 'relative' }}>
+                <User
+                  size={18}
+                  style={{
+                    position: 'absolute',
+                    right: '14px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#94a3b8',
+                    pointerEvents: 'none',
+                  }}
+                />
                 <input
                   id="login-username"
                   type="text"
-                  className="form-input auth-input"
                   value={username}
-                  onChange={(e) => { setUsername(e.target.value); if (error) setError(null); }}
-                  placeholder="ادخل اسم المستخدم أو البريد الإلكتروني"
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  placeholder="ادخل اسم المستخدم أو البريد"
                   autoComplete="username"
                   autoFocus
                   disabled={submitting}
+                  style={{
+                    width: '100%',
+                    height: '46px',
+                    padding: '0 42px 0 14px',
+                    borderRadius: '12px',
+                    border: '1.5px solid #cbd5e1',
+                    background: '#ffffff',
+                    fontSize: '0.92rem',
+                    color: '#0f172a',
+                    outline: 'none',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                    boxSizing: 'border-box',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#4f46e5';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.15)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#cbd5e1';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
             </div>
 
-            <div className="form-group">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <label className="form-label" htmlFor="login-password">كلمة المرور</label>
-                <Link to="/forgot-password" className="auth-link">نسيت كلمة المرور؟</Link>
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '8px',
+                }}
+              >
+                <label
+                  htmlFor="login-password"
+                  style={{
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    color: '#334155',
+                  }}
+                >
+                  كلمة المرور
+                </label>
+                <Link
+                  to="/forgot-password"
+                  style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: '#4f46e5',
+                    textDecoration: 'none',
+                  }}
+                  onMouseEnter={(e) => ((e.target as HTMLElement).style.textDecoration = 'underline')}
+                  onMouseLeave={(e) => ((e.target as HTMLElement).style.textDecoration = 'none')}
+                >
+                  نسيت كلمة المرور؟
+                </Link>
               </div>
-              <div className="input-icon-wrap">
-                <Lock size={18} className="input-icon" />
+
+              <div style={{ position: 'relative' }}>
+                <Lock
+                  size={18}
+                  style={{
+                    position: 'absolute',
+                    right: '14px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#94a3b8',
+                    pointerEvents: 'none',
+                  }}
+                />
                 <input
                   id="login-password"
                   type={showPw ? 'text' : 'password'}
-                  className="form-input auth-input"
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); if (error) setError(null); }}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError(null);
+                  }}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   disabled={submitting}
-                  style={{ paddingLeft: 48 }}
+                  style={{
+                    width: '100%',
+                    height: '46px',
+                    padding: '0 42px 0 42px',
+                    borderRadius: '12px',
+                    border: '1.5px solid #cbd5e1',
+                    background: '#ffffff',
+                    fontSize: '0.92rem',
+                    color: '#0f172a',
+                    outline: 'none',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                    boxSizing: 'border-box',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#4f46e5';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.15)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#cbd5e1';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
                 <button
                   type="button"
-                  className="pw-toggle"
                   onClick={() => setShowPw((v) => !v)}
                   aria-label={showPw ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                   tabIndex={-1}
+                  style={{
+                    position: 'absolute',
+                    left: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    padding: '6px',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '6px',
+                  }}
                 >
-                  {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
+                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
-            <button type="submit" disabled={submitting} className="btn-primary auth-submit" style={{ marginTop: 6 }}>
-              {submitting
-                ? <><RefreshCw size={18} className="spin" /> جاري الدخول...</>
-                : <><ShieldCheck size={18} /> تسجيل الدخول</>}
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{
+                width: '100%',
+                height: '46px',
+                marginTop: '6px',
+                borderRadius: '12px',
+                border: 'none',
+                background: submitting
+                  ? '#818cf8'
+                  : 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+                color: '#ffffff',
+                fontSize: '0.94rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 14px rgba(79, 70, 229, 0.3)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {submitting ? (
+                <>
+                  <RefreshCw size={18} className="spin" />
+                  جاري الدخول...
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={18} />
+                  تسجيل الدخول
+                </>
+              )}
             </button>
           </form>
-
-          <p style={{ marginTop: 28, textAlign: 'center', fontSize: '0.78rem', color: 'var(--txt-muted)' }}>
-            © {new Date().getFullYear()} k2rty — جميع الحقوق محفوظة
-          </p>
         </div>
 
-        {/* ── Visual side ── */}
-        <div className="login-visual-side" onMouseMove={handleTilt} onMouseLeave={resetTilt} aria-hidden>
-          <div className="login-orb o1" />
-          <div className="login-orb o2" />
-
-          <div>
-            <span className="login-chip"><span className="login-chip-dot" /> نظام البطاقات الذكية</span>
-            <h2 style={{ fontSize: '1.9rem', fontWeight: 800, lineHeight: 1.3, marginTop: 18 }}>
-              أدِر بطاقات NFC و QR<br />من مكان واحد
-            </h2>
-            <p style={{ color: 'rgba(255,255,255,0.72)', marginTop: 10, fontSize: '0.95rem', maxWidth: 380 }}>
-              تحكّم كامل في البطاقات والعملاء والإحصائيات بسرعة وسهولة.
-            </p>
+        {/* Security badge & Footer */}
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              color: '#64748b',
+              fontSize: '0.78rem',
+            }}
+          >
+            <Shield size={14} style={{ color: '#10b981' }} />
+            <span>نظام آمن ومشفّر بالكامل</span>
           </div>
 
-          <div className="nfc-stage">
-            <div className="nfc-card-float">
-              <div className="nfc-card-3d" ref={cardRef}>
-                <div className="nfc-card-top">
-                  <div className="nfc-card-chip" />
-                  <div className="nfc-waves"><span /><span /><span /></div>
-                </div>
-                <div className="nfc-card-number">K2R • 2026 • NFC</div>
-                <div className="nfc-card-bottom">
-                  <span>Smart Card</span>
-                  <span className="nfc-card-brand">k2rty</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="login-features">
-            {[
-              { icon: Nfc,       text: 'برمجة وتجهيز بطاقات NFC فوراً' },
-              { icon: QrCode,    text: 'روابط QR ديناميكية قابلة للتعديل' },
-              { icon: BarChart3, text: 'إحصائيات دقيقة لكل عملية مسح' },
-            ].map(({ icon: Icon, text }, i) => (
-              <div key={text} className="login-feature" style={{ animationDelay: `${450 + i * 110}ms` }}>
-                <span className="login-feature-icon"><Icon size={17} /></span>
-                {text}
-              </div>
-            ))}
-          </div>
+          <p style={{ margin: 0, fontSize: '0.76rem', color: '#94a3b8' }}>
+            © {new Date().getFullYear()} k2rty — جميع الحقوق محفوظة
+          </p>
         </div>
       </div>
     </div>
