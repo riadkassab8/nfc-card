@@ -82,7 +82,7 @@ export const AdminWebsiteProductsPage: React.FC = () => {
       productId: 'item-' + Math.floor(Math.random() * 9000 + 1000),
       name: '',
       description: '',
-      basePrice: 450,
+      basePrice: 650,
       currency: 'جنيه',
       features: ['يعمل بتقنية NFC وQR معًا', 'بدون تطبيق — أي هاتف حديث يكفي', 'مقاوم للاستخدام اليومي'],
       options: [
@@ -94,6 +94,15 @@ export const AdminWebsiteProductsPage: React.FC = () => {
             { value: 'white', label: 'أبيض', priceModifier: 0, image: 'https://res.cloudinary.com/dls8ootj3/image/upload/v1792525351/k2rty/k2rty_sticker_white.png' },
             { value: 'black', label: 'أسود', priceModifier: 0, image: 'https://res.cloudinary.com/dls8ootj3/image/upload/v1792525357/k2rty/k2rty_sticker_black.png' },
             { value: 'sage', label: 'زيتي', priceModifier: 0, image: 'https://res.cloudinary.com/dls8ootj3/image/upload/v1792525358/k2rty/k2rty_sticker_sage.jpg' },
+          ],
+        },
+        {
+          id: 'custom_print',
+          label: 'هل تريد طباعة مخصصة؟',
+          required: true,
+          choices: [
+            { value: 'no', label: 'لا، التصميم الافتراضي', priceModifier: 0 },
+            { value: 'yes', label: 'نعم، طباعة مخصصة', priceModifier: 150 },
           ],
         },
       ],
@@ -526,6 +535,93 @@ export const AdminWebsiteProductsPage: React.FC = () => {
                   المنتج متاح ونشط للطلب على الموقع
                 </label>
               </div>
+
+              {/* Custom Print Option Card */}
+              {(() => {
+                const cpOpt = formData.options?.find((o) => o.id === 'custom_print');
+                const hasCp = !!cpOpt;
+                const cpModifier = cpOpt?.choices?.find((c) => c.value === 'yes')?.priceModifier ?? 150;
+
+                return (
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input
+                          type="checkbox"
+                          id="customPrintEnable"
+                          checked={hasCp}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            let newOpts = [...(formData.options || [])];
+                            if (checked) {
+                              if (!newOpts.some((o) => o.id === 'custom_print')) {
+                                newOpts.push({
+                                  id: 'custom_print',
+                                  label: 'هل تريد طباعة مخصصة؟',
+                                  required: true,
+                                  choices: [
+                                    { value: 'no', label: 'لا، التصميم الافتراضي', priceModifier: 0 },
+                                    { value: 'yes', label: 'نعم، طباعة مخصصة', priceModifier: 150 },
+                                  ],
+                                });
+                              }
+                            } else {
+                              newOpts = newOpts.filter((o) => o.id !== 'custom_print');
+                            }
+                            setFormData({ ...formData, options: newOpts });
+                          }}
+                          style={{ width: '18px', height: '18px', accentColor: '#0284c7' }}
+                        />
+                        <label htmlFor="customPrintEnable" style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a', cursor: 'pointer' }}>
+                          🎨 تفعيل ميزة الطباعة المخصصة للمنتج (Custom Print)
+                        </label>
+                      </div>
+                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                        سعر الكوستر بالطباعة المخصصة: {(formData.basePrice || 650) + (hasCp ? cpModifier : 0)} {formData.currency || 'جنيه'}
+                      </span>
+                    </div>
+
+                    {hasCp && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', flexWrap: 'wrap' }}>
+                        <label style={{ fontSize: '0.84rem', fontWeight: 600, color: '#334155' }}>
+                          قيمة الزيادة للطباعة المخصصة:
+                        </label>
+                        <input
+                          type="number"
+                          value={cpModifier}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            const newOpts = (formData.options || []).map((opt) => {
+                              if (opt.id === 'custom_print') {
+                                return {
+                                  ...opt,
+                                  choices: opt.choices.map((c) =>
+                                    c.value === 'yes' ? { ...c, priceModifier: val } : c
+                                  ),
+                                };
+                              }
+                              return opt;
+                            });
+                            setFormData({ ...formData, options: newOpts });
+                          }}
+                          style={{ width: '120px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 700 }}
+                        />
+                        <span style={{ fontSize: '0.84rem', color: '#64748b' }}>{formData.currency || 'جنيه'} (يضاف للسعر الأساسي)</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
                 <button

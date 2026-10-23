@@ -373,6 +373,63 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
                       </div>
                     )}
 
+                    {/* Custom Print Details */}
+                    {order.customPrint && (
+                      <div
+                        style={{
+                          background: '#f0f9ff',
+                          border: '1px solid #bae6fd',
+                          borderRadius: '10px',
+                          padding: '12px',
+                          marginTop: '6px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0369a1' }}>
+                            🎨 طلب طباعة مخصصة
+                          </span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#0284c7', color: '#ffffff', padding: '2px 8px', borderRadius: '6px' }}>
+                            +150 ج
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.86rem', color: '#0f172a' }}>
+                          <strong>النص المطلوب:</strong> {order.customPrint.text}
+                        </div>
+                        {order.customPrint.notes && (
+                          <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+                            <strong>ملاحظات:</strong> {order.customPrint.notes}
+                          </div>
+                        )}
+                        {order.customPrint.imageUrl && (
+                          <div style={{ marginTop: '4px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedReceipt(order.customPrint!.imageUrl!)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: '#ffffff',
+                                color: '#0284c7',
+                                border: '1px solid #0284c7',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <Eye size={13} />
+                              عرض صورة الشعار/التصميم 🖼️
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Payment Method & Transfer Receipt */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '6px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
                       {order.paymentMethod && (
@@ -472,7 +529,7 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
                         </div>
 
                         <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
-                          {((item.price && item.price > 0 ? item.price : 450) * (item.quantity || 1))} جنيه
+                          {((item.price && item.price > 0 ? item.price : 650) * (item.quantity || 1))} جنيه
                         </div>
                       </div>
                     ))}
@@ -482,7 +539,7 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
                       <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f766e' }}>
                         {order.totalAmount && order.totalAmount > 0
                           ? order.totalAmount
-                          : (order.items || []).reduce((sum, it) => sum + ((it.price && it.price > 0 ? it.price : 450) * (it.quantity || 1)), 0)} جنيه
+                          : (order.items || []).reduce((sum, it) => sum + ((it.price && it.price > 0 ? it.price : 650) * (it.quantity || 1)), 0)} جنيه
                       </span>
                     </div>
                   </div>

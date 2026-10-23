@@ -173,6 +173,12 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled';
 
+export interface CustomPrintInfo {
+  text: string;
+  imageUrl?: string;
+  notes?: string;
+}
+
 export interface WebsiteOrder {
   _id?: string;
   orderId: string;
@@ -182,6 +188,7 @@ export interface WebsiteOrder {
   notes?: string;
   receiptUrl?: string;
   paymentMethod?: string;
+  customPrint?: CustomPrintInfo;
   status: OrderStatus;
   createdAt: string;
   updatedAt?: string;
