@@ -9,9 +9,11 @@ import {
   Loader2,
   X,
   Upload,
+  Image as ImageIcon,
+  Palette,
 } from 'lucide-react';
 import { websiteApi } from '../../services';
-import { WebsiteProduct } from '../../services/api/websiteApi';
+import { WebsiteProduct, ProductChoice } from '../../services/api/websiteApi';
 
 export const AdminWebsiteProductsPage: React.FC = () => {
   const [products, setProducts] = useState<WebsiteProduct[]>([]);
@@ -20,6 +22,9 @@ export const AdminWebsiteProductsPage: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<WebsiteProduct | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [uploadingChoiceKey, setUploadingChoiceKey] = useState<string | null>(null);
+  const [newGalleryUrl, setNewGalleryUrl] = useState('');
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
   // Form State
@@ -31,6 +36,8 @@ export const AdminWebsiteProductsPage: React.FC = () => {
     currency: 'جنيه',
     features: [],
     options: [],
+    visualType: 'sticker',
+    order: 1,
     defaultImage: '',
     gallery: [],
     isAvailable: true,
@@ -60,6 +67,115 @@ export const AdminWebsiteProductsPage: React.FC = () => {
     }
   };
 
+  const handleUploadGalleryImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingGallery(true);
+      showToast('جاري رفع صورة للمعرض...', 'success');
+      const res = await websiteApi.uploadMedia(file);
+      if (res?.url) {
+        setFormData((prev) => ({
+          ...prev,
+          gallery: [...(prev.gallery || []), res.url],
+        }));
+        showToast('تمت إضافة الصورة إلى معرض المنتج بنجاح!', 'success');
+      }
+    } catch (err: any) {
+      showToast('فشل رفع صورة المعرض: ' + (err.message || 'خطأ'), 'error');
+    } finally {
+      setUploadingGallery(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleAddGalleryUrl = () => {
+    const url = newGalleryUrl.trim();
+    if (!url) return;
+    setFormData((prev) => ({
+      ...prev,
+      gallery: [...(prev.gallery || []), url],
+    }));
+    setNewGalleryUrl('');
+  };
+
+  const handleRemoveGalleryImage = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      gallery: (prev.gallery || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleUpdateChoice = (optId: string, choiceIndex: number, field: keyof ProductChoice, value: any) => {
+    setFormData((prev) => {
+      const opts = (prev.options || []).map((opt) => {
+        if (opt.id === optId) {
+          const newChoices = [...opt.choices];
+          newChoices[choiceIndex] = {
+            ...newChoices[choiceIndex],
+            [field]: value,
+          };
+          return { ...opt, choices: newChoices };
+        }
+        return opt;
+      });
+      return { ...prev, options: opts };
+    });
+  };
+
+  const handleAddChoice = (optId: string) => {
+    setFormData((prev) => {
+      const opts = (prev.options || []).map((opt) => {
+        if (opt.id === optId) {
+          const newChoice: ProductChoice = {
+            label: 'لون جديد',
+            value: 'color-' + (opt.choices.length + 1),
+            priceModifier: 0,
+            image: prev.defaultImage || '',
+          };
+          return { ...opt, choices: [...opt.choices, newChoice] };
+        }
+        return opt;
+      });
+      return { ...prev, options: opts };
+    });
+  };
+
+  const handleRemoveChoice = (optId: string, choiceIndex: number) => {
+    setFormData((prev) => {
+      const opts = (prev.options || []).map((opt) => {
+        if (opt.id === optId) {
+          return {
+            ...opt,
+            choices: opt.choices.filter((_, idx) => idx !== choiceIndex),
+          };
+        }
+        return opt;
+      });
+      return { ...prev, options: opts };
+    });
+  };
+
+  const handleUploadChoiceImage = async (optId: string, choiceIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const key = `${optId}-${choiceIndex}`;
+    try {
+      setUploadingChoiceKey(key);
+      showToast('جاري رفع صورة الخيار/اللون...', 'success');
+      const res = await websiteApi.uploadMedia(file);
+      if (res?.url) {
+        handleUpdateChoice(optId, choiceIndex, 'image', res.url);
+        showToast('تم تحديث صورة الخيار بنجاح!', 'success');
+      }
+    } catch (err: any) {
+      showToast('فشل رفع صورة الخيار: ' + (err.message || 'خطأ'), 'error');
+    } finally {
+      setUploadingChoiceKey(null);
+      e.target.value = '';
+    }
+  };
+
   const loadProducts = async () => {
     try {
       setLoading(true);
@@ -78,12 +194,15 @@ export const AdminWebsiteProductsPage: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingProduct(null);
+    setNewGalleryUrl('');
     setFormData({
       productId: 'item-' + Math.floor(Math.random() * 9000 + 1000),
       name: '',
       description: '',
       basePrice: 650,
       currency: 'جنيه',
+      visualType: 'sticker',
+      order: (products.length || 0) + 1,
       features: ['يعمل بتقنية NFC وQR معًا', 'بدون تطبيق — أي هاتف حديث يكفي', 'مقاوم للاستخدام اليومي'],
       options: [
         {
@@ -107,7 +226,11 @@ export const AdminWebsiteProductsPage: React.FC = () => {
         },
       ],
       defaultImage: 'https://res.cloudinary.com/dls8ootj3/image/upload/v1792525351/k2rty/k2rty_sticker_white.png',
-      gallery: [],
+      gallery: [
+        'https://res.cloudinary.com/dls8ootj3/image/upload/v1792525351/k2rty/k2rty_sticker_white.png',
+        'https://res.cloudinary.com/dls8ootj3/image/upload/v1792525357/k2rty/k2rty_sticker_black.png',
+        'https://res.cloudinary.com/dls8ootj3/image/upload/v1792525358/k2rty/k2rty_sticker_sage.jpg',
+      ],
       isAvailable: true,
     });
     setModalOpen(true);
@@ -115,7 +238,15 @@ export const AdminWebsiteProductsPage: React.FC = () => {
 
   const openEditModal = (product: WebsiteProduct) => {
     setEditingProduct(product);
-    setFormData({ ...product });
+    setNewGalleryUrl('');
+    setFormData({
+      ...product,
+      gallery: product.gallery ? [...product.gallery] : [],
+      options: product.options ? JSON.parse(JSON.stringify(product.options)) : [],
+      features: product.features ? [...product.features] : [],
+      order: product.order ?? 1,
+      visualType: product.visualType || 'sticker',
+    });
     setModalOpen(true);
   };
 
@@ -315,7 +446,21 @@ export const AdminWebsiteProductsPage: React.FC = () => {
                 </p>
               )}
 
-              {/* Options & Variants summary */}
+              {/* Options & Variants & Gallery badges */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '0.8rem', color: '#475569' }}>
+                <span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontWeight: 600 }}>
+                  🖼️ {prod.gallery?.length || 0} صور بالمعرض
+                </span>
+                <span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontWeight: 600 }}>
+                  🔢 ترتيب: {prod.order ?? 1}
+                </span>
+                {prod.visualType && (
+                  <span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontWeight: 600 }}>
+                    🏷️ {prod.visualType}
+                  </span>
+                )}
+              </div>
+
               {prod.options && prod.options.length > 0 && (
                 <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', fontSize: '0.82rem', color: '#475569' }}>
                   <span style={{ fontWeight: 700 }}>الخيارات المتاحة: </span>
@@ -388,7 +533,7 @@ export const AdminWebsiteProductsPage: React.FC = () => {
             style={{
               background: '#ffffff',
               borderRadius: '20px',
-              maxWidth: '650px',
+              maxWidth: '740px',
               width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
@@ -471,6 +616,33 @@ export const AdminWebsiteProductsPage: React.FC = () => {
                 </div>
               </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                    ترتيب العرض (Sort Order)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.order ?? 1}
+                    onChange={(e) => setFormData({ ...formData, order: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                    النوع البصري للمنتج (Visual Type)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.visualType || 'sticker'}
+                    onChange={(e) => setFormData({ ...formData, visualType: e.target.value })}
+                    placeholder="sticker"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
+                  />
+                </div>
+              </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                   وصف المنتج
@@ -540,6 +712,309 @@ export const AdminWebsiteProductsPage: React.FC = () => {
                   style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
                 />
               </div>
+
+              {/* Gallery Section */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ImageIcon size={18} style={{ color: '#4f46e5' }} />
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}>
+                      معرض صور المنتج (Gallery)
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>({(formData.gallery || []).length} صور)</span>
+                  </div>
+
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      background: '#4f46e5',
+                      color: '#ffffff',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: uploadingGallery ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    <Upload size={13} />
+                    {uploadingGallery ? 'جاري رفع صورة...' : 'رفع صورة للمعرض'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      disabled={uploadingGallery}
+                      onChange={handleUploadGalleryImage}
+                    />
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={newGalleryUrl}
+                    onChange={(e) => setNewGalleryUrl(e.target.value)}
+                    placeholder="أو أدخل رابط صورة مباشرة ثم اضغط إضافة..."
+                    style={{ flex: 1, padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddGalleryUrl}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: '#e0e7ff',
+                      color: '#4338ca',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    إضافة
+                  </button>
+                </div>
+
+                {formData.gallery && formData.gallery.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '10px', marginTop: '6px' }}>
+                    {formData.gallery.map((imgUrl, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          position: 'relative',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          background: '#ffffff',
+                          height: '80px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <img
+                          src={imgUrl}
+                          alt={`Gallery ${idx + 1}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'assets/images/product/sticker-white.png';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveGalleryImage(idx)}
+                          title="حذف الصورة"
+                          style={{
+                            position: 'absolute',
+                            top: '4px',
+                            right: '4px',
+                            background: 'rgba(239, 68, 68, 0.9)',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '20px',
+                            height: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Color & Variant Options Manager */}
+              {(formData.options || [])
+                .filter((opt) => opt.id !== 'custom_print')
+                .map((opt) => (
+                  <div
+                    key={opt.id}
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Palette size={18} style={{ color: '#0284c7' }} />
+                        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}>
+                          خيارات {opt.label} ({opt.choices.length} خيارات متاحة)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddChoice(opt.id)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '5px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #bae6fd',
+                          background: '#e0f2fe',
+                          color: '#0369a1',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Plus size={13} /> إضافة خيار / لون جديد
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {opt.choices.map((choice, cIdx) => {
+                        const uploadKey = `${opt.id}-${cIdx}`;
+                        const isThisUploading = uploadingChoiceKey === uploadKey;
+
+                        return (
+                          <div
+                            key={cIdx}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '10px',
+                              padding: '10px 12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '42px',
+                                height: '42px',
+                                borderRadius: '8px',
+                                border: '1px solid #e2e8f0',
+                                overflow: 'hidden',
+                                background: '#f1f5f9',
+                                flexShrink: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <img
+                                src={choice.image || 'assets/images/product/sticker-white.png'}
+                                alt={choice.label}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'assets/images/product/sticker-white.png';
+                                }}
+                              />
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '100px', flex: 1 }}>
+                              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>اسم اللون / الخيار</span>
+                              <input
+                                type="text"
+                                value={choice.label}
+                                onChange={(e) => handleUpdateChoice(opt.id, cIdx, 'label', e.target.value)}
+                                placeholder="أبيض"
+                                style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
+                              />
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '90px' }}>
+                              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>كود المعرف (Value)</span>
+                              <input
+                                type="text"
+                                value={choice.value}
+                                onChange={(e) => handleUpdateChoice(opt.id, cIdx, 'value', e.target.value)}
+                                placeholder="white"
+                                style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
+                              />
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '70px' }}>
+                              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>فرق السعر</span>
+                              <input
+                                type="number"
+                                value={choice.priceModifier ?? 0}
+                                onChange={(e) => handleUpdateChoice(opt.id, cIdx, 'priceModifier', Number(e.target.value))}
+                                style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.84rem', width: '70px' }}
+                              />
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '130px', flex: 1 }}>
+                              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>رابط الصورة</span>
+                              <div style={{ display: 'flex', gap: '4px' }}>
+                                <input
+                                  type="text"
+                                  value={choice.image || ''}
+                                  onChange={(e) => handleUpdateChoice(opt.id, cIdx, 'image', e.target.value)}
+                                  placeholder="https://..."
+                                  style={{ flex: 1, padding: '5px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                                />
+                                <label
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '5px 8px',
+                                    borderRadius: '6px',
+                                    background: '#f1f5f9',
+                                    border: '1px solid #cbd5e1',
+                                    cursor: isThisUploading ? 'not-allowed' : 'pointer',
+                                  }}
+                                  title="رفع صورة خاصة بهذا اللون"
+                                >
+                                  <Upload size={12} color="#475569" />
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    hidden
+                                    disabled={isThisUploading}
+                                    onChange={(e) => handleUploadChoiceImage(opt.id, cIdx, e)}
+                                  />
+                                </label>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveChoice(opt.id, cIdx)}
+                              title="حذف هذا الخيار"
+                              style={{
+                                background: '#fee2e2',
+                                color: '#ef4444',
+                                border: '1px solid #fecaca',
+                                borderRadius: '6px',
+                                padding: '6px 8px',
+                                cursor: 'pointer',
+                                marginTop: '16px',
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
