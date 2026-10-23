@@ -325,6 +325,13 @@ export const websiteApi = {
       requiresAuth: true,
     }),
 
+  updateOrder: (orderId: string, order: Partial<WebsiteOrder>) =>
+    apiClient<WebsiteOrder>(`/admin/website/orders/${orderId}`, {
+      method: 'PUT',
+      body: order,
+      requiresAuth: true,
+    }),
+
   deleteOrder: (orderId: string) =>
     apiClient<{ success: boolean; message: string }>(`/admin/website/orders/${orderId}`, {
       method: 'DELETE',
