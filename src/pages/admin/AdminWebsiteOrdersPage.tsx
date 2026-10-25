@@ -9,6 +9,7 @@ import {
   Filter,
   CheckCircle2,
   Trash2,
+  Edit2,
   Loader2,
   AlertCircle,
   CreditCard,
@@ -41,6 +42,9 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [editingOrder, setEditingOrder] = useState<WebsiteOrder | null>(null);
+  const [editFormData, setEditFormData] = useState<any>({});
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const showToast = (msg: string, type: 'success' | 'error') => {
     setToast({ msg, type });
@@ -86,6 +90,62 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
       showToast('تعذر تحديث الحالة: ' + err.message, 'error');
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleOpenEdit = (order: WebsiteOrder) => {
+    setEditingOrder(order);
+    setEditFormData({
+      customerName: order.customer.name,
+      customerPhone: order.customer.phone,
+      customerCity: order.customer.city,
+      customerAddress: order.customer.address || '',
+      notes: order.notes || '',
+      totalAmount: order.totalAmount,
+      status: order.status,
+      customPrintText: order.customPrint?.text || '',
+      customPrintNotes: order.customPrint?.notes || '',
+      customPrintImageUrl: order.customPrint?.imageUrl || '',
+      items: (order.items || []).map((it) => ({
+        ...it,
+        options: { ...(it.options || {}) },
+      })),
+    });
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingOrder) return;
+    try {
+      setSavingEdit(true);
+      const payload: Partial<WebsiteOrder> = {
+        customer: {
+          name: editFormData.customerName,
+          phone: editFormData.customerPhone,
+          city: editFormData.customerCity,
+          address: editFormData.customerAddress,
+        },
+        notes: editFormData.notes,
+        totalAmount: Number(editFormData.totalAmount) || editingOrder.totalAmount,
+        status: editFormData.status,
+        items: editFormData.items,
+        customPrint: editFormData.customPrintText
+          ? {
+              text: editFormData.customPrintText,
+              notes: editFormData.customPrintNotes || '',
+              imageUrl: editFormData.customPrintImageUrl || '',
+            }
+          : undefined,
+      };
+
+      await websiteApi.updateOrder(editingOrder.orderId, payload);
+      showToast('تم تحديث بيانات الطلب بنجاح', 'success');
+      setEditingOrder(null);
+      loadData();
+    } catch (err: any) {
+      showToast('تعذر تحديث الطلب: ' + (err.message || 'خطأ'), 'error');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -318,6 +378,28 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
 
                     <button
                       type="button"
+                      onClick={() => handleOpenEdit(order)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: '#f0f9ff',
+                        color: '#0284c7',
+                        border: '1px solid #bae6fd',
+                        padding: '5px 10px',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                      title="تعديل بيانات الطلب"
+                    >
+                      <Edit2 size={13} />
+                      تعديل
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => handleDeleteOrder(order.orderId)}
                       style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
                       title="حذف الطلب"
@@ -370,6 +452,63 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
                     {order.notes && (
                       <div style={{ fontSize: '0.82rem', color: '#64748b', background: '#ffffff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', marginTop: '4px' }}>
                         <strong>ملاحظة العميل:</strong> {order.notes}
+                      </div>
+                    )}
+
+                    {/* Custom Print Details */}
+                    {order.customPrint && (
+                      <div
+                        style={{
+                          background: '#f0f9ff',
+                          border: '1px solid #bae6fd',
+                          borderRadius: '10px',
+                          padding: '12px',
+                          marginTop: '6px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0369a1' }}>
+                            🎨 طلب طباعة مخصصة
+                          </span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#0284c7', color: '#ffffff', padding: '2px 8px', borderRadius: '6px' }}>
+                            +150 ج
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.86rem', color: '#0f172a' }}>
+                          <strong>النص المطلوب:</strong> {order.customPrint.text}
+                        </div>
+                        {order.customPrint.notes && (
+                          <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+                            <strong>ملاحظات:</strong> {order.customPrint.notes}
+                          </div>
+                        )}
+                        {order.customPrint.imageUrl && (
+                          <div style={{ marginTop: '4px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedReceipt(order.customPrint!.imageUrl!)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: '#ffffff',
+                                color: '#0284c7',
+                                border: '1px solid #0284c7',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <Eye size={13} />
+                              عرض صورة الشعار/التصميم 🖼️
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -466,13 +605,18 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
                           </div>
                           {item.options && Object.keys(item.options).length > 0 && (
                             <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
-                              {Object.entries(item.options).map(([k, v]) => `${k === 'customName' ? 'الاسم' : k}: ${v}`).join(' | ')}
+                              {Object.entries(item.options).map(([k, v]) => {
+                                const isCp = k === 'custom_print';
+                                const isYes = v === 'yes';
+                                const label = isCp ? (isYes ? '🎨 طباعة مخصصة (+150 ج)' : 'تصميم افتراضي') : `${k === 'color' ? 'اللون' : k}: ${v}`;
+                                return label;
+                              }).join(' | ')}
                             </div>
                           )}
                         </div>
 
                         <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
-                          {((item.price && item.price > 0 ? item.price : 450) * (item.quantity || 1))} جنيه
+                          {((item.price && item.price > 0 ? item.price : 650) * (item.quantity || 1))} جنيه
                         </div>
                       </div>
                     ))}
@@ -482,7 +626,7 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
                       <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f766e' }}>
                         {order.totalAmount && order.totalAmount > 0
                           ? order.totalAmount
-                          : (order.items || []).reduce((sum, it) => sum + ((it.price && it.price > 0 ? it.price : 450) * (it.quantity || 1)), 0)} جنيه
+                          : (order.items || []).reduce((sum, it) => sum + ((it.price && it.price > 0 ? it.price : 650) * (it.quantity || 1)), 0)} جنيه
                       </span>
                     </div>
                   </div>
@@ -490,6 +634,270 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Edit Order Modal */}
+      {editingOrder && (
+        <div
+          onClick={() => setEditingOrder(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 999998,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            animation: 'fadeIn 0.2s ease-out',
+            direction: 'rtl',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '680px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              padding: '26px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '18px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Edit2 size={18} style={{ color: '#0284c7' }} />
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  تعديل بيانات الطلب #{editingOrder.orderId}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingOrder(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    اسم العميل
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.customerName || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, customerName: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    رقم الهاتف
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.customerPhone || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, customerPhone: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    المدينة / المحافظة
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.customerCity || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, customerCity: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    العنوان بالتفصيل
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.customerAddress || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, customerAddress: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    إجمالي المبلغ (جنيه)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={editFormData.totalAmount || 0}
+                    onChange={(e) => setEditFormData({ ...editFormData, totalAmount: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 700 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    حالة الطلب
+                  </label>
+                  <select
+                    value={editFormData.status || 'pending'}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', background: '#ffffff', fontWeight: 600 }}
+                  >
+                    <option value="pending">قيد الانتظار</option>
+                    <option value="confirmed">تم التأكيد</option>
+                    <option value="processing">جاري التجهيز</option>
+                    <option value="shipped">تم الشحن</option>
+                    <option value="delivered">تم التوصيل</option>
+                    <option value="cancelled">ملغي</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Items editing (Quantity & Custom Print Option) */}
+              <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>
+                  📦 عناصر الطلب والطباعة المخصصة:
+                </div>
+                {(editFormData.items || []).map((it: any, i: number) => {
+                  const cpVal = it.options?.custom_print || 'no';
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', background: '#ffffff', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>{it.productName}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                          <span style={{ fontSize: '0.78rem', color: '#64748b' }}>نوع الطباعة:</span>
+                          <select
+                            value={cpVal}
+                            onChange={(e) => {
+                              const newItems = [...editFormData.items];
+                              newItems[i].options = { ...(newItems[i].options || {}), custom_print: e.target.value };
+                              setEditFormData({ ...editFormData, items: newItems });
+                            }}
+                            style={{ padding: '3px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }}
+                          >
+                            <option value="no">تصميم افتراضي (650 ج)</option>
+                            <option value="yes">طباعة مخصصة (800 ج)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <label style={{ fontSize: '0.78rem', color: '#64748b' }}>الكمية:</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={it.quantity || 1}
+                          onChange={(e) => {
+                            const newItems = [...editFormData.items];
+                            newItems[i].quantity = Math.max(1, Number(e.target.value) || 1);
+                            setEditFormData({ ...editFormData, items: newItems });
+                          }}
+                          style={{ width: '55px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Custom Print Details Box */}
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0369a1' }}>
+                  🎨 بيانات الطباعة المخصصة
+                </span>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0369a1', marginBottom: '4px' }}>
+                    النص المطلوب طباعته
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.customPrintText || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, customPrintText: e.target.value })}
+                    placeholder="مثال: اسم المحل أو الشعار"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '0.88rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0369a1', marginBottom: '4px' }}>
+                    ملاحظات الطباعة المخصصة
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.customPrintNotes || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, customPrintNotes: e.target.value })}
+                    placeholder="أي ملاحظات خاصة بالتصميم..."
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '0.88rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0369a1', marginBottom: '4px' }}>
+                    رابط صورة التصميم / الشعار
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.customPrintImageUrl || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, customPrintImageUrl: e.target.value })}
+                    placeholder="https://res.cloudinary.com/..."
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '0.88rem' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  ملاحظات عامة على الطلب
+                </label>
+                <textarea
+                  rows={2}
+                  value={editFormData.notes || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem', fontFamily: 'inherit' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingOrder(null)}
+                  style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  style={{ padding: '8px 22px', borderRadius: '8px', border: 'none', background: '#0284c7', color: '#ffffff', fontWeight: 800, cursor: savingEdit ? 'not-allowed' : 'pointer' }}
+                >
+                  {savingEdit ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

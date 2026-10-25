@@ -675,7 +675,7 @@ export const AdminWebsiteContentPage: React.FC = () => {
                   type="text"
                   value={content.hero?.badgePrice || ''}
                   onChange={(e) => updateNested('hero', 'badgePrice', e.target.value)}
-                  placeholder="450 جنيه"
+                  placeholder="650 جنيه"
                   style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
                 />
               </div>
