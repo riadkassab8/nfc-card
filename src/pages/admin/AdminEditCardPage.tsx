@@ -239,14 +239,13 @@ export const AdminEditCardPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [logoMode, setLogoMode] = useState<'upload' | 'url'>('upload');
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
   const updateBiz = (key: string, val: string) => {
     setBizData((prev) => ({ ...prev, [key]: val }));
   };
 
-  const addWhatsappContact = () => setWhatsappContacts((prev) => [...prev, { name: '', url: '' }]);
+  const addWhatsappContact = () => setWhatsappContacts((prev) => [...prev, { name: '', number: '' }]);
   const updateWhatsappContact = (index: number, field: keyof WhatsappContact, value: string) => {
     setWhatsappContacts((prev) => prev.map((contact, i) => i === index ? { ...contact, [field]: value } : contact));
   };
@@ -417,7 +416,7 @@ export const AdminEditCardPage: React.FC = () => {
 
       const whatsappLists = businessDataList.map((businessData: any) => JSON.stringify(businessData.whatsapp_contacts || []));
       const commonWhatsappContacts = whatsappLists.every((value) => value === whatsappLists[0]) ? (businessDataList[0].whatsapp_contacts || []) : [];
-      setWhatsappContacts(commonWhatsappContacts.map((contact: any) => ({ name: contact.name || '', url: contact.url || '' })));
+      setWhatsappContacts(commonWhatsappContacts.map((contact: any) => ({ name: contact.name || '', number: (contact.number || (contact as any).url || '').replace(/[^0-9+]/g, '') })));
 
       // Check if all cards have enable_review_gate setting
       const reviewGateSettings = businessDataList.map((b: any) => b.enable_review_gate ?? true);
@@ -678,8 +677,8 @@ export const AdminEditCardPage: React.FC = () => {
 
     const loadedWhatsappContacts = Array.isArray(b.whatsapp_contacts)
       ? b.whatsapp_contacts
-      : (b.whatsapp ? [{ name: 'واتساب', url: b.whatsapp }] : []);
-    setWhatsappContacts(loadedWhatsappContacts.map((contact: any) => ({ name: contact.name || '', url: contact.url || '' })));
+      : (b.whatsapp ? [{ name: 'واتساب', number: b.whatsapp }] : []);
+    setWhatsappContacts(loadedWhatsappContacts.map((contact: any) => ({ name: contact.name || '', number: (contact.number || contact.url || '').replace(/^https?:\/\/wa\.me\//i, '').replace(/[^0-9+]/g, '') })));
 
     // Load multiple locations, with a backwards-compatible fallback for the old single map field.
     if (Array.isArray(b.locations)) {
@@ -980,7 +979,7 @@ export const AdminEditCardPage: React.FC = () => {
         hasBiz = true;
       }
 
-      const validWhatsappContacts = whatsappContacts.filter((contact) => contact.name.trim() && /^https?:\/\//i.test(contact.url.trim())).map((contact) => ({ name: contact.name.trim(), url: contact.url.trim() }));
+      const validWhatsappContacts = whatsappContacts.filter((contact) => contact.name.trim() && contact.number.trim()).map((contact) => ({ name: contact.name.trim(), number: contact.number.trim() }));
       if (validWhatsappContacts.length > 0) {
         (business as any).whatsapp_contacts = validWhatsappContacts;
         hasBiz = true;
@@ -1133,7 +1132,7 @@ export const AdminEditCardPage: React.FC = () => {
       }
     }
 
-    const validWhatsappContacts = whatsappContacts.filter((contact) => contact.name.trim() && /^https?:\/\//i.test(contact.url.trim())).map((contact) => ({ name: contact.name.trim(), url: contact.url.trim() }));
+    const validWhatsappContacts = whatsappContacts.filter((contact) => contact.name.trim() && contact.number.trim()).map((contact) => ({ name: contact.name.trim(), number: contact.number.trim() }));
     if (validWhatsappContacts.length > 0) {
       (business as any).whatsapp_contacts = validWhatsappContacts;
       hasBiz = true;
@@ -1141,7 +1140,7 @@ export const AdminEditCardPage: React.FC = () => {
 
     // Payment shifts packaging for backend
     let paymentShiftsList: PaymentShift[] | undefined = undefined;
-    if (template === 'mobile_shop') {
+    if (isShiftTemplate) {
       paymentShiftsList = shifts.map((s, index) => ({
         label: s.label.trim() || `شيفت ${index + 1}`,
         cashier_name: s.cashier_name.trim() || undefined,
@@ -1892,17 +1891,9 @@ export const AdminEditCardPage: React.FC = () => {
                     <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', margin: 0 }}>
                       شعار النشاط أو الصورة الشخصية (Logo)
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => setLogoMode(logoMode === 'upload' ? 'url' : 'upload')}
-                      style={{ background: 'none', border: 'none', color: 'var(--clr-primary-600)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
-                    >
-                      {logoMode === 'upload' ? '🔗 أو إدخال رابط خارجي (URL)' : '📁 أو رفع ملف من الجهاز'}
-                    </button>
                   </div>
 
-                  {logoMode === 'upload' ? (
-                    <div>
+                  <div>
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -1959,18 +1950,7 @@ export const AdminEditCardPage: React.FC = () => {
                           {uploadStatus}
                         </div>
                       )}
-                    </div>
-                  ) : (
-                    <input
-                      className="form-input"
-                      type="url"
-                      dir="ltr"
-                      value={bizData.logo || ''}
-                      onChange={(e) => updateBiz('logo', e.target.value)}
-                      placeholder="https://example.com/logo.png"
-                      style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
-                    />
-                  )}
+                  </div>
                 </div>
 
                 {/* Description */}
@@ -2081,7 +2061,7 @@ export const AdminEditCardPage: React.FC = () => {
                   {whatsappContacts.map((contact, index) => (
                     <div key={index} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr)) auto', gap: '10px', alignItems: 'end', backgroundColor: '#fff', border: '1px solid #dcfce7', borderRadius: '10px', padding: '12px' }}>
                       <div className="form-group"><label className="form-label" style={{ fontSize: '12px', fontWeight: 700 }}>اسم جهة الاتصال</label><input className="form-input" value={contact.name} onChange={(e) => updateWhatsappContact(index, 'name', e.target.value)} placeholder="مثال: خدمة العملاء" /></div>
-                      <div className="form-group"><label className="form-label" style={{ fontSize: '12px', fontWeight: 700 }}>رابط شات واتساب</label><input className="form-input" dir="ltr" type="url" value={contact.url} onChange={(e) => updateWhatsappContact(index, 'url', e.target.value)} placeholder="https://wa.me/201098277229" /></div>
+                      <div className="form-group"><label className="form-label" style={{ fontSize: '12px', fontWeight: 700 }}>رقم واتساب</label><input className="form-input" dir="ltr" type="tel" value={contact.number} onChange={(e) => updateWhatsappContact(index, 'number', e.target.value)} placeholder="201098277229" /></div>
                       <button type="button" onClick={() => removeWhatsappContact(index)} aria-label="حذف رقم واتساب" style={{ height: '38px', padding: '0 10px', border: '1px solid #fecaca', borderRadius: '8px', backgroundColor: '#fff', color: '#dc2626', cursor: 'pointer' }}><Trash2 size={15} /></button>
                     </div>
                   ))}
@@ -2192,6 +2172,7 @@ export const AdminEditCardPage: React.FC = () => {
             updateLocation={(id, field, value) => setLocations((prev) => prev.map((location) => location.id === id ? { ...location, [field]: value } : location))}
             addLocation={addLocation}
             removeLocation={removeLocation}
+            onLogoFile={handleLogoFile}
           />
         )}
 
@@ -2894,3 +2875,5 @@ export const AdminEditCardPage: React.FC = () => {
 };
 
 export default AdminEditCardPage;
+
+

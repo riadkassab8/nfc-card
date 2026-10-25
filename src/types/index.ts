@@ -230,7 +230,7 @@ export interface PaymentShiftFormItem {
 
 export interface WhatsappContact {
   name: string;
-  url: string;
+  number: string;
 }
 
 export interface BusinessData {

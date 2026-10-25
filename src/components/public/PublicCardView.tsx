@@ -311,7 +311,15 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   // 1. SOCIAL MEDIA (الشبكات الاجتماعية)
   // ═══════════════════════════════════════════════════════════
   const whatsappContacts = Array.isArray(biz?.whatsapp_contacts)
-    ? biz.whatsapp_contacts.filter((contact) => contact?.name?.trim() && contact?.url?.trim())
+    ? biz.whatsapp_contacts
+        .map((contact) => {
+          const value = contact?.number?.trim() || (contact as any)?.url?.trim() || '';
+          const url = /^https?:\/\//i.test(value)
+            ? value
+            : `https://wa.me/${value.replace(/\D/g, '')}`;
+          return { ...contact, url };
+        })
+        .filter((contact) => contact?.name?.trim() && contact.url !== 'https://wa.me/')
     : [];
   if (whatsappContacts.length > 0) {
     whatsappContacts.forEach((contact, index) => {

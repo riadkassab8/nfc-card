@@ -1,5 +1,5 @@
 import React from 'react';
-import { Instagram, MapPin, Phone, Plus, Star, Trash2, Utensils, Video } from 'lucide-react';
+import { Instagram, MapPin, Phone, Plus, Star, Trash2, Utensils, Video, UploadCloud } from 'lucide-react';
 
 export interface RestaurantLocationFormItem {
   id: string;
@@ -14,12 +14,13 @@ interface Props {
   updateLocation: (id: string, field: 'name' | 'google_maps_url', value: string) => void;
   addLocation: () => void;
   removeLocation: (id: string) => void;
+  onLogoFile: (file: File) => void;
 }
 
 const fieldStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6 };
 const inputStyle: React.CSSProperties = { width: '100%', padding: '11px 12px', border: '1px solid #dfe7e1', borderRadius: 11, background: '#fff', color: '#304039', fontFamily: 'inherit', fontSize: 13, outline: 'none' };
 
-export const RestaurantMenuFormStep: React.FC<Props> = ({ data, updateData, locations, updateLocation, addLocation, removeLocation }) => (
+export const RestaurantMenuFormStep: React.FC<Props> = ({ data, updateData, locations, updateLocation, addLocation, removeLocation, onLogoFile }) => (
   <section dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 18, background: '#fff', border: '1px solid #dfe7e1', borderRadius: 20, padding: '22px 24px', boxShadow: '0 8px 24px rgba(54,77,65,.05)' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 14, borderBottom: '1px solid #eef2ef' }}>
       <div style={{ width: 42, height: 42, borderRadius: 13, background: '#e5efe8', color: '#527462', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Utensils size={21} /></div>
@@ -28,7 +29,14 @@ export const RestaurantMenuFormStep: React.FC<Props> = ({ data, updateData, loca
 
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
       <label style={fieldStyle}><span style={{ fontWeight: 800, fontSize: 12.5 }}>اسم المطعم أو الكافيه *</span><input style={inputStyle} value={data.business_name || ''} onChange={(e) => updateData('business_name', e.target.value)} placeholder="مثال: صُحبة كافيه" /></label>
-      <label style={fieldStyle}><span style={{ fontWeight: 800, fontSize: 12.5 }}>رابط الشعار</span><input dir="ltr" style={inputStyle} value={data.logo || ''} onChange={(e) => updateData('logo', e.target.value)} placeholder="https://.../logo.png" /></label>
+      <div style={fieldStyle}>
+        <span style={{ fontWeight: 800, fontSize: 12.5 }}>شعار المطعم أو الكافيه</span>
+        <label style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', minHeight: 44, boxSizing: 'border-box' }}>
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={(e) => { if (e.target.files?.[0]) onLogoFile(e.target.files[0]); }} style={{ display: 'none' }} />
+          {data.logo ? <img src={data.logo} alt="معاينة الشعار" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover' }} /> : <UploadCloud size={20} color="#668878" />}
+          <span style={{ color: '#668878', fontSize: 12 }}>{data.logo ? 'تغيير صورة الشعار' : 'اضغط لاختيار صورة الشعار'}</span>
+        </label>
+      </div>
       <label style={{ ...fieldStyle, gridColumn: '1 / -1' }}><span style={{ fontWeight: 800, fontSize: 12.5 }}>الوصف المختصر</span><textarea style={{ ...inputStyle, minHeight: 76, resize: 'vertical' }} value={data.description || ''} onChange={(e) => updateData('description', e.target.value)} placeholder="اكتب وصفًا قصيرًا يعبّر عن تجربة المكان والطعام..." /></label>
     </div>
 
@@ -45,7 +53,7 @@ export const RestaurantMenuFormStep: React.FC<Props> = ({ data, updateData, loca
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}>
         <label style={fieldStyle}><span style={{ fontSize: 12, fontWeight: 700 }}>رقم الحجز والاتصال</span><input dir="ltr" style={inputStyle} value={data.phone || ''} onChange={(e) => updateData('phone', e.target.value)} placeholder="01000000000" /></label>
         <label style={fieldStyle}><span style={{ fontSize: 12, fontWeight: 700 }}>رابط واتساب الحجز</span><input dir="ltr" style={inputStyle} value={data.whatsapp || ''} onChange={(e) => updateData('whatsapp', e.target.value)} placeholder="https://wa.me/201..." /></label>
-        <label style={fieldStyle}><span style={{ fontSize: 12, fontWeight: 700 }}>الموقع الرئيسي</span><input dir="ltr" style={inputStyle} value={data.google_maps || ''} onChange={(e) => updateData('google_maps', e.target.value)} placeholder="https://maps.app.goo.gl/..." /></label>
+        <label style={fieldStyle}><span style={{ fontSize: 12, fontWeight: 700 }}>الموقع على الخريطة</span><input dir="ltr" style={inputStyle} value={data.google_maps || ''} onChange={(e) => updateData('google_maps', e.target.value)} placeholder="https://maps.app.goo.gl/..." /></label>
         <label style={fieldStyle}><span style={{ fontSize: 12, fontWeight: 700 }}>رابط تقييم Google</span><input dir="ltr" style={inputStyle} value={data.google_review_url || ''} onChange={(e) => updateData('google_review_url', e.target.value)} placeholder="https://g.page/r/.../review" /></label>
       </div>
     </div>

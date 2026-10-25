@@ -309,11 +309,11 @@ export const AdminAddCardPage: React.FC = () => {
 
   const [whatsappContacts, setWhatsappContacts] = useState<WhatsappContact[]>(() => {
     if (editCard?.business_data?.whatsapp_contacts?.length) {
-      return editCard.business_data.whatsapp_contacts.map((contact) => ({ name: contact.name || '', url: contact.url || '' }));
+      return editCard.business_data.whatsapp_contacts.map((contact) => ({ name: contact.name || '', number: (contact.number || (contact as any).url || '').replace(/^https?:\/\/wa\.me\//i, '').replace(/[^0-9+]/g, '') }));
     }
     const legacy = editCard?.business_data?.whatsapp || '';
     const number = legacy.match(/wa\.me\/(\+?\d+)/i)?.[1] || '';
-    return number ? [{ name: 'واتساب', url: `https://wa.me/${number.replace(/^\+/, '')}` }] : [];
+    return number ? [{ name: 'واتساب', number: number.replace(/^\+/, '') }] : [];
   });
 
   /* Multiple Locations state */
@@ -352,7 +352,7 @@ export const AdminAddCardPage: React.FC = () => {
 
   const [autoCode, setAutoCode] = useState(!editCard);
 
-  const addWhatsappContact = () => setWhatsappContacts((prev) => [...prev, { name: '', url: '' }]);
+  const addWhatsappContact = () => setWhatsappContacts((prev) => [...prev, { name: '', number: '' }]);
   const updateWhatsappContact = (index: number, field: keyof WhatsappContact, value: string) => {
     setWhatsappContacts((prev) => prev.map((contact, i) => i === index ? { ...contact, [field]: value } : contact));
   };
@@ -371,7 +371,7 @@ export const AdminAddCardPage: React.FC = () => {
         setRequiresSubscription(card.requires_subscription ?? true);
           setTemplate(card.template || 'default');
 
-          setWhatsappContacts((card.business_data?.whatsapp_contacts || []).map((contact) => ({ name: contact.name || '', url: contact.url || '' })));
+          setWhatsappContacts((card.business_data?.whatsapp_contacts || []).map((contact) => ({ name: contact.name || '', number: (contact.number || (contact as any).url || '').replace(/^https?:\/\/wa\.me\//i, '').replace(/[^0-9+]/g, '') })));
         
         if (card.business_data) {
           setBizData((prev) => ({
@@ -430,7 +430,6 @@ export const AdminAddCardPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [logoMode, setLogoMode] = useState<'upload' | 'url'>('upload');
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
   const handleLogoFile = async (file: File) => {
@@ -764,8 +763,8 @@ export const AdminAddCardPage: React.FC = () => {
       }
 
       const validWhatsappContacts = whatsappContacts
-        .filter((contact) => contact.name.trim() && /^https?:\/\//i.test(contact.url.trim()))
-        .map((contact) => ({ name: contact.name.trim(), url: contact.url.trim() }));
+        .filter((contact) => contact.name.trim() && contact.number.trim())
+        .map((contact) => ({ name: contact.name.trim(), number: contact.number.trim() }));
       if (validWhatsappContacts.length > 0) {
         (business as any).whatsapp_contacts = validWhatsappContacts;
         hasBiz = true;
@@ -1632,17 +1631,9 @@ export const AdminAddCardPage: React.FC = () => {
                     <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', margin: 0 }}>
                       شعار النشاط أو الصورة الشخصية (Logo)
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => setLogoMode(logoMode === 'upload' ? 'url' : 'upload')}
-                      style={{ background: 'none', border: 'none', color: 'var(--clr-primary-600)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
-                    >
-                      {logoMode === 'upload' ? '🔗 أو إدخال رابط خارجي (URL)' : '📁 أو رفع ملف من الجهاز'}
-                    </button>
                   </div>
 
-                  {logoMode === 'upload' ? (
-                    <div>
+                  <div>
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -1699,18 +1690,7 @@ export const AdminAddCardPage: React.FC = () => {
                           {uploadStatus}
                         </div>
                       )}
-                    </div>
-                  ) : (
-                    <input
-                      className="form-input"
-                      type="url"
-                      dir="ltr"
-                      value={bizData.logo || ''}
-                      onChange={(e) => updateBiz('logo', e.target.value)}
-                      placeholder="https://example.com/logo.png"
-                      style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
-                    />
-                  )}
+                  </div>
                 </div>
 
                 {/* Description */}
@@ -1807,7 +1787,7 @@ export const AdminAddCardPage: React.FC = () => {
                   {whatsappContacts.map((contact, index) => (
                     <div key={index} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr)) auto', gap: '10px', alignItems: 'end', backgroundColor: '#fff', border: '1px solid #dcfce7', borderRadius: '10px', padding: '12px' }}>
                       <div className="form-group"><label className="form-label" style={{ fontSize: '12px', fontWeight: 700 }}>اسم جهة الاتصال</label><input className="form-input" value={contact.name} onChange={(e) => updateWhatsappContact(index, 'name', e.target.value)} placeholder="مثال: خدمة العملاء" /></div>
-                      <div className="form-group"><label className="form-label" style={{ fontSize: '12px', fontWeight: 700 }}>رابط شات واتساب</label><input className="form-input" dir="ltr" type="url" value={contact.url} onChange={(e) => updateWhatsappContact(index, 'url', e.target.value)} placeholder="https://wa.me/201098277229" /></div>
+                      <div className="form-group"><label className="form-label" style={{ fontSize: '12px', fontWeight: 700 }}>رقم واتساب</label><input className="form-input" dir="ltr" type="tel" value={contact.number} onChange={(e) => updateWhatsappContact(index, 'number', e.target.value)} placeholder="201098277229" /></div>
                       <button type="button" onClick={() => removeWhatsappContact(index)} aria-label="حذف رقم واتساب" style={{ height: '38px', padding: '0 10px', border: '1px solid #fecaca', borderRadius: '8px', backgroundColor: '#fff', color: '#dc2626', cursor: 'pointer' }}><Trash2 size={15} /></button>
                     </div>
                   ))}
@@ -1965,6 +1945,7 @@ export const AdminAddCardPage: React.FC = () => {
             updateLocation={(id, field, value) => setLocations((prev) => prev.map((location) => location.id === id ? { ...location, [field]: value } : location))}
             addLocation={addLocation}
             removeLocation={removeLocation}
+            onLogoFile={handleLogoFile}
           />
         )}
 
@@ -2770,3 +2751,5 @@ export const AdminAddCardPage: React.FC = () => {
 };
 
 export default AdminAddCardPage;
+
+
