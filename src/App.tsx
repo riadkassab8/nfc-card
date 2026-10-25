@@ -27,6 +27,7 @@ import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminUserLogsPage } from './pages/admin/AdminUserLogsPage';
 import { PublicCardLandingPage } from './pages/PublicCardLandingPage';
 import { SocialPage } from './pages/SocialPage';
+import { GymTemplatePreviewPage } from './pages/GymTemplatePreviewPage';
 
 import { MerchantShell } from './components/merchant/MerchantShell';
 import { MerchantOverviewPage } from './pages/merchant/MerchantOverviewPage';
@@ -58,6 +59,7 @@ export const App: React.FC = () => (
         {/* ── Public card routes (no auth) ── */}
         <Route path="/social/:publicCode" element={<SocialPage />} />
         <Route path="/r/:publicCode" element={<PublicCardLandingPage />} />
+        <Route path="/gym-preview" element={<GymTemplatePreviewPage />} />
 
         {/* ── Admin routes (protected) ── */}
         <Route

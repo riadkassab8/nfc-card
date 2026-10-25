@@ -106,6 +106,7 @@ Create a new card. `subscription_end_date` is auto-set to **1 year from today**.
   "card_code": "CARD-0001",
   "nfc_uid": "NFC-7FJ2K9",
   "card_type": "Google Review",
+  "template": "gym",
   "current_redirect_url": "https://g.page/r/YOUR_REVIEW_LINK",
   "category_id": "64f1a2b3c4d5e6f7a8b9c0d5",
   "business_data": {
@@ -133,6 +134,7 @@ Create a new card. `subscription_end_date` is auto-set to **1 year from today**.
 | `current_redirect_url` | ✅ Yes   | Must be a valid URL (http/https)                    |
 | `category_id`          | ✅ Yes   | Valid MongoDB ObjectId of an existing category      |
 | `business_data`        | ❌ No    | Object — see `business_data` fields table below     |
+| `template`             | ❌ No    | `gym` selects the dedicated Gym & Fitness card page |
 
 **Card Types:**
 
@@ -151,6 +153,7 @@ Create a new card. `subscription_end_date` is auto-set to **1 year from today**.
 | Field           | Type   | Validation    | Description               |
 |-----------------|--------|---------------|---------------------------|
 | `business_name` | String | Max 120 chars | Brand / business name     |
+| `welcome_message` | String | Max 80 chars | Editable welcome text shown above the business name |
 | `logo`          | String | Valid URL     | Logo image URL            |
 | `description`   | String | Max 500 chars | Short description         |
 | `phone`         | String | —             | Contact phone number      |
@@ -161,6 +164,13 @@ Create a new card. `subscription_end_date` is auto-set to **1 year from today**.
 | `google_maps`   | String | Valid URL     | Google Maps place URL     |
 | `website`       | String | Valid URL     | Business website URL      |
 | `email`         | String | Valid email   | Contact email address     |
+| `gym_tagline`       | String | Optional     | Gym hero headline / tagline |
+| `gym_cover_image`   | String | Optional URL | Gym page cover image |
+| `gym_opening_hours` | String | Optional     | Public gym opening hours |
+| `gym_services`      | Array  | Optional     | `{ title, description }` service cards |
+| `gym_plans`         | Array  | Optional     | `{ name, price, period, features }` memberships |
+| `gym_trainers`      | Array  | Optional     | `{ name, specialty, bio, photo_url }` trainer profiles |
+| `gym_classes`       | Array  | Optional     | `{ name, schedule, trainer }` group classes |
 
 **Success Response — `201 Created`:** Returns the full card object (see shape in `GET /api/cards`).
 

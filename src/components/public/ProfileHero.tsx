@@ -4,6 +4,7 @@ import { ApiCard } from '../../types';
 export const ProfileHero: React.FC<{ card: ApiCard }> = ({ card }) => {
   const biz = card.business_data;
   const bizName = biz?.business_name || card.card_code;
+  const welcomeMessage = biz?.welcome_message?.trim() || 'أهلاً بكم في';
 
   const initials = bizName
     .split(' ')
@@ -72,7 +73,7 @@ export const ProfileHero: React.FC<{ card: ApiCard }> = ({ card }) => {
       </div>
 
       <div style={{ color: 'var(--theme-accent, #A68250)', fontSize: '1rem', fontWeight: 600, marginBottom: '8px' }}>
-        أهلاً بكم في
+        {welcomeMessage}
       </div>
 
       <h1 style={{

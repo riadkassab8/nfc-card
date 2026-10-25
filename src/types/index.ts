@@ -233,8 +233,34 @@ export interface WhatsappContact {
   number: string;
 }
 
+export interface GymService {
+  title: string;
+  description?: string;
+}
+
+export interface GymMembershipPlan {
+  name: string;
+  price?: string;
+  period?: string;
+  features?: string;
+}
+
+export interface GymTrainer {
+  name: string;
+  specialty?: string;
+  bio?: string;
+  photo_url?: string;
+}
+
+export interface GymClass {
+  name: string;
+  schedule?: string;
+  trainer?: string;
+}
+
 export interface BusinessData {
   business_name?: string | null;
+  welcome_message?: string | null;
   logo?: string | null;
   description?: string | null;
   wifi_ssid?: string | null;
@@ -261,6 +287,13 @@ export interface BusinessData {
   google_review_url?: string | null;
   enable_review_gate?: boolean | null;
   locations?: Array<{ name: string; google_maps_url: string }> | null;
+  gym_tagline?: string | null;
+  gym_cover_image?: string | null;
+  gym_opening_hours?: string | null;
+  gym_services?: GymService[] | null;
+  gym_plans?: GymMembershipPlan[] | null;
+  gym_trainers?: GymTrainer[] | null;
+  gym_classes?: GymClass[] | null;
 }
 
 // ── Card Types ────────────────────────────────────────────────────────────

@@ -1,8 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ArrowLeft,
+  ArrowUpRight,
+  Check,
   ChevronLeft,
   Clock3,
+  Copy,
   Coffee,
   Facebook,
   Globe2,
@@ -10,12 +13,14 @@ import {
   MapPin,
   MessageCircle,
   Phone,
+  PhoneCall,
   ShoppingBag,
   Star,
   Utensils,
   Video,
 } from 'lucide-react';
 import { ApiSocialPageResponse, BusinessData, PaymentShift } from '../../types';
+import { InstaPayIcon, VodafoneCashIcon } from './BrandIcons';
 
 interface Props {
   data: ApiSocialPageResponse;
@@ -32,6 +37,7 @@ const phoneHref = (value?: string | null) => {
 };
 
 export const RestaurantCafeTemplate: React.FC<Props> = ({ data }) => {
+  const [copiedPayment, setCopiedPayment] = useState<string | null>(null);
   const biz: BusinessData = data.business_data || {};
   const shifts = useMemo<PaymentShift[]>(
     () => (data.payment_shifts || []).filter((item) => item.is_active !== false),
@@ -40,6 +46,30 @@ export const RestaurantCafeTemplate: React.FC<Props> = ({ data }) => {
   const hasMenu = Boolean(biz.offers_url || biz.website);
   const primaryPhone = biz.phone || biz.phone1 || biz.phone2 || biz.phone3;
   const locations = biz.locations || [];
+  const paymentRows = shifts
+    .filter((shift) => shift.instapay?.trim() || shift.vodafone_cash?.trim())
+    .map((shift) => ({ label: shift.label, instapay: shift.instapay?.trim() || '', vodafone_cash: shift.vodafone_cash?.trim() || '' }));
+  const payments = paymentRows.length > 0
+    ? paymentRows
+    : [{ label: 'وسائل الدفع', instapay: biz.instapay?.trim() || '', vodafone_cash: biz.vodafone_cash?.trim() || '' }];
+  const hasPayments = payments.some((payment) => payment.instapay || payment.vodafone_cash);
+  const getInstaPayUrl = (value: string) => {
+    if (/^https?:\/\//i.test(value)) return value;
+    return `https://ipn.eg/S/${encodeURIComponent(value)}/instapay`;
+  };
+  const getInstaPayDisplay = (value: string) => {
+    const match = value.match(/ipn\.eg\/S\/([^/]+)\/instapay/i);
+    return match?.[1] ? `${match[1]}@instapay` : value.replace(/^https?:\/\//i, '');
+  };
+  const copyPayment = async (value: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedPayment(key);
+      window.setTimeout(() => setCopiedPayment(null), 1800);
+    } catch {
+      // Clipboard can be unavailable on non-secure pages; keep the button harmless.
+    }
+  };
   const socialLinks = [
     { label: 'Instagram', href: biz.instagram, icon: <Instagram size={18} /> },
     { label: 'Facebook', href: biz.facebook, icon: <Facebook size={18} /> },
@@ -105,7 +135,7 @@ export const RestaurantCafeTemplate: React.FC<Props> = ({ data }) => {
         </section>
 
         <nav className="restaurant-nav" aria-label="التنقل داخل الصفحة">
-          <button onClick={() => scrollTo('restaurant-menu')}>المنيو والعروض</button><button onClick={() => scrollTo('restaurant-hours')}>مواعيد العمل</button><button onClick={() => scrollTo('restaurant-locations')}>الفروع</button><button onClick={() => scrollTo('restaurant-contact')}>تواصل معنا</button>
+          <button onClick={() => scrollTo('restaurant-menu')}>المنيو والعروض</button><button onClick={() => scrollTo('restaurant-hours')}>مواعيد العمل</button>{hasPayments && <button onClick={() => scrollTo('restaurant-payments')}>وسائل الدفع</button>}<button onClick={() => scrollTo('restaurant-locations')}>الفروع</button><button onClick={() => scrollTo('restaurant-contact')}>تواصل معنا</button>
         </nav>
 
         <section id="restaurant-menu" className="restaurant-section">
@@ -122,6 +152,23 @@ export const RestaurantCafeTemplate: React.FC<Props> = ({ data }) => {
           <div className="restaurant-section-heading"><h2>مواعيد العمل</h2><span>{openNow ? 'نستقبلكم الآن' : 'نتشرف بزيارتكم'}</span></div>
           <div className="restaurant-hours">{shifts.length ? shifts.map((shift, index) => <div className="restaurant-hour-row" key={`${shift.label}-${index}`}><strong><Clock3 size={14} style={{ verticalAlign: 'middle', marginLeft: 5 }} />{shift.label || `الفترة ${index + 1}`}</strong><span className={openNow ? 'restaurant-open' : ''}>{shift.hour_from != null ? `${shift.hour_from} ${shift.period_from === 'pm' ? 'م' : 'ص'} — ${shift.hour_to} ${shift.period_to === 'pm' ? 'م' : 'ص'}` : 'يرجى التواصل معنا'}</span></div>) : <div className="restaurant-hour-row"><strong>مفتوحين لخدمتكم</strong><span>اتصل بنا لمعرفة المواعيد</span></div>}</div>
         </section>
+
+        {hasPayments && <section className="restaurant-section" id="restaurant-payments">
+          <div className="restaurant-section-heading"><h2>الدفع والتحويل اللحظي</h2><span style={{ color: '#10b981' }}>تحويل فوري ومباشر</span></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {payments.map((payment, index) => <div key={`${payment.label}-${index}`} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {payments.length > 1 && <strong style={{ color: '#40594d', fontSize: 12 }}>{payment.label || `الفترة ${index + 1}`}</strong>}
+              {payment.instapay && <div style={{ background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)', borderRadius: 22, padding: '18px 20px', color: '#fff', boxShadow: '0 10px 25px -4px rgba(75,85,99,.25)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><InstaPayIcon size={46} style={{ borderRadius: 12, boxShadow: '0 4px 10px rgba(0,0,0,.15)' }} /><div><div style={{ fontSize: 12, color: '#e5e7eb', fontWeight: 600 }}>حساب إنستاباي المعتمد</div><div dir="ltr" style={{ fontSize: 16, fontWeight: 800, color: '#fff', textAlign: 'right', fontFamily: 'monospace, sans-serif' }}>{getInstaPayDisplay(payment.instapay)}</div></div></div><span style={{ background: 'rgba(255,255,255,.14)', borderRadius: 8, padding: '3px 8px', fontSize: 11, fontWeight: 700 }}>فوري مجاناً</span></div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}><button type="button" onClick={() => copyPayment(getInstaPayDisplay(payment.instapay), `insta-${payment.label}-${index}`)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 10px', borderRadius: 12, background: copiedPayment === `insta-${payment.label}-${index}` ? '#10b981' : '#fff', color: copiedPayment === `insta-${payment.label}-${index}` ? '#fff' : '#4b5563', border: 'none', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>{copiedPayment === `insta-${payment.label}-${index}` ? <><Check size={16} /> تم النسخ!</> : <><Copy size={16} /> نسخ المعرف</>}</button><a href={getInstaPayUrl(payment.instapay)} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 10px', borderRadius: 12, background: 'rgba(255,255,255,.16)', color: '#fff', textDecoration: 'none', fontSize: 12.5, fontWeight: 700, border: '1px solid rgba(255,255,255,.25)' }}><ArrowUpRight size={16} /> فتح إنستاباي</a></div>
+              </div>}
+              {payment.vodafone_cash && <div style={{ background: 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)', borderRadius: 22, padding: '18px 20px', color: '#fff', boxShadow: '0 10px 25px -4px rgba(107,114,128,.25)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><VodafoneCashIcon size={46} style={{ borderRadius: 12, boxShadow: '0 4px 10px rgba(0,0,0,.15)' }} /><div><div style={{ fontSize: 12, color: '#e5e7eb', fontWeight: 600 }}>محفظة فودافون كاش المعتمدة</div><div dir="ltr" style={{ fontSize: 18, fontWeight: 800, color: '#fff', textAlign: 'right', fontFamily: 'monospace, sans-serif' }}>{payment.vodafone_cash}</div></div></div><span style={{ background: 'rgba(255,255,255,.16)', borderRadius: 8, padding: '3px 8px', fontSize: 11, fontWeight: 700 }}>كاش فوري</span></div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}><button type="button" onClick={() => copyPayment(payment.vodafone_cash, `vodafone-${payment.label}-${index}`)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 10px', borderRadius: 12, background: copiedPayment === `vodafone-${payment.label}-${index}` ? '#10b981' : '#fff', color: copiedPayment === `vodafone-${payment.label}-${index}` ? '#fff' : '#b80000', border: 'none', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>{copiedPayment === `vodafone-${payment.label}-${index}` ? <><Check size={16} /> تم النسخ!</> : <><Copy size={16} /> نسخ الرقم</>}</button><a href={phoneHref(payment.vodafone_cash)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 10px', borderRadius: 12, background: 'rgba(255,255,255,.18)', color: '#fff', textDecoration: 'none', fontSize: 12.5, fontWeight: 700, border: '1px solid rgba(255,255,255,.25)' }}><PhoneCall size={16} /> اتصال / تحويل</a></div>
+              </div>}
+            </div>)}
+          </div>
+        </section>}
 
         {locations.length > 0 && <section id="restaurant-locations" className="restaurant-section"><div className="restaurant-section-heading"><h2>زورنا في أقرب فرع</h2><span>{locations.length} فروع</span></div><div className="restaurant-hours">{locations.map((location, index) => <a className="restaurant-location" href={normalizeUrl(location.google_maps_url)} target="_blank" rel="noreferrer" key={`${location.name}-${index}`}><span className="restaurant-location-name"><MapPin className="restaurant-info-icon" size={20} /><span>{location.name}<small>الموقع على خرائط Google</small></span></span><span className="restaurant-link">الاتجاهات <ChevronLeft size={14} /></span></a>)}</div></section>}
 

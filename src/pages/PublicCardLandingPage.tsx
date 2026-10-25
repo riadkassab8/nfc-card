@@ -11,6 +11,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { cardsApi } from '../services';
 import { ApiCard, BusinessData } from '../types';
 import { PublicCardView } from '../components/public/PublicCardView';
+import { GymTemplate } from '../components/public/GymTemplate';
 import { AlertCircle, RefreshCw, ArrowRight } from 'lucide-react';
 
 type State = 'loading' | 'ok' | 'not_found' | 'error';
@@ -78,7 +79,7 @@ export const PublicCardLandingPage: React.FC = () => {
       if (biz.instapay?.trim()) links.push(biz.instapay.trim());
       if (biz.vodafone_cash?.trim()) links.push(`tel:${biz.vodafone_cash.trim()}`);
 
-      if (links.length === 1) {
+      if (links.length === 1 && res.template !== 'gym') {
         window.location.replace(links[0]);
         return;
       }
@@ -114,7 +115,12 @@ export const PublicCardLandingPage: React.FC = () => {
 
   useEffect(() => { load(); }, [code]);
 
-  if (state === 'ok' && card) return <PublicCardView card={card} />;
+  if (state === 'ok' && card) {
+    if (card.template === 'gym') {
+      return <GymTemplate data={{ card_code: card.card_code, custom_slug: card.custom_slug, card_type: card.card_type, template: 'gym', business_data: card.business_data || null }} />;
+    }
+    return <PublicCardView card={card} />;
+  }
 
   return (
     <div dir="rtl" style={{ minHeight: '100vh', backgroundColor: '#f5f4f1', backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(226, 232, 240, 0.4) 0%, #f5f4f1 60%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Tajawal, sans-serif' }}>

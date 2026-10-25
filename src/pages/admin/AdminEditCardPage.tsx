@@ -4,8 +4,11 @@ import Swal from 'sweetalert2';
 import { cardsApi } from '../../services/api/cardsApi';
 import { categoriesApi } from '../../services/api/categoriesApi';
 import { customersApi } from '../../services/api/customersApi';
+import { websiteApi } from '../../services/api/websiteApi';
 import { SelectCustomerModal } from '../../components/admin/SelectCustomerModal';
 import { RestaurantMenuFormStep } from '../../components/admin/RestaurantMenuFormStep';
+import { GymTemplateDataStep } from '../../components/admin/GymTemplateDataStep';
+import { appendGymLists, serializeGymList } from '../../utils/gymTemplate';
 import {
   ApiCategory,
   ApiCustomer,
@@ -45,6 +48,7 @@ import {
   Clock,
   Store,
   Star,
+  Dumbbell,
   Edit2,
   Building2,
   ChevronLeft,
@@ -200,6 +204,7 @@ export const AdminEditCardPage: React.FC = () => {
   /* Business data state */
   const [bizData, setBizData] = useState<Record<string, string>>({
     business_name: '',
+    welcome_message: '',
     logo: '',
     description: '',
     wifi_ssid: '',
@@ -223,6 +228,13 @@ export const AdminEditCardPage: React.FC = () => {
     offers_url: '',
     telegram_group: '',
     google_review_url: '',
+    gym_tagline: '',
+    gym_cover_image: '',
+    gym_opening_hours: '',
+    gym_services: '[]',
+    gym_plans: '[]',
+    gym_trainers: '[]',
+    gym_classes: '[]',
   });
 
   const [whatsappContacts, setWhatsappContacts] = useState<WhatsappContact[]>([]);
@@ -238,6 +250,7 @@ export const AdminEditCardPage: React.FC = () => {
   /* Logo upload state & handlers */
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [gymImagesUploading, setGymImagesUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
@@ -357,6 +370,12 @@ export const AdminEditCardPage: React.FC = () => {
     }
   };
 
+  const handleGymImageFile = async (file: File): Promise<string> => {
+    const uploaded = await websiteApi.uploadMedia(file);
+    if (!uploaded?.url) throw new Error('تعذر استلام رابط الصورة بعد الرفع');
+    return uploaded.url;
+  };
+
   /* Initialize form for bulk edit mode - populate common data from cards */
   const initializeFormForBulkMode = useCallback((cards: ApiCard[]) => {
     // Set current step to 2 for bulk mode (skip step 1)
@@ -389,6 +408,7 @@ export const AdminEditCardPage: React.FC = () => {
       // Populate business data with common values
       setBizData({
         business_name: getCommonValue('business_name'),
+        welcome_message: getCommonValue('welcome_message'),
         logo: getCommonValue('logo'),
         description: getCommonValue('description'),
         wifi_ssid: getCommonValue('wifi_ssid'),
@@ -650,6 +670,7 @@ export const AdminEditCardPage: React.FC = () => {
     setEnableReviewGate(b.enable_review_gate ?? true);
     setBizData({
       business_name: b.business_name || '',
+      welcome_message: b.welcome_message || '',
       logo: b.logo || '',
       description: b.description || '',
       wifi_ssid: b.wifi_ssid || '',
@@ -673,6 +694,13 @@ export const AdminEditCardPage: React.FC = () => {
       offers_url: b.offers_url || '',
       telegram_group: b.telegram_group || '',
       google_review_url: b.google_review_url || '',
+      gym_tagline: b.gym_tagline || '',
+      gym_cover_image: b.gym_cover_image || '',
+      gym_opening_hours: b.gym_opening_hours || '',
+      gym_services: serializeGymList(b.gym_services),
+      gym_plans: serializeGymList(b.gym_plans),
+      gym_trainers: serializeGymList(b.gym_trainers),
+      gym_classes: serializeGymList(b.gym_classes),
     });
 
     const loadedWhatsappContacts = Array.isArray(b.whatsapp_contacts)
@@ -816,14 +844,18 @@ export const AdminEditCardPage: React.FC = () => {
   const BUSINESS_PROFILE_CATEGORY_ID = '6ac46e143883b08344234133';
   const isShiftTemplate = template === 'mobile_shop' || template === 'restaurant_cafe';
   const isRestaurantTemplate = template === 'restaurant_cafe';
+  const isGymTemplate = template === 'gym';
   const shiftStep = 3;
   const reviewStep = 4;
   const visibleSteps = isRestaurantTemplate
     ? [STEPS[0], { id: 2, title: 'بيانات المطعم والمنيو', desc: 'الاسم، المنيو، الحجز والفروع', icon: <Utensils size={18} /> }, STEPS[2], STEPS[3]]
-    : STEPS;
+    : isGymTemplate
+      ? [STEPS[0], { id: 2, title: 'بيانات قالب الجيم', desc: 'الهوية، الخدمات، الباقات والمدربون', icon: <Dumbbell size={18} /> }, STEPS[2], STEPS[3]]
+      : STEPS;
   const isBusinessProfileCategory = Boolean(
     template === 'mobile_shop' ||
     template === 'restaurant_cafe' ||
+    template === 'gym' ||
     categoryId === BUSINESS_PROFILE_CATEGORY_ID ||
     categories.find((c) => c._id === categoryId && (c.name.includes('نشاط') || c.name.toLowerCase().includes('business')))
   );
@@ -875,6 +907,16 @@ export const AdminEditCardPage: React.FC = () => {
 
     if (stepNumber === 2 && isRestaurantTemplate && !bizData.business_name?.trim()) {
       Swal.fire({ icon: 'warning', title: 'اسم المطعم مطلوب', text: 'يرجى كتابة اسم المطعم أو الكافيه', confirmButtonColor: '#3b82f6' });
+      return false;
+    }
+
+    if (stepNumber === 2 && isGymTemplate && !bizData.business_name?.trim()) {
+      Swal.fire({ icon: 'warning', title: 'اسم الجيم مطلوب', text: 'يرجى كتابة اسم الجيم في خطوة بيانات قالب الجيم', confirmButtonColor: '#3b82f6' });
+      return false;
+    }
+
+    if (stepNumber === 2 && isGymTemplate && gymImagesUploading) {
+      Swal.fire({ icon: 'info', title: 'انتظر اكتمال رفع الصور', text: 'يتم رفع صورة الغلاف أو إحدى صور المدربين. أكمل بعد انتهاء الرفع.', confirmButtonColor: '#3b82f6' });
       return false;
     }
 
@@ -950,12 +992,14 @@ export const AdminEditCardPage: React.FC = () => {
       let hasBiz = false;
       
       for (const [k, v] of Object.entries(bizData)) {
-        if (k === 'wifi_security' || k === 'wifi_hidden') continue;
+        if (k === 'wifi_security' || k === 'wifi_hidden' || ['gym_services', 'gym_plans', 'gym_trainers', 'gym_classes'].includes(k)) continue;
         if (typeof v === 'string' && v.trim()) {
           (business as any)[k] = v.trim();
           hasBiz = true;
         }
       }
+
+      if (isGymTemplate) hasBiz = appendGymLists(business, bizData) || hasBiz;
 
       if (bizData.wifi_ssid?.trim() && bizData.wifi_password?.trim()) {
         (business as any).wifi_security = bizData.wifi_security || 'WPA';
@@ -982,6 +1026,11 @@ export const AdminEditCardPage: React.FC = () => {
       const validWhatsappContacts = whatsappContacts.filter((contact) => contact.name.trim() && contact.number.trim()).map((contact) => ({ name: contact.name.trim(), number: contact.number.trim() }));
       if (validWhatsappContacts.length > 0) {
         (business as any).whatsapp_contacts = validWhatsappContacts;
+        hasBiz = true;
+      }
+
+      if (hasBiz || bizData.welcome_message?.trim()) {
+        business.welcome_message = bizData.welcome_message?.trim() || '';
         hasBiz = true;
       }
 
@@ -1102,12 +1151,14 @@ export const AdminEditCardPage: React.FC = () => {
     let hasBiz = false;
     if (isBusinessProfileCategory) {
       for (const [k, v] of Object.entries(bizData)) {
-        if (k === 'wifi_security' || k === 'wifi_hidden') continue;
+        if (k === 'wifi_security' || k === 'wifi_hidden' || ['gym_services', 'gym_plans', 'gym_trainers', 'gym_classes'].includes(k)) continue;
         if (typeof v === 'string' && v.trim()) {
           (business as any)[k] = v.trim();
           hasBiz = true;
         }
       }
+
+      if (isGymTemplate) hasBiz = appendGymLists(business, bizData) || hasBiz;
 
       if (bizData.wifi_ssid?.trim() && bizData.wifi_password?.trim()) {
         (business as any).wifi_security = bizData.wifi_security || 'WPA';
@@ -1135,6 +1186,11 @@ export const AdminEditCardPage: React.FC = () => {
     const validWhatsappContacts = whatsappContacts.filter((contact) => contact.name.trim() && contact.number.trim()).map((contact) => ({ name: contact.name.trim(), number: contact.number.trim() }));
     if (validWhatsappContacts.length > 0) {
       (business as any).whatsapp_contacts = validWhatsappContacts;
+      hasBiz = true;
+    }
+
+    if (hasBiz || bizData.welcome_message?.trim()) {
+      business.welcome_message = bizData.welcome_message?.trim() || '';
       hasBiz = true;
     }
 
@@ -1550,6 +1606,25 @@ export const AdminEditCardPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Gym Template Option */}
+                <div
+                  onClick={() => setTemplate('gym')}
+                  style={{
+                    border: `2px solid ${template === 'gym' ? '#84cc16' : 'var(--bdr-light)'}`,
+                    backgroundColor: template === 'gym' ? '#f7fee7' : '#fff',
+                    borderRadius: '14px', padding: '16px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: '12px', transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: template === 'gym' ? '#84cc16' : '#f1f5f9', color: template === 'gym' ? '#17220c' : 'var(--txt-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Dumbbell size={20} /></div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '14px', color: template === 'gym' ? '#3f6212' : 'var(--txt-heading)' }}>الجيم واللياقة (Gym & Fitness)</span>
+                      {template === 'gym' && <CheckCircle2 size={16} style={{ color: '#65a30d' }} />}
+                    </div>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--txt-secondary)', lineHeight: '1.5' }}>خدمات وتجهيزات، عضويات وأسعار، مدربون، حصص جماعية ومواعيد.</p>
+                  </div>
+                </div>
+
                 {/* Dark Theme Template Option */}
                 <div
                   onClick={() => setTemplate('dark')}
@@ -1847,7 +1922,7 @@ export const AdminEditCardPage: React.FC = () => {
         )}
 
         {/* ── STEP 2: Business & Social Identity ─────────────────── */}
-        {currentStep === 2 && !isRestaurantTemplate && (
+        {currentStep === 2 && !isRestaurantTemplate && !isGymTemplate && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div
               style={{
@@ -1883,6 +1958,24 @@ export const AdminEditCardPage: React.FC = () => {
                     placeholder="مثال: توب فون للإلكترونيات"
                     style={{ fontSize: '14px', fontWeight: 600 }}
                   />
+                </div>
+
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
+                    جملة الترحيب فوق اسم النشاط
+                  </label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={bizData.welcome_message || ''}
+                    onChange={(e) => updateBiz('welcome_message', e.target.value)}
+                    placeholder="أهلاً بكم في"
+                    maxLength={80}
+                    style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
+                  />
+                  <small style={{ display: 'block', marginTop: '5px', color: 'var(--txt-muted)', fontSize: '11px' }}>
+                    تظهر أعلى اسم النشاط في صفحة العرض. اتركه فارغًا لاستخدام العبارة الافتراضية.
+                  </small>
                 </div>
 
                 {/* Logo Uploader / URL */}
@@ -2164,6 +2257,16 @@ export const AdminEditCardPage: React.FC = () => {
         )}
 
         {/* ── STEP 3: Cashier, Shifts & Fast Payments ───────────── */}
+        {currentStep === 2 && isGymTemplate && (
+          <GymTemplateDataStep
+            data={bizData}
+            updateData={updateBiz}
+            onLogoFile={handleLogoFile}
+            onImageFile={handleGymImageFile}
+            onImageUploadStateChange={setGymImagesUploading}
+          />
+        )}
+
         {currentStep === 2 && isRestaurantTemplate && (
           <RestaurantMenuFormStep
             data={bizData}
@@ -2647,7 +2750,7 @@ export const AdminEditCardPage: React.FC = () => {
                     fontWeight: 800,
                   }}
                 >
-                  {template === 'mobile_shop' ? '📱 قالب كاشير محلات الموبايل' : template === 'restaurant_cafe' ? '🍽️ قالب مطعم وكافيه' : template === 'dark' ? '🌙 القالب الليلي الفاخر' : '🌐 القالب الافتراضي'}
+                  {template === 'mobile_shop' ? '📱 قالب كاشير محلات الموبايل' : template === 'restaurant_cafe' ? '🍽️ قالب مطعم وكافيه' : template === 'gym' ? '🏋️ قالب الجيم واللياقة' : template === 'dark' ? '🌙 القالب الليلي الفاخر' : '🌐 القالب الافتراضي'}
                 </span>
               </div>
 

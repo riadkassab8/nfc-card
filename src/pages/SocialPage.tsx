@@ -11,6 +11,7 @@ import { ApiSocialPageResponse, BusinessData } from '../types';
 import { PublicCardView } from '../components/public/PublicCardView';
 import { MobileShopTemplate } from '../components/public/MobileShopTemplate';
 import { RestaurantCafeTemplate } from '../components/public/RestaurantCafeTemplate';
+import { GymTemplate } from '../components/public/GymTemplate';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 type State = 'loading' | 'ok' | 'not_found' | 'error';
@@ -41,7 +42,7 @@ export const SocialPage: React.FC = () => {
       }
 
       // If template is 'mobile_shop' or other dedicated template, do not auto-redirect to single links
-      if (res.template !== 'mobile_shop' && res.template !== 'restaurant_cafe' && res.template !== 'dark') {
+      if (res.template !== 'mobile_shop' && res.template !== 'restaurant_cafe' && res.template !== 'gym' && res.template !== 'dark') {
         // Collect non-empty links for single-link auto-redirect
         const links: string[] = [];
         if (biz.whatsapp?.trim())       links.push(biz.whatsapp.trim());
@@ -100,6 +101,9 @@ export const SocialPage: React.FC = () => {
     }
     if (social.template === 'restaurant_cafe') {
       return <RestaurantCafeTemplate data={social} />;
+    }
+    if (social.template === 'gym') {
+      return <GymTemplate data={social} />;
     }
 
     // Build a minimal card-like object for the existing PublicCardView
