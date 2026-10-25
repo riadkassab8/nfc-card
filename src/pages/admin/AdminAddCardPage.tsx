@@ -11,11 +11,13 @@ import {
   BusinessData,
   PaymentShift,
   PaymentShiftFormItem,
+  WhatsappContact,
   getCategoryId,
   CUSTOM_SLUG_REGEX,
   ApiCustomer,
 } from '../../types';
 import { SelectCustomerModal } from '../../components/admin/SelectCustomerModal';
+import { RestaurantMenuFormStep } from '../../components/admin/RestaurantMenuFormStep';
 import Swal from 'sweetalert2';
 import {
   ArrowRight,
@@ -35,6 +37,7 @@ import {
   FileText,
   RefreshCw,
   Smartphone,
+  Wifi,
   Check,
   CheckCircle2,
   Sparkles,
@@ -48,6 +51,7 @@ import {
   Star,
   Edit2,
   Copy,
+  Utensils,
 } from 'lucide-react';
 
 /* ── Field definitions ─────────────────────────────────────────── */
@@ -283,6 +287,10 @@ export const AdminAddCardPage: React.FC = () => {
     business_name: editCard?.business_data?.business_name || '',
     logo: editCard?.business_data?.logo || '',
     description: editCard?.business_data?.description || '',
+    wifi_ssid: editCard?.business_data?.wifi_ssid || '',
+    wifi_password: editCard?.business_data?.wifi_password || '',
+    wifi_security: editCard?.business_data?.wifi_security || 'WPA',
+    wifi_hidden: editCard?.business_data?.wifi_hidden ? 'true' : 'false',
     phone: editCard?.business_data?.phone || '',
     email: editCard?.business_data?.email || '',
     whatsapp: editCard?.business_data?.whatsapp || '',
@@ -297,6 +305,15 @@ export const AdminAddCardPage: React.FC = () => {
     offers_url: editCard?.business_data?.offers_url || '',
     telegram_group: editCard?.business_data?.telegram_group || '',
     google_review_url: editCard?.business_data?.google_review_url || '',
+  });
+
+  const [whatsappContacts, setWhatsappContacts] = useState<WhatsappContact[]>(() => {
+    if (editCard?.business_data?.whatsapp_contacts?.length) {
+      return editCard.business_data.whatsapp_contacts.map((contact) => ({ name: contact.name || '', url: contact.url || '' }));
+    }
+    const legacy = editCard?.business_data?.whatsapp || '';
+    const number = legacy.match(/wa\.me\/(\+?\d+)/i)?.[1] || '';
+    return number ? [{ name: 'واتساب', url: `https://wa.me/${number.replace(/^\+/, '')}` }] : [];
   });
 
   /* Multiple Locations state */
@@ -335,6 +352,12 @@ export const AdminAddCardPage: React.FC = () => {
 
   const [autoCode, setAutoCode] = useState(!editCard);
 
+  const addWhatsappContact = () => setWhatsappContacts((prev) => [...prev, { name: '', url: '' }]);
+  const updateWhatsappContact = (index: number, field: keyof WhatsappContact, value: string) => {
+    setWhatsappContacts((prev) => prev.map((contact, i) => i === index ? { ...contact, [field]: value } : contact));
+  };
+  const removeWhatsappContact = (index: number) => setWhatsappContacts((prev) => prev.filter((_, i) => i !== index));
+
   /* Load card from API if accessing via URL (not via state) */
   useEffect(() => {
     if (cardId && !editCard) {
@@ -346,7 +369,9 @@ export const AdminAddCardPage: React.FC = () => {
         setCardType(card.card_type || CardType.CARD);
         setCategoryId(getCategoryId(card.category_id) || '');
         setRequiresSubscription(card.requires_subscription ?? true);
-        setTemplate(card.template || 'default');
+          setTemplate(card.template || 'default');
+
+          setWhatsappContacts((card.business_data?.whatsapp_contacts || []).map((contact) => ({ name: contact.name || '', url: contact.url || '' })));
         
         if (card.business_data) {
           setBizData((prev) => ({
@@ -354,6 +379,10 @@ export const AdminAddCardPage: React.FC = () => {
             business_name: card.business_data?.business_name || '',
             logo: card.business_data?.logo || '',
             description: card.business_data?.description || '',
+            wifi_ssid: card.business_data?.wifi_ssid || '',
+            wifi_password: card.business_data?.wifi_password || '',
+            wifi_security: card.business_data?.wifi_security || 'WPA',
+            wifi_hidden: card.business_data?.wifi_hidden ? 'true' : 'false',
             phone: card.business_data?.phone || '',
             email: card.business_data?.email || '',
             whatsapp: card.business_data?.whatsapp || '',
@@ -589,8 +618,16 @@ export const AdminAddCardPage: React.FC = () => {
 
   /* Category ID for Business Profile */
   const BUSINESS_PROFILE_CATEGORY_ID = '6ac46e143883b08344234133';
+  const isShiftTemplate = template === 'mobile_shop' || template === 'restaurant_cafe';
+  const isRestaurantTemplate = template === 'restaurant_cafe';
+  const shiftStep = 3;
+  const reviewStep = 4;
+  const visibleSteps = isRestaurantTemplate
+    ? [STEPS[0], { id: 2, title: 'بيانات المطعم والمنيو', desc: 'الاسم، المنيو، الحجز والفروع', icon: <Utensils size={18} /> }, STEPS[2], STEPS[3]]
+    : STEPS;
   const isBusinessProfileCategory = Boolean(
     template === 'mobile_shop' ||
+    template === 'restaurant_cafe' ||
     categoryId === BUSINESS_PROFILE_CATEGORY_ID ||
     categories.find((c) => c._id === categoryId && (c.name.includes('نشاط') || c.name.toLowerCase().includes('business')))
   );
@@ -627,7 +664,7 @@ export const AdminAddCardPage: React.FC = () => {
       }
     }
 
-    if (stepNumber === 2) {
+    if (stepNumber === 2 && !isRestaurantTemplate) {
       const waVal = bizData.whatsapp?.trim();
       if (waVal && !/^https?:\/\//i.test(waVal)) {
         Swal.fire({
@@ -640,7 +677,12 @@ export const AdminAddCardPage: React.FC = () => {
       }
     }
 
-    if (stepNumber === 3 && template === 'mobile_shop') {
+    if (stepNumber === 2 && isRestaurantTemplate && !bizData.business_name?.trim()) {
+      Swal.fire({ icon: 'warning', title: 'اسم المطعم مطلوب', text: 'يرجى كتابة اسم المطعم أو الكافيه', confirmButtonColor: '#3b82f6' });
+      return false;
+    }
+
+    if (stepNumber === shiftStep && isShiftTemplate) {
       if (shifts.length === 0) {
         Swal.fire({
           icon: 'warning',
@@ -668,7 +710,7 @@ export const AdminAddCardPage: React.FC = () => {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep((prev) => Math.min(prev + 1, 4));
+      setCurrentStep((prev) => Math.min(prev + 1, reviewStep));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -696,7 +738,7 @@ export const AdminAddCardPage: React.FC = () => {
     console.log('🔍 [handleSubmit] bizData:', bizData);
     console.log('🔍 [handleSubmit] locations:', locations);
 
-    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
+    if (!validateStep(1) || (!isRestaurantTemplate && !validateStep(2)) || (isRestaurantTemplate && !validateStep(2)) || !validateStep(shiftStep)) {
       console.log('❌ [handleSubmit] Validation failed');
       return;
     }
@@ -708,10 +750,25 @@ export const AdminAddCardPage: React.FC = () => {
     let hasBiz = false;
     if (isBusinessProfileCategory) {
       for (const [k, v] of Object.entries(bizData)) {
+        if (k === 'wifi_security' || k === 'wifi_hidden') continue;
         if (typeof v === 'string' && v.trim()) {
           (business as any)[k] = v.trim();
           hasBiz = true;
         }
+      }
+
+      if (bizData.wifi_ssid?.trim() && bizData.wifi_password?.trim()) {
+        (business as any).wifi_security = bizData.wifi_security || 'WPA';
+        (business as any).wifi_hidden = bizData.wifi_hidden === 'true';
+        hasBiz = true;
+      }
+
+      const validWhatsappContacts = whatsappContacts
+        .filter((contact) => contact.name.trim() && /^https?:\/\//i.test(contact.url.trim()))
+        .map((contact) => ({ name: contact.name.trim(), url: contact.url.trim() }));
+      if (validWhatsappContacts.length > 0) {
+        (business as any).whatsapp_contacts = validWhatsappContacts;
+        hasBiz = true;
       }
 
       if (template === 'mobile_shop') {
@@ -736,7 +793,7 @@ export const AdminAddCardPage: React.FC = () => {
 
     // Payment shifts packaging for backend
     let paymentShiftsList: PaymentShift[] | undefined = undefined;
-    if (template === 'mobile_shop') {
+    if (isShiftTemplate) {
       paymentShiftsList = shifts.map((s, index) => ({
         label: s.label.trim() || `شيفت ${index + 1}`,
         cashier_name: s.cashier_name.trim() || undefined,
@@ -859,11 +916,14 @@ export const AdminAddCardPage: React.FC = () => {
             setCustomSlug('');
             setBizData({
               business_name: '', logo: '', description: '', phone: '',
+              wifi_ssid: '', wifi_password: '',
+              wifi_security: 'WPA', wifi_hidden: 'false',
               email: '', whatsapp: '', instagram: '', facebook: '',
               tiktok: '', google_maps: '', website: '', instapay: '',
               vodafone_cash: '', maintenance_whatsapp: '', offers_url: '',
               telegram_group: '', google_review_url: '',
             });
+            setWhatsappContacts([]);
             setLocations([]);
             setShifts([
               {
@@ -1023,7 +1083,7 @@ export const AdminAddCardPage: React.FC = () => {
             alignItems: 'center',
           }}
         >
-          {STEPS.map((s) => {
+          {visibleSteps.map((s) => {
             const isCompleted = currentStep > s.id;
             const isCurrent = currentStep === s.id;
             const isClickable = editCard || isCompleted || s.id === currentStep;
@@ -1101,7 +1161,7 @@ export const AdminAddCardPage: React.FC = () => {
             style={{
               height: '100%',
               backgroundColor: 'var(--clr-primary-500)',
-              width: `${(currentStep / 4) * 100}%`,
+              width: `${(currentStep / reviewStep) * 100}%`,
               transition: 'width 0.25s ease',
               borderRadius: '999px',
             }}
@@ -1109,7 +1169,7 @@ export const AdminAddCardPage: React.FC = () => {
         </div>
       </div>
 
-      <form onSubmit={(e) => { e.preventDefault(); if (currentStep === 4) handleSubmit(); else handleNext(); }}>
+      <form onSubmit={(e) => { e.preventDefault(); if (currentStep === reviewStep) handleSubmit(); else handleNext(); }}>
 
         {/* ════════════════════════════════════════════════════════════
             STEP 1: بيانات الكارت ونوع القالب (Card & Template)
@@ -1244,6 +1304,27 @@ export const AdminAddCardPage: React.FC = () => {
                     <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--txt-muted)', lineHeight: 1.5 }}>
                       مخصص لنقاط البيع: تبديل الشيفتات، إنستاباي، فودافون كاش، وخدمات الصيانة والتقييم.
                     </p>
+                  </div>
+                </div>
+
+                {/* Restaurant & Cafe Template */}
+                <div
+                  onClick={() => setTemplate('restaurant_cafe')}
+                  style={{
+                    border: template === 'restaurant_cafe' ? '2px solid #b45309' : '1px solid var(--bdr-light)',
+                    backgroundColor: template === 'restaurant_cafe' ? '#fff7ed' : 'var(--bg-subtle)',
+                    borderRadius: '14px', padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: '12px', transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: template === 'restaurant_cafe' ? '#b45309' : '#e2e8f0', color: template === 'restaurant_cafe' ? '#fff' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Store size={20} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 800, fontSize: '13.5px', color: template === 'restaurant_cafe' ? '#92400e' : 'var(--txt-heading)' }}>مطعم وكافيه (Restaurant & Cafe)</span>
+                      {template === 'restaurant_cafe' && <Check size={16} style={{ color: '#b45309' }} />}
+                    </div>
+                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--txt-muted)', lineHeight: 1.5 }}>منيو، عروض، حجز، فروع، مواعيد عمل، تقييمات Google وتواصل سريع.</p>
                   </div>
                 </div>
 
@@ -1491,7 +1572,7 @@ export const AdminAddCardPage: React.FC = () => {
         {/* ════════════════════════════════════════════════════════════
             STEP 2: هوية النشاط والتواصل (Business & Contact)
             ════════════════════════════════════════════════════════════ */}
-        {currentStep === 2 && (
+        {currentStep === 2 && !isRestaurantTemplate && (
           <div
             style={{
               backgroundColor: '#ffffff',
@@ -1670,6 +1751,7 @@ export const AdminAddCardPage: React.FC = () => {
                       className="form-input"
                       type={f.type || 'text'}
                       dir={f.type === 'url' || f.type === 'tel' || f.type === 'email' ? 'ltr' : undefined}
+                      autoComplete={f.key === 'wifi_password' ? 'new-password' : f.key === 'wifi_ssid' ? 'off' : undefined}
                       value={bizData[f.key] || ''}
                       onChange={(e) => updateBiz(f.key, e.target.value)}
                       placeholder={f.placeholder}
@@ -1679,6 +1761,58 @@ export const AdminAddCardPage: React.FC = () => {
                   </div>
                 ))}
               </div>
+
+            </div>
+
+            {/* Wi-Fi Settings */}
+            <div style={{ backgroundColor: '#eff6ff', borderRadius: '14px', padding: '18px 20px', border: '1px solid #bfdbfe' }}>
+              <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Wifi size={17} />
+                3. إعدادات شبكة الواي فاي و QR Code
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '16px' }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>اسم شبكة الواي فاي</label>
+                  <input className="form-input" type="text" dir="ltr" autoComplete="off" value={bizData.wifi_ssid || ''} onChange={(e) => updateBiz('wifi_ssid', e.target.value)} placeholder="مثال: Store_WiFi" style={{ fontSize: '13px', backgroundColor: '#fff' }} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>كلمة مرور الواي فاي</label>
+                  <input className="form-input" type="password" dir="ltr" autoComplete="new-password" value={bizData.wifi_password || ''} onChange={(e) => updateBiz('wifi_password', e.target.value)} placeholder="اكتب كلمة مرور الشبكة" style={{ fontSize: '13px', backgroundColor: '#fff' }} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>نوع حماية الشبكة</label>
+                  <select className="form-input" value={bizData.wifi_security || 'WPA'} onChange={(e) => updateBiz('wifi_security', e.target.value)}>
+                    <option value="WPA">WPA / WPA2 / WPA3</option>
+                    <option value="WEP">WEP</option>
+                    <option value="">بدون كلمة مرور</option>
+                  </select>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', minHeight: '42px', fontSize: '13px', fontWeight: 700, color: 'var(--txt-heading)', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={bizData.wifi_hidden === 'true'} onChange={(e) => updateBiz('wifi_hidden', e.target.checked ? 'true' : 'false')} />
+                  الشبكة مخفية
+                </label>
+              </div>
+            </div>
+
+            {/* WhatsApp Contacts */}
+            <div style={{ backgroundColor: '#f0fdf4', borderRadius: '14px', padding: '18px 20px', border: '1px solid #bbf7d0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
+                <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}><MessageCircle size={17} /> 4. أرقام واتساب</h3>
+                <button type="button" onClick={addWhatsappContact} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', border: 'none', borderRadius: '8px', backgroundColor: '#16a34a', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}><Plus size={14} /> إضافة رقم</button>
+              </div>
+              {whatsappContacts.length === 0 ? (
+                <div style={{ color: '#64748b', fontSize: '13px', textAlign: 'center', padding: '10px' }}>لم تتم إضافة أرقام واتساب بعد.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {whatsappContacts.map((contact, index) => (
+                    <div key={index} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr)) auto', gap: '10px', alignItems: 'end', backgroundColor: '#fff', border: '1px solid #dcfce7', borderRadius: '10px', padding: '12px' }}>
+                      <div className="form-group"><label className="form-label" style={{ fontSize: '12px', fontWeight: 700 }}>اسم جهة الاتصال</label><input className="form-input" value={contact.name} onChange={(e) => updateWhatsappContact(index, 'name', e.target.value)} placeholder="مثال: خدمة العملاء" /></div>
+                      <div className="form-group"><label className="form-label" style={{ fontSize: '12px', fontWeight: 700 }}>رابط شات واتساب</label><input className="form-input" dir="ltr" type="url" value={contact.url} onChange={(e) => updateWhatsappContact(index, 'url', e.target.value)} placeholder="https://wa.me/201098277229" /></div>
+                      <button type="button" onClick={() => removeWhatsappContact(index)} aria-label="حذف رقم واتساب" style={{ height: '38px', padding: '0 10px', border: '1px solid #fecaca', borderRadius: '8px', backgroundColor: '#fff', color: '#dc2626', cursor: 'pointer' }}><Trash2 size={15} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Social Accounts */}
@@ -1823,7 +1957,18 @@ export const AdminAddCardPage: React.FC = () => {
         {/* ════════════════════════════════════════════════════════════
             STEP 3: الكاشير وبوابات الدفع (Cashier & Payments)
             ════════════════════════════════════════════════════════════ */}
-        {currentStep === 3 && (
+        {currentStep === 2 && isRestaurantTemplate && (
+          <RestaurantMenuFormStep
+            data={bizData}
+            updateData={updateBiz}
+            locations={locations}
+            updateLocation={(id, field, value) => setLocations((prev) => prev.map((location) => location.id === id ? { ...location, [field]: value } : location))}
+            addLocation={addLocation}
+            removeLocation={removeLocation}
+          />
+        )}
+
+        {currentStep === shiftStep && (
           <div
             style={{
               backgroundColor: '#ffffff',
@@ -1856,7 +2001,7 @@ export const AdminAddCardPage: React.FC = () => {
             </div>
 
             {/* Multi-Shift Payment Builder (For Mobile Shop Template) */}
-            {template === 'mobile_shop' && (
+            {isShiftTemplate && (
               <div
                 style={{
                   backgroundColor: 'rgba(139, 92, 246, 0.04)',
@@ -2276,7 +2421,7 @@ export const AdminAddCardPage: React.FC = () => {
         {/* ════════════════════════════════════════════════════════════
             STEP 4: مراجعة وتأكيد (Review & Confirm)
             ════════════════════════════════════════════════════════════ */}
-        {currentStep === 4 && (
+        {currentStep === reviewStep && (
           <div
             style={{
               backgroundColor: '#ffffff',
@@ -2327,7 +2472,7 @@ export const AdminAddCardPage: React.FC = () => {
                   <div>
                     <span style={{ color: 'var(--txt-muted)' }}>القالب:</span>{' '}
                     <span style={{ backgroundColor: template === 'mobile_shop' ? '#f3e8ff' : template === 'dark' ? '#e0f2fe' : '#eff6ff', color: template === 'mobile_shop' ? '#7e22ce' : template === 'dark' ? '#0f172a' : '#1d4ed8', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11.5px' }}>
-                      {template === 'mobile_shop' ? '📱 كاشير محلات الموبايل' : template === 'dark' ? '🌙 القالب الليلي الفاخر' : '🌟 القالب الافتراضي'}
+                      {template === 'mobile_shop' ? '📱 كاشير محلات الموبايل' : template === 'restaurant_cafe' ? '🍽️ مطعم وكافيه' : template === 'dark' ? '🌙 القالب الليلي الفاخر' : '🌟 القالب الافتراضي'}
                     </span>
                   </div>
                   {customSlug && (
@@ -2382,14 +2527,14 @@ export const AdminAddCardPage: React.FC = () => {
                     <Smartphone size={15} style={{ color: '#7c3aed' }} />
                     إعدادات الكاشير والدفع
                   </span>
-                  <button type="button" onClick={() => goToStep(3)} style={{ background: 'none', border: 'none', color: 'var(--clr-primary-600)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <button type="button" onClick={() => goToStep(shiftStep)} style={{ background: 'none', border: 'none', color: 'var(--clr-primary-600)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                     <Edit2 size={12} /> تعديل
                   </button>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '12px', fontSize: '12.5px' }}>
-                  {template === 'mobile_shop' ? (
-                    shifts.map((s, idx) => (
+            {isShiftTemplate ? (
+              shifts.map((s, idx) => (
                       <div key={idx} style={{ backgroundColor: '#fff', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--bdr-light)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <div style={{ fontWeight: 800, color: '#7c3aed', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span>{s.label || `شيفت ${idx + 1}`}</span>
@@ -2483,7 +2628,7 @@ export const AdminAddCardPage: React.FC = () => {
 
           {/* Next / Final Submit Button */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {currentStep < 4 ? (
+            {currentStep < reviewStep ? (
               <>
                 {/* Quick Save Button (Steps 1-3) */}
                 <button

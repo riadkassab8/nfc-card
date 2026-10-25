@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import QRCode from 'qrcode';
 import { ApiCard } from '../../types';
 import { ProfileHero } from './ProfileHero';
 import { PublicCardFooter } from './PublicCardFooter';
-import { Globe, UserPlus, Check } from 'lucide-react';
+import { Globe, UserPlus, Check, Wifi } from 'lucide-react';
 import { gsap } from 'gsap';
 import {
   WhatsAppIcon,
@@ -184,7 +186,28 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [phoneModalOpen, setPhoneModalOpen] = useState(false);
+  const [wifiModalOpen, setWifiModalOpen] = useState(false);
+  const [wifiQrCode, setWifiQrCode] = useState<string | null>(null);
   const biz = card.business_data;
+  const wifiSsid = String(biz?.wifi_ssid ?? (card as any).wifi_ssid ?? '').trim();
+  const wifiPassword = String(biz?.wifi_password ?? (card as any).wifi_password ?? '').trim();
+
+  useEffect(() => {
+    if (!wifiModalOpen || !wifiSsid) return;
+
+    const escapeWifiValue = (value: string) => value.replace(/[\\;,:]/g, (char) => `\\${char}`);
+    const security = String(biz?.wifi_security ?? (card as any).wifi_security ?? 'WPA').trim();
+    const hidden = Boolean(biz?.wifi_hidden ?? (card as any).wifi_hidden ?? false);
+    const qrPayload = `WIFI:T:${security};S:${escapeWifiValue(wifiSsid)};P:${escapeWifiValue(wifiPassword)};H:${hidden ? 'true' : 'false'};;`;
+
+    setWifiQrCode(null);
+    QRCode.toDataURL(qrPayload, {
+      width: 280,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#111111', light: '#ffffff' },
+    }).then(setWifiQrCode).catch(() => setWifiQrCode(null));
+  }, [wifiModalOpen, wifiSsid, wifiPassword, biz?.wifi_security, biz?.wifi_hidden, card]);
 
   const copyToClipboard = (text: string, msg: string) => {
     navigator.clipboard.writeText(text);
@@ -287,7 +310,22 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   // ═══════════════════════════════════════════════════════════
   // 1. SOCIAL MEDIA (الشبكات الاجتماعية)
   // ═══════════════════════════════════════════════════════════
-  if (biz?.whatsapp?.trim() || !biz) {
+  const whatsappContacts = Array.isArray(biz?.whatsapp_contacts)
+    ? biz.whatsapp_contacts.filter((contact) => contact?.name?.trim() && contact?.url?.trim())
+    : [];
+  if (whatsappContacts.length > 0) {
+    whatsappContacts.forEach((contact, index) => {
+      links.push({
+        id: `wa-${index}`,
+        platform: 'whatsapp',
+        title: contact.name.trim(),
+        subtitle: contact.url.trim(),
+        url: contact.url.trim(),
+        icon: <WhatsAppIcon size={60} />,
+        brandColor: '#25D366'
+      });
+    });
+  } else if (biz?.whatsapp?.trim() || !biz) {
     links.push({
       id: 'wa',
       platform: 'whatsapp',
@@ -390,7 +428,24 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 4. CONTACT (وسائل الاتصال)
+  // 4. WIFI (بيانات شبكة الواي فاي)
+  // ═══════════════════════════════════════════════════════════
+  if (wifiSsid && wifiPassword) {
+    links.push({
+      id: 'wifi',
+      platform: 'wifi',
+      title: 'Wi-Fi',
+      subtitle: `الشبكة: ${wifiSsid} | كلمة المرور: ${wifiPassword}`,
+      url: `${wifiSsid}\n${wifiPassword}`,
+      copyValue: `اسم الشبكة: ${wifiSsid}\nكلمة المرور: ${wifiPassword}`,
+      copyMessage: 'تم نسخ بيانات الواي فاي بنجاح ✓',
+      icon: <Wifi size={60} />,
+      brandColor: '#0EA5E9'
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 5. CONTACT (وسائل الاتصال)
   // ═══════════════════════════════════════════════════════════
   const availablePhones = getAvailablePhones();
   if (availablePhones.length > 0 || !biz) {
@@ -481,7 +536,10 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
             key={link.id}
             link={link}
             onClick={(e) => {
-              if (link.copyValue && (link.platform === 'vodafone_cash' || (link.platform === 'instapay' && !link.url.startsWith('http')))) {
+              if (link.platform === 'wifi') {
+                e.preventDefault();
+                setWifiModalOpen(true);
+              } else if (link.copyValue && (link.platform === 'vodafone_cash' || (link.platform === 'instapay' && !link.url.startsWith('http')))) {
                 e.preventDefault();
                 copyToClipboard(link.copyValue, link.copyMessage);
               } else if (link.onClick) {
@@ -608,7 +666,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           justify-content: flex-start;
           gap: 10px;
           width: auto;
-          min-width: 164px;
+          min-width: 136px;
           max-width: calc(100vw - 32px);
           min-height: 56px;
           padding: 5px 14px 5px 6px;
@@ -635,9 +693,9 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          flex: 0 0 42px;
-          width: 42px;
-          height: 42px;
+          flex: 0 0 38px;
+          width: 38px;
+          height: 38px;
           border: 1px solid #e5e5e5;
           border-radius: 50%;
           background: #f5f5f5;
@@ -659,19 +717,19 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           line-height: 1.35;
         }
 
-        .nfc-page[data-template='dark'] .nfc-booking-cta {
+        .nfc-booking-wrap[data-template='dark'] .nfc-booking-cta {
           border-color: #484848;
           background: #111111;
           color: #f5f5f5;
           box-shadow: none;
         }
 
-        .nfc-page[data-template='dark'] .nfc-booking-icon {
+        .nfc-booking-wrap[data-template='dark'] .nfc-booking-icon {
           border-color: #393939;
           background: #202020;
         }
 
-        .nfc-page[data-template='dark'] .nfc-booking-label {
+        .nfc-booking-wrap[data-template='dark'] .nfc-booking-label {
           color: #f5f5f5;
         }
 
@@ -690,13 +748,14 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
 
         .nfc-page {
           min-height: 100vh;
+          box-sizing: border-box;
           position: relative;
           color: var(--text-primary);
           font-family: 'Tajawal', 'Plus Jakarta Sans', system-ui, sans-serif;
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 48px 20px 104px;
+          padding: 48px 20px 16px;
           overflow-x: hidden;
           z-index: 1;
           background-color: var(--bg-solid);
@@ -709,6 +768,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           flex-direction: column;
           align-items: center;
           flex: 1;
+          min-height: calc(100vh - 64px);
         }
 
         .nfc-grid {
@@ -734,7 +794,10 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         /* Mobile phones: 2 columns grid for sleek tile layout */
         @media (max-width: 600px) {
           .nfc-page {
-            padding: 24px 12px 96px;
+            padding: 24px 12px 16px;
+          }
+          .nfc-container {
+            min-height: calc(100vh - 40px);
           }
           .nfc-grid {
             grid-template-columns: repeat(2, 1fr);
@@ -752,6 +815,12 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           }
           .nfc-tile-subtitle {
             font-size: 0.72rem !important;
+          }
+        }
+
+        @media (max-width: 400px) {
+          .footer-wrap {
+            justify-content: flex-end;
           }
         }
 
@@ -854,7 +923,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         }
         
         .footer-wrap {
-          margin-top: 32px;
+          margin-top: auto;
           padding-top: 32px;
           width: 100%;
           display: flex;
@@ -923,8 +992,28 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           
           {renderContent()}
 
-          {/* Booking CTA Button */}
-          <div className="nfc-booking-wrap">
+          <div className="gsap-footer footer-wrap">
+            <PublicCardFooter />
+          </div>
+        </div>
+      </div>
+
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="nfc-booking-wrap"
+            data-template={card.template || 'default'}
+            dir="rtl"
+            style={{
+              position: 'fixed',
+              left: 'max(16px, env(safe-area-inset-left))',
+              bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+              right: 'auto',
+              top: 'auto',
+              transform: 'none',
+              zIndex: 2147483647,
+            }}
+          >
             <a
               className="nfc-booking-cta"
               href="https://wa.me/201098277229"
@@ -939,13 +1028,9 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
                 <span className="nfc-booking-label">احجز كارتك</span>
               </span>
             </a>
-          </div>
-
-          <div className="gsap-footer footer-wrap">
-            <PublicCardFooter />
-          </div>
-        </div>
-      </div>
+          </div>,
+          document.documentElement,
+        )}
 
       {/* Floating Copy Feedback Toast */}
       {toastMsg && (
@@ -977,6 +1062,71 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
       )}
 
       {/* Phone Selection Modal */}
+      {wifiModalOpen && (
+        <div
+          dir="rtl"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            zIndex: 100000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+          onClick={() => setWifiModalOpen(false)}
+        >
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '24px',
+              padding: '24px',
+              maxWidth: '360px',
+              width: '100%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              fontFamily: 'Tajawal, sans-serif',
+              textAlign: 'center',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Wifi size={30} style={{ color: '#0EA5E9', marginBottom: '6px' }} />
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111111', margin: '0 0 6px' }}>الاتصال بالواي فاي</h3>
+            <p style={{ margin: '0 0 16px', color: '#64748b', fontSize: '13px' }}>وجّه كاميرا الهاتف إلى الكود للاتصال بالشبكة</p>
+
+            <div style={{ minHeight: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', borderRadius: '16px', padding: '12px', marginBottom: '16px' }}>
+              {wifiQrCode ? (
+                <img src={wifiQrCode} alt="QR Code للواي فاي" style={{ width: '280px', maxWidth: '100%', height: 'auto', borderRadius: '8px' }} />
+              ) : (
+                <span style={{ color: '#64748b', fontSize: '13px' }}>جاري تجهيز QR Code...</span>
+              )}
+            </div>
+
+            <div style={{ background: '#f1f5f9', borderRadius: '12px', padding: '12px', textAlign: 'right', marginBottom: '14px' }}>
+              <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>اسم الشبكة</div>
+              <div style={{ direction: 'ltr', textAlign: 'left', fontWeight: 800, color: '#0f172a', wordBreak: 'break-all' }}>{wifiSsid}</div>
+              <div style={{ fontSize: '12px', color: '#64748b', margin: '10px 0 4px' }}>كلمة المرور</div>
+              <div style={{ direction: 'ltr', textAlign: 'left', fontWeight: 800, color: '#0f172a', wordBreak: 'break-all' }}>{wifiPassword}</div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => copyToClipboard(`اسم الشبكة: ${wifiSsid}\nكلمة المرور: ${wifiPassword}`, 'تم نسخ بيانات الواي فاي بنجاح ✓')}
+              style={{ width: '100%', padding: '13px', border: 'none', borderRadius: '12px', background: '#0EA5E9', color: '#fff', fontWeight: 800, cursor: 'pointer', fontFamily: 'Tajawal, sans-serif' }}
+            >
+              نسخ بيانات الشبكة
+            </button>
+            <button
+              type="button"
+              onClick={() => setWifiModalOpen(false)}
+              style={{ marginTop: '9px', width: '100%', padding: '12px', border: 'none', borderRadius: '12px', background: '#f1f5f9', color: '#475569', fontWeight: 700, cursor: 'pointer', fontFamily: 'Tajawal, sans-serif' }}
+            >
+              إغلاق
+            </button>
+          </div>
+        </div>
+      )}
+
       {phoneModalOpen && (
         <div
           dir="rtl"

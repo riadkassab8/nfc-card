@@ -228,10 +228,20 @@ export interface PaymentShiftFormItem {
   is_active: boolean;
 }
 
+export interface WhatsappContact {
+  name: string;
+  url: string;
+}
+
 export interface BusinessData {
   business_name?: string | null;
   logo?: string | null;
   description?: string | null;
+  wifi_ssid?: string | null;
+  wifi_password?: string | null;
+  wifi_security?: 'WPA' | 'WEP' | '' | null;
+  wifi_hidden?: boolean | null;
+  whatsapp_contacts?: WhatsappContact[] | null;
   phone?: string | null;
   phone1?: string | null;
   phone2?: string | null;

@@ -33,8 +33,17 @@ export const PublicCardLandingPage: React.FC = () => {
     setState('loading');
     try {
       const res = await cardsApi.getSocialPage(code.trim());
-
-      const biz: BusinessData | null = res.business_data;
+      const rawRes = res as any;
+      const rawBiz = res.business_data as BusinessData | null;
+      const directWifiSsid = rawRes.wifi_ssid;
+      const directWifiPassword = rawRes.wifi_password;
+      const biz: BusinessData | null = rawBiz || directWifiSsid || directWifiPassword
+        ? {
+            ...(rawBiz || {}),
+            wifi_ssid: rawBiz?.wifi_ssid ?? directWifiSsid ?? null,
+            wifi_password: rawBiz?.wifi_password ?? directWifiPassword ?? null,
+          }
+        : null;
       if (!biz) {
         const cardProxy: ApiCard = {
           _id: res.card_code,
