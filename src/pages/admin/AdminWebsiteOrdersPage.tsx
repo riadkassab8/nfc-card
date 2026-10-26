@@ -15,6 +15,8 @@ import {
   CreditCard,
   Eye,
   ExternalLink,
+  Download,
+  Image as ImageIcon,
   X,
 } from 'lucide-react';
 import { websiteApi } from '../../services';
@@ -41,10 +43,38 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
+  const [selectedReceiptTitle, setSelectedReceiptTitle] = useState<string>('صورة إيصال التحويل');
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [editingOrder, setEditingOrder] = useState<WebsiteOrder | null>(null);
   const [editFormData, setEditFormData] = useState<any>({});
   const [savingEdit, setSavingEdit] = useState(false);
+
+  const handleDownloadImage = async (url: string, filenamePrefix: string = 'image') => {
+    try {
+      showToast('جاري بدء تحميل الصورة...', 'success');
+      const response = await fetch(url, { mode: 'cors' });
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const cleanUrl = url.split('?')[0];
+      const ext = cleanUrl.includes('.') ? cleanUrl.split('.').pop() : 'jpg';
+      link.download = `${filenamePrefix}.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch {
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.download = `${filenamePrefix}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   const showToast = (msg: string, type: 'success' | 'error') => {
     setToast({ msg, type });
@@ -456,57 +486,169 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
                     )}
 
                     {/* Custom Print Details */}
-                    {order.customPrint && (
+                    {order.customPrint && (order.customPrint.text || order.customPrint.imageUrl || order.customPrint.notes) && (
                       <div
                         style={{
                           background: '#f0f9ff',
                           border: '1px solid #bae6fd',
-                          borderRadius: '10px',
-                          padding: '12px',
-                          marginTop: '6px',
+                          borderRadius: '12px',
+                          padding: '14px',
+                          marginTop: '8px',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '6px',
+                          gap: '8px',
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0369a1' }}>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             🎨 طلب طباعة مخصصة
                           </span>
                           <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#0284c7', color: '#ffffff', padding: '2px 8px', borderRadius: '6px' }}>
                             +150 ج
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.86rem', color: '#0f172a' }}>
-                          <strong>النص المطلوب:</strong> {order.customPrint.text}
-                        </div>
-                        {order.customPrint.notes && (
+
+                        {order.customPrint.text && order.customPrint.text.trim() !== '' && (
+                          <div style={{ fontSize: '0.86rem', color: '#0f172a' }}>
+                            <strong>النص المطلوب:</strong> {order.customPrint.text}
+                          </div>
+                        )}
+
+                        {order.customPrint.notes && order.customPrint.notes.trim() !== '' && (
                           <div style={{ fontSize: '0.82rem', color: '#475569' }}>
                             <strong>ملاحظات:</strong> {order.customPrint.notes}
                           </div>
                         )}
-                        {order.customPrint.imageUrl && (
-                          <div style={{ marginTop: '4px' }}>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedReceipt(order.customPrint!.imageUrl!)}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                background: '#ffffff',
-                                color: '#0284c7',
-                                border: '1px solid #0284c7',
-                                padding: '4px 10px',
-                                borderRadius: '6px',
-                                fontSize: '0.78rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              <Eye size={13} />
-                              عرض صورة الشعار/التصميم 🖼️
-                            </button>
+
+                        {/* صورة التصميم المخصص (Image Display) */}
+                        {order.customPrint.imageUrl && order.customPrint.imageUrl.trim() !== '' && (
+                          <div
+                            style={{
+                              marginTop: '6px',
+                              paddingTop: '10px',
+                              borderTop: '1px dashed #bae6fd',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '8px',
+                            }}
+                          >
+                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <ImageIcon size={15} />
+                              صورة التصميم المخصص:
+                            </span>
+
+                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '14px', marginTop: '2px' }}>
+                              {/* عرض صورة التصميم مع فتح في نافذة جديدة عند النقر */}
+                              <a
+                                href={order.customPrint.imageUrl.trim()}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="انقر لفتح صورة التصميم المخصص في نافذة جديدة"
+                                style={{
+                                  display: 'block',
+                                  width: '120px',
+                                  height: '120px',
+                                  borderRadius: '10px',
+                                  overflow: 'hidden',
+                                  border: '2px solid #0284c7',
+                                  backgroundColor: '#ffffff',
+                                  boxShadow: '0 2px 8px rgba(2, 132, 199, 0.18)',
+                                  cursor: 'pointer',
+                                  position: 'relative',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <img
+                                  src={order.customPrint.imageUrl.trim()}
+                                  alt="صورة التصميم المخصص"
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    display: 'block',
+                                    transition: 'transform 0.2s ease',
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                                />
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    backgroundColor: 'rgba(2, 132, 199, 0.88)',
+                                    color: '#ffffff',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    textAlign: 'center',
+                                    padding: '3px 0',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '3px',
+                                  }}
+                                >
+                                  <ExternalLink size={10} />
+                                  <span>فتح في نافذة جديدة</span>
+                                </div>
+                              </a>
+
+                              {/* أزرار الإجراءات: فتح في نافذة جديدة وتحميل الصورة */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <a
+                                  href={order.customPrint.imageUrl.trim()}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    backgroundColor: '#ffffff',
+                                    color: '#0284c7',
+                                    border: '1px solid #bae6fd',
+                                    padding: '7px 14px',
+                                    borderRadius: '8px',
+                                    fontSize: '0.82rem',
+                                    fontWeight: 700,
+                                    textDecoration: 'none',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f0f9ff')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ffffff')}
+                                >
+                                  <ExternalLink size={14} />
+                                  <span>فتح الصورة في نافذة جديدة</span>
+                                </a>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadImage(order.customPrint!.imageUrl!.trim(), `custom-print-${order.orderId}`)}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    backgroundColor: '#0284c7',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    padding: '7px 14px',
+                                    borderRadius: '8px',
+                                    fontSize: '0.82rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 4px rgba(2, 132, 199, 0.25)',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#0369a1')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#0284c7')}
+                                >
+                                  <Download size={14} />
+                                  <span>تحميل الصورة</span>
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -543,7 +685,10 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <button
                             type="button"
-                            onClick={() => setSelectedReceipt(order.receiptUrl!)}
+                            onClick={() => {
+                                setSelectedReceipt(order.receiptUrl!);
+                                setSelectedReceiptTitle('صورة إيصال التحويل');
+                              }}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -856,7 +1001,7 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0369a1', marginBottom: '4px' }}>
-                    رابط صورة التصميم / الشعار
+                    صورة التصميم المخصص (رابط)
                   </label>
                   <input
                     type="text"
@@ -865,6 +1010,44 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
                     placeholder="https://res.cloudinary.com/..."
                     style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '0.88rem' }}
                   />
+                  {editFormData.customPrintImageUrl && editFormData.customPrintImageUrl.trim() !== '' && (
+                    <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#ffffff', padding: '8px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                      <a
+                        href={editFormData.customPrintImageUrl.trim()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: 'block', width: '56px', height: '56px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #0284c7', flexShrink: 0 }}
+                      >
+                        <img
+                          src={editFormData.customPrintImageUrl.trim()}
+                          alt="صورة التصميم المخصص"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      </a>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0369a1' }}>صورة التصميم المخصص</span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <a
+                            href={editFormData.customPrintImageUrl.trim()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: '0.75rem', color: '#0284c7', textDecoration: 'none', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <ExternalLink size={12} />
+                            فتح في نافذة جديدة
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadImage(editFormData.customPrintImageUrl.trim(), 'custom-print-design')}
+                            style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.75rem', color: '#0284c7', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <Download size={12} />
+                            تحميل الصورة
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -942,27 +1125,54 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
                 background: '#f8fafc',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
                 <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-                  🧾 صورة إيصال التحويل
+                  {selectedReceiptTitle}
                 </span>
-                <a
-                  href={selectedReceipt}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontSize: '0.8rem',
-                    color: '#0284c7',
-                    textDecoration: 'none',
-                    fontWeight: 700,
-                  }}
-                >
-                  فتح الصورة بحجمها الأصلي
-                  <ExternalLink size={13} />
-                </a>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <a
+                    href={selectedReceipt}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.8rem',
+                      color: '#0284c7',
+                      textDecoration: 'none',
+                      fontWeight: 700,
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                    }}
+                  >
+                    فتح في نافذة جديدة
+                    <ExternalLink size={13} />
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadImage(selectedReceipt, 'order-attachment')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.8rem',
+                      color: '#ffffff',
+                      backgroundColor: '#0284c7',
+                      border: 'none',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Download size={13} />
+                    تحميل الصورة
+                  </button>
+                </div>
               </div>
 
               <button
