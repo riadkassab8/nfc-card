@@ -16,6 +16,8 @@ import {
   Search,
   SlidersHorizontal,
   Phone,
+  Smartphone,
+  Share2,
   MessageCircle,
   Instagram,
   Facebook,
@@ -40,11 +42,19 @@ import {
   Layers,
   Hash,
   Copy,
+  LayoutGrid,
+  Table as TableIcon,
+  ChevronRight,
+  ChevronLeft,
+  ChevronsRight,
+  ChevronsLeft,
 } from 'lucide-react';
 
 /* ── Available Preset Icons ────────────────────────────────────────── */
 const PRESET_ICONS: { name: string; label: string; icon: React.ElementType }[] = [
   { name: 'Phone', label: 'هاتف', icon: Phone },
+  { name: 'Smartphone', label: 'هاتف / محفظة ذكية', icon: Smartphone },
+  { name: 'Share2', label: 'مشاركة', icon: Share2 },
   { name: 'MessageCircle', label: 'واتساب / رسالة', icon: MessageCircle },
   { name: 'Instagram', label: 'انستجرام', icon: Instagram },
   { name: 'Facebook', label: 'فيسبوك', icon: Facebook },
@@ -146,7 +156,6 @@ const FieldModal: React.FC<FieldModalProps> = ({ existing, onClose, onSaved }) =
   const [error, setError] = useState<string | null>(null);
 
   const handleKeyChange = (val: string) => {
-    // Sanitize to lowercase, numbers, underscores
     const sanitized = val.toLowerCase().replace(/[^a-z0-9_]/g, '_');
     setKey(sanitized);
   };
@@ -186,7 +195,6 @@ const FieldModal: React.FC<FieldModalProps> = ({ existing, onClose, onSaved }) =
           is_required: isRequired,
           show_in_public: showInPublic,
         };
-        // Only update key if custom field
         if (!isSystem && cleanKey !== existing.key) {
           (dto as any).key = cleanKey;
         }
@@ -607,11 +615,24 @@ const FieldModal: React.FC<FieldModalProps> = ({ existing, onClose, onSaved }) =
 export const AdminBusinessFieldsPage: React.FC = () => {
   const [fields, setFields] = useState<ApiBusinessField[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | BusinessFieldSection>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedField, setSelectedField] = useState<ApiBusinessField | null>(null);
+
+  /* View Mode & Pagination State */
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
+    return (localStorage.getItem('biz_fields_view_mode') as 'grid' | 'table') || 'grid';
+  });
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(12);
+
+  const handleViewModeChange = (mode: 'grid' | 'table') => {
+    setViewMode(mode);
+    localStorage.setItem('biz_fields_view_mode', mode);
+  };
 
   const fetchFields = useCallback(async () => {
     setLoading(true);
@@ -632,6 +653,52 @@ export const AdminBusinessFieldsPage: React.FC = () => {
   useEffect(() => {
     fetchFields();
   }, [fetchFields]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, activeTab, statusFilter, pageSize]);
+
+  const handleSyncDefaults = async () => {
+    const result = await Swal.fire({
+      title: 'مزامنة وتغذية الحقول الافتراضية',
+      text: 'هل ترغب بإضافة جميع الحقول الافتراضية للنظام (34 حقلاً تغطي كل القوالب والمميزات)؟',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'إضافة الحقول الناقصة (موصى به)',
+      cancelButtonText: 'إلغاء',
+      showDenyButton: true,
+      denyButtonText: 'استرجاع وضبط الكل للافتراضي',
+      denyButtonColor: '#d97706',
+      confirmButtonColor: '#2563eb',
+    });
+
+    if (result.isConfirmed || result.isDenied) {
+      const force = result.isDenied;
+      setSyncing(true);
+      try {
+        const res = await businessFieldsApi.seedDefaults(force);
+        await fetchFields();
+        Swal.fire({
+          icon: 'success',
+          title: 'تمت المزامنة بنجاح ✓',
+          text: force
+            ? 'تم استرجاع وإعادة ضبط كافة الحقول الافتراضية بنجاح.'
+            : `تم فحص وإضافة الحقول الناقصة بنجاح (إجمالي الحقول الافتراضية: ${res.total}).`,
+          timer: 2500,
+          showConfirmButton: false,
+        });
+      } catch (err: any) {
+        Swal.fire({
+          icon: 'error',
+          title: 'فشل المزامنة',
+          text: err?.message || 'تعذر إتمام المزامنة مع الخادم',
+        });
+      } finally {
+        setSyncing(false);
+      }
+    }
+  };
 
   const handleToggle = async (field: ApiBusinessField) => {
     try {
@@ -740,9 +807,40 @@ export const AdminBusinessFieldsPage: React.FC = () => {
     return { total, active, system, custom };
   }, [fields]);
 
+  /* Pagination calculations */
+  const totalFiltered = filteredFields.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const paginatedFields = useMemo(() => {
+    if (pageSize >= 9999) return filteredFields;
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredFields.slice(start, start + pageSize);
+  }, [filteredFields, safeCurrentPage, pageSize]);
+
+  const fromIndex = totalFiltered === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const toIndex = Math.min(safeCurrentPage * pageSize, totalFiltered);
+
+  // Helper for generating page numbers
+  const pageNumbers = useMemo(() => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (safeCurrentPage <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', totalPages);
+      } else if (safeCurrentPage >= totalPages - 3) {
+        pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, '...', safeCurrentPage - 1, safeCurrentPage, safeCurrentPage + 1, '...', totalPages);
+      }
+    }
+    return pages;
+  }, [totalPages, safeCurrentPage]);
+
   return (
-    <div dir="rtl" style={{ padding: '24px 20px', maxWidth: '1400px', margin: '0 auto', fontFamily: 'inherit' }}>
-      {/* ── Page Header & Stats ─────────────────────────────────────── */}
+    <div dir="rtl" style={{ padding: '24px 20px', maxWidth: '1440px', margin: '0 auto', fontFamily: 'inherit' }}>
+      {/* ── Page Header & Action Buttons ─────────────────────────────── */}
       <div
         style={{
           display: 'flex',
@@ -780,10 +878,10 @@ export const AdminBusinessFieldsPage: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
           <button
             onClick={fetchFields}
-            disabled={loading}
+            disabled={loading || syncing}
             className="btn btn-secondary"
             title="تحديث البيانات"
             style={{
@@ -797,6 +895,28 @@ export const AdminBusinessFieldsPage: React.FC = () => {
           >
             <RefreshCw size={16} className={loading ? 'spin' : ''} />
             <span>تحديث</span>
+          </button>
+
+          <button
+            onClick={handleSyncDefaults}
+            disabled={syncing || loading}
+            className="btn btn-secondary"
+            title="استرجاع الحقول الافتراضية للنظام أو إضافة أي حقول ناقصة"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 16px',
+              fontWeight: 700,
+              borderRadius: '10px',
+              color: '#4338ca',
+              backgroundColor: '#eef2ff',
+              border: '1px solid #c7d2fe',
+              cursor: 'pointer',
+            }}
+          >
+            <Sparkles size={16} className={syncing ? 'spin' : ''} />
+            <span>{syncing ? 'جاري المزامنة...' : 'تجهيز الحقول الافتراضية'}</span>
           </button>
 
           <button
@@ -956,12 +1076,12 @@ export const AdminBusinessFieldsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Filters & Search Bar ────────────────────────────────────── */}
+      {/* ── Filters, View Switcher & Search Bar ──────────────────────── */}
       <div
         style={{
           backgroundColor: '#ffffff',
           borderRadius: '16px',
-          padding: '16px 20px',
+          padding: '18px 20px',
           border: '1px solid #e2e8f0',
           marginBottom: '20px',
           display: 'flex',
@@ -969,6 +1089,7 @@ export const AdminBusinessFieldsPage: React.FC = () => {
           gap: '16px',
         }}
       >
+        {/* Top Controls Row */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
           {/* Section Tabs */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -1015,8 +1136,68 @@ export const AdminBusinessFieldsPage: React.FC = () => {
             })}
           </div>
 
-          {/* Status Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Right Controls: View Mode & Status Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* View Mode Toggle: Cards / Table */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                backgroundColor: '#f1f5f9',
+                padding: '3px',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => handleViewModeChange('grid')}
+                title="عرض كروت شبكية"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  backgroundColor: viewMode === 'grid' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'grid' ? '#2563eb' : '#64748b',
+                  boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <LayoutGrid size={15} />
+                <span>كروت</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleViewModeChange('table')}
+                title="عرض جدول تفصيلي"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  backgroundColor: viewMode === 'table' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'table' ? '#2563eb' : '#64748b',
+                  boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <TableIcon size={15} />
+                <span>جدول</span>
+              </button>
+            </div>
+
+            {/* Status Filter */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
@@ -1028,12 +1209,38 @@ export const AdminBusinessFieldsPage: React.FC = () => {
                 fontWeight: 600,
                 color: '#334155',
                 backgroundColor: '#ffffff',
+                cursor: 'pointer',
               }}
             >
               <option value="all">كل الحالات</option>
               <option value="active">المفعلة فقط</option>
               <option value="inactive">المعطلة فقط</option>
             </select>
+
+            {/* Page Size Select */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>عرض:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: '#334155',
+                  backgroundColor: '#ffffff',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={12}>12</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={9999}>الكل</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -1063,7 +1270,7 @@ export const AdminBusinessFieldsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Fields Grid / Cards ─────────────────────────────────────── */}
+      {/* ── Fields Content (Cards or Table) ─────────────────────────── */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
           <RefreshCw size={32} className="spin" style={{ margin: '0 auto 12px', color: '#2563eb' }} />
@@ -1112,15 +1319,335 @@ export const AdminBusinessFieldsPage: React.FC = () => {
             إعادة تعيين الفلاتر
           </button>
         </div>
+      ) : viewMode === 'table' ? (
+        /* ── TABLE VIEW ────────────────────────────────────────────── */
+        <div
+          style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+          }}
+        >
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+              <thead>
+                <tr
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    borderBottom: '2px solid #e2e8f0',
+                    color: '#475569',
+                    fontSize: '0.84rem',
+                    fontWeight: 800,
+                  }}
+                >
+                  <th style={{ padding: '14px 16px', width: '48px', textAlign: 'center' }}>الأيقونة</th>
+                  <th style={{ padding: '14px 16px' }}>اسم الحقل (Label)</th>
+                  <th style={{ padding: '14px 16px' }}>المفتاح البرمجي (Key)</th>
+                  <th style={{ padding: '14px 16px' }}>القسم</th>
+                  <th style={{ padding: '14px 16px' }}>نوع الإدخال</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'center' }}>الظهور العام</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'center' }}>النوع</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'center' }}>الترتيب</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'center' }}>الحالة</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'center' }}>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedFields.map((field) => {
+                  const secCfg = SECTION_CONFIG[field.section] || SECTION_CONFIG.custom;
+                  const typeCfg = TYPE_CONFIG[field.type] || TYPE_CONFIG.text;
+
+                  return (
+                    <tr
+                      key={field._id}
+                      style={{
+                        borderBottom: '1px solid #f1f5f9',
+                        transition: 'background-color 0.15s ease',
+                        opacity: field.is_active ? 1 : 0.65,
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      {/* Icon */}
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        <div
+                          style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '10px',
+                            backgroundColor: secCfg.bg,
+                            color: secCfg.text,
+                            border: `1px solid ${secCfg.bdr}`,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {renderFieldIcon(field.icon)}
+                        </div>
+                      </td>
+
+                      {/* Label & Hint */}
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem' }}>
+                            {field.label}
+                          </span>
+                          {field.is_required && (
+                            <span style={{ color: '#dc2626', fontWeight: 800, fontSize: '0.8rem' }} title="مطلوب">*</span>
+                          )}
+                        </div>
+                        {field.hint && (
+                          <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
+                            {field.hint}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Key badge with copy button */}
+                      <td style={{ padding: '12px 16px' }}>
+                        <button
+                          type="button"
+                          onClick={() => copyKeyToClipboard(field.key)}
+                          title="انقر لنسخ المفتاح"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            backgroundColor: '#f1f5f9',
+                            border: '1px solid #e2e8f0',
+                            color: '#475569',
+                            fontFamily: 'monospace',
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Hash size={12} />
+                          <span>{field.key}</span>
+                          <Copy size={11} style={{ opacity: 0.6 }} />
+                        </button>
+                      </td>
+
+                      {/* Section */}
+                      <td style={{ padding: '12px 16px' }}>
+                        <span
+                          style={{
+                            padding: '3px 9px',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            backgroundColor: secCfg.bg,
+                            color: secCfg.text,
+                            border: `1px solid ${secCfg.bdr}`,
+                            display: 'inline-block',
+                          }}
+                        >
+                          {secCfg.label}
+                        </span>
+                      </td>
+
+                      {/* Type */}
+                      <td style={{ padding: '12px 16px' }}>
+                        <span
+                          style={{
+                            padding: '3px 9px',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            backgroundColor: '#f8fafc',
+                            color: typeCfg.badge,
+                            border: '1px solid #e2e8f0',
+                            display: 'inline-block',
+                          }}
+                        >
+                          {typeCfg.label}
+                        </span>
+                      </td>
+
+                      {/* Public Visibility */}
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        {field.show_in_public ? (
+                          <span
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              backgroundColor: '#f0fdf4',
+                              color: '#16a34a',
+                              border: '1px solid #bbf7d0',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Eye size={12} />
+                            <span>عام</span>
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              backgroundColor: '#fef2f2',
+                              color: '#dc2626',
+                              border: '1px solid #fecaca',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <EyeOff size={12} />
+                            <span>داخلي</span>
+                          </span>
+                        )}
+                      </td>
+
+                      {/* System vs Custom */}
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        {field.is_system ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '3px 8px',
+                              borderRadius: '999px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              backgroundColor: '#f1f5f9',
+                              color: '#475569',
+                              border: '1px solid #e2e8f0',
+                            }}
+                          >
+                            <Lock size={11} />
+                            <span>نظام</span>
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '3px 8px',
+                              borderRadius: '999px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              backgroundColor: '#faf5ff',
+                              color: '#7e22ce',
+                              border: '1px solid #e9d5ff',
+                            }}
+                          >
+                            <Sparkles size={11} />
+                            <span>مخصص</span>
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Order */}
+                      <td style={{ padding: '12px 16px', textAlign: 'center', fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>
+                        #{field.order}
+                      </td>
+
+                      {/* Active Toggle */}
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        <label
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            color: field.is_active ? '#15803d' : '#94a3b8',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={field.is_active}
+                            onChange={() => handleToggle(field)}
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              accentColor: '#16a34a',
+                              cursor: 'pointer',
+                            }}
+                          />
+                          <span>{field.is_active ? 'مفعّل' : 'معطّل'}</span>
+                        </label>
+                      </td>
+
+                      {/* Actions */}
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedField(field);
+                              setModalOpen(true);
+                            }}
+                            className="btn btn-secondary"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 10px',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              borderRadius: '7px',
+                            }}
+                          >
+                            <Edit2 size={12} />
+                            <span>تعديل</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(field)}
+                            disabled={field.is_system}
+                            title={field.is_system ? 'محمي من الحذف (حقل نظام)' : 'حذف الحقل'}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '7px',
+                              border: '1px solid',
+                              borderColor: field.is_system ? '#e2e8f0' : '#fecaca',
+                              backgroundColor: field.is_system ? '#f8fafc' : '#fef2f2',
+                              color: field.is_system ? '#cbd5e1' : '#dc2626',
+                              cursor: field.is_system ? 'not-allowed' : 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : (
+        /* ── GRID / CARDS VIEW ─────────────────────────────────────── */
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
             gap: '16px',
           }}
         >
-          {filteredFields.map((field) => {
+          {paginatedFields.map((field) => {
             const secCfg = SECTION_CONFIG[field.section] || SECTION_CONFIG.custom;
             const typeCfg = TYPE_CONFIG[field.type] || TYPE_CONFIG.text;
 
@@ -1438,6 +1965,173 @@ export const AdminBusinessFieldsPage: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── PAGINATION BAR ─────────────────────────────────────────── */}
+      {!loading && filteredFields.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px',
+            marginTop: '24px',
+            padding: '14px 20px',
+            backgroundColor: '#ffffff',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          {/* Summary Label */}
+          <div style={{ fontSize: '0.88rem', color: '#64748b', fontWeight: 600 }}>
+            عرض <strong style={{ color: '#0f172a' }}>{fromIndex}</strong> إلى <strong style={{ color: '#0f172a' }}>{toIndex}</strong> من إجمالي <strong style={{ color: '#0f172a' }}>{totalFiltered}</strong> حقل
+          </div>
+
+          {/* Navigation Controls */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {/* First Page */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage(1)}
+                disabled={safeCurrentPage === 1}
+                title="الصفحة الأولى"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: safeCurrentPage === 1 ? '#f8fafc' : '#ffffff',
+                  color: safeCurrentPage === 1 ? '#94a3b8' : '#334155',
+                  cursor: safeCurrentPage === 1 ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <ChevronsRight size={16} />
+              </button>
+
+              {/* Previous Page */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                disabled={safeCurrentPage === 1}
+                title="الصفحة السابقة"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: safeCurrentPage === 1 ? '#f8fafc' : '#ffffff',
+                  color: safeCurrentPage === 1 ? '#94a3b8' : '#334155',
+                  cursor: safeCurrentPage === 1 ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <ChevronRight size={16} />
+              </button>
+
+              {/* Number Buttons */}
+              {pageNumbers.map((p, idx) => {
+                if (typeof p === 'string') {
+                  return (
+                    <span
+                      key={`ellipsis-${idx}`}
+                      style={{
+                        padding: '0 6px',
+                        color: '#94a3b8',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      ...
+                    </span>
+                  );
+                }
+
+                const isCurrent = p === safeCurrentPage;
+                return (
+                  <button
+                    key={`page-${p}`}
+                    type="button"
+                    onClick={() => setCurrentPage(p)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '34px',
+                      height: '34px',
+                      padding: '0 8px',
+                      borderRadius: '8px',
+                      border: isCurrent ? '1px solid #2563eb' : '1px solid #cbd5e1',
+                      backgroundColor: isCurrent ? '#2563eb' : '#ffffff',
+                      color: isCurrent ? '#ffffff' : '#334155',
+                      fontWeight: isCurrent ? 800 : 600,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+
+              {/* Next Page */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                disabled={safeCurrentPage === totalPages}
+                title="الصفحة التالية"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: safeCurrentPage === totalPages ? '#f8fafc' : '#ffffff',
+                  color: safeCurrentPage === totalPages ? '#94a3b8' : '#334155',
+                  cursor: safeCurrentPage === totalPages ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              {/* Last Page */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={safeCurrentPage === totalPages}
+                title="الصفحة الأخيرة"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: safeCurrentPage === totalPages ? '#f8fafc' : '#ffffff',
+                  color: safeCurrentPage === totalPages ? '#94a3b8' : '#334155',
+                  cursor: safeCurrentPage === totalPages ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <ChevronsLeft size={16} />
+              </button>
+            </div>
+          )}
         </div>
       )}
 

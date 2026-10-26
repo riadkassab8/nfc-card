@@ -66,4 +66,11 @@ export const businessFieldsApi = {
       method: 'PATCH',
       body: { items },
     }),
+
+  // ── POST /api/business-fields/seed ──────────────────────────────────────
+  seedDefaults: (force: boolean = false): Promise<{ created: number; total: number }> =>
+    apiClient<{ created: number; total: number }>('/business-fields/seed', {
+      method: 'POST',
+      body: { force },
+    }),
 };
