@@ -3,8 +3,6 @@ import {
   Globe,
   Save,
   RotateCcw,
-  CheckCircle2,
-  AlertCircle,
   Sparkles,
   Layout,
   Video,
@@ -19,8 +17,9 @@ import {
   Upload,
   CheckSquare,
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { websiteApi } from '../../services';
-import { WebsiteContent } from '../../services/api/websiteApi';
+import { CheckoutFormFieldConfig, WebsiteContent } from '../../services/api/websiteApi';
 
 type TabType =
   | 'branding'
@@ -41,7 +40,15 @@ export const AdminWebsiteContentPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [uploadingField, setUploadingField] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+  const isDetailedAddressField = (field: CheckoutFormFieldConfig) => {
+    const id = (field.id || '').toLowerCase().replace(/[^a-z]/g, '');
+    const label = (field.label || '').replace(/\s/g, '');
+    return id.includes('address') || label.includes('العنوان');
+  };
+
+  const requireDetailedAddress = (fields?: CheckoutFormFieldConfig[]) =>
+    fields?.map((field) => isDetailedAddressField(field) ? { ...field, required: true } : field);
 
   const handleUploadMedia = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -66,15 +73,37 @@ export const AdminWebsiteContentPage: React.FC = () => {
   };
 
   const showToast = (msg: string, type: 'success' | 'error') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3500);
+    void Swal.fire({
+      toast: true,
+      position: 'top',
+      icon: type === 'success' ? 'success' : 'error',
+      title: msg,
+      showConfirmButton: false,
+      timer: 3500,
+      timerProgressBar: true,
+    });
   };
 
   const loadContent = async () => {
     try {
       setLoading(true);
       const data = await websiteApi.getContent();
-      setContent(data);
+      const addressFieldWasOptional = data.checkoutFields?.some(
+        (field) => isDetailedAddressField(field) && field.required !== true,
+      ) || false;
+      const checkoutFields = requireDetailedAddress(data.checkoutFields);
+      const normalizedContent = checkoutFields ? { ...data, checkoutFields } : data;
+      setContent(normalizedContent);
+
+      if (addressFieldWasOptional && checkoutFields) {
+        try {
+          const updated = await websiteApi.updateContent({ checkoutFields });
+          setContent({ ...normalizedContent, ...updated, checkoutFields });
+          showToast('تم جعل حقل العنوان بالتفصيل إلزاميًا في نموذج الطلب.', 'success');
+        } catch {
+          showToast('تعذر حفظ إلزامية العنوان تلقائيًا. اضغط حفظ التعديلات لإعادة المحاولة.', 'error');
+        }
+      }
     } catch (err: any) {
       showToast('تعذر تحميل بيانات الموقع: ' + (err.message || 'خطأ غير معروف'), 'error');
     } finally {
@@ -90,8 +119,10 @@ export const AdminWebsiteContentPage: React.FC = () => {
     if (!content) return;
     try {
       setSaving(true);
-      const updated = await websiteApi.updateContent(content);
-      setContent(updated);
+      const checkoutFields = requireDetailedAddress(content.checkoutFields);
+      const normalizedContent = checkoutFields ? { ...content, checkoutFields } : content;
+      const updated = await websiteApi.updateContent(normalizedContent);
+      setContent({ ...normalizedContent, ...updated, ...(checkoutFields ? { checkoutFields } : {}) });
       showToast('تم حفظ جميع التعديلات بنجاح وستظهر مباشرة في الموقع!', 'success');
     } catch (err: any) {
       showToast('حدث خطأ أثناء الحفظ: ' + (err.message || 'خطأ غير متوقع'), 'error');
@@ -101,13 +132,30 @@ export const AdminWebsiteContentPage: React.FC = () => {
   };
 
   const handleReset = async () => {
-    if (!window.confirm('هل أنت متأكد من استعادة كافة النصوص الافتراضية للموقع؟ سيتم التراجع عن أي تعديل يدوي!')) {
-      return;
-    }
+    const confirmation = await Swal.fire({
+      title: 'استعادة الإعدادات الافتراضية؟',
+      text: 'سيتم التراجع عن جميع التعديلات اليدوية على محتوى الموقع.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'استعادة',
+      cancelButtonText: 'إلغاء',
+      confirmButtonColor: '#dc2626',
+      reverseButtons: true,
+    });
+    if (!confirmation.isConfirmed) return;
     try {
       setResetting(true);
       const reset = await websiteApi.resetContent();
-      setContent(reset);
+      const addressFieldWasOptional = reset.checkoutFields?.some(
+        (field) => isDetailedAddressField(field) && field.required !== true,
+      ) || false;
+      const checkoutFields = requireDetailedAddress(reset.checkoutFields);
+      const normalizedReset = checkoutFields ? { ...reset, checkoutFields } : reset;
+      setContent(normalizedReset);
+      if (addressFieldWasOptional && checkoutFields) {
+        const updated = await websiteApi.updateContent({ checkoutFields });
+        setContent({ ...normalizedReset, ...updated, checkoutFields });
+      }
       showToast('تم استعادة النصوص الافتراضية بنجاح.', 'success');
     } catch (err: any) {
       showToast('تعذر استعادة النصوص: ' + err.message, 'error');
@@ -137,7 +185,9 @@ export const AdminWebsiteContentPage: React.FC = () => {
     if (!content) return;
     const list = [...(content.checkoutFields || [])];
     if (list[index]) {
-      list[index] = { ...list[index], [key]: val };
+      const updatedField = { ...list[index], [key]: val };
+      if (isDetailedAddressField(updatedField)) updatedField.required = true;
+      list[index] = updatedField;
       setContent({ ...content, checkoutFields: list });
     }
   };
@@ -175,32 +225,6 @@ export const AdminWebsiteContentPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative' }}>
-      {/* Toast Notification */}
-      {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '24px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 99999,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '12px 24px',
-            borderRadius: '12px',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)',
-            borderRight: toast.type === 'success' ? '4px solid #10b981' : '4px solid #ef4444',
-            direction: 'rtl',
-            fontFamily: 'inherit',
-          }}
-        >
-          {toast.type === 'success' ? <CheckCircle2 size={20} color="#10b981" /> : <AlertCircle size={20} color="#ef4444" />}
-          <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>{toast.msg}</span>
-        </div>
-      )}
-
       {/* Header bar */}
       <div
         style={{
@@ -1474,7 +1498,9 @@ export const AdminWebsiteContentPage: React.FC = () => {
                 حقول إدخال البيانات ورسائل التحقق (Swal Error Messages)
               </h3>
 
-              {(content.checkoutFields || []).map((field, idx) => (
+              {(content.checkoutFields || []).map((field, idx) => {
+                const addressField = isDetailedAddressField(field);
+                return (
                 <div
                   key={field.id || idx}
                   style={{
@@ -1498,15 +1524,16 @@ export const AdminWebsiteContentPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: addressField ? 'not-allowed' : 'pointer' }}>
                       <input
                         type="checkbox"
-                        checked={field.required ?? true}
+                        checked={addressField || (field.required ?? true)}
+                        disabled={addressField}
                         onChange={(e) => updateCheckoutField(idx, 'required', e.target.checked)}
                         style={{ width: '16px', height: '16px', accentColor: '#0f766e' }}
                       />
-                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: field.required ? '#0f766e' : '#64748b' }}>
-                        {field.required ? 'حقل إلزامي *' : 'حقل اختياري'}
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: addressField || field.required ? '#0f766e' : '#64748b' }}>
+                        {addressField || field.required ? 'حقل إلزامي *' : 'حقل اختياري'}
                       </span>
                     </label>
                   </div>
@@ -1562,7 +1589,8 @@ export const AdminWebsiteContentPage: React.FC = () => {
                     />
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Payment Methods Section */}

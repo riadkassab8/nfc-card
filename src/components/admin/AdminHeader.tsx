@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   ExternalLink,
   ShoppingCart,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { notificationsApi } from '../../services';
@@ -62,7 +64,15 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
   const [notifications, setNotifications] = useState<ApiNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try { return window.localStorage.getItem('admin-notification-sound') !== 'off'; } catch { return true; }
+  });
+  const [activeAlert, setActiveAlert] = useState<ApiNotification | null>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const knownNotificationIdsRef = useRef<Set<string> | null>(null);
+  const soundEnabledRef = useRef(soundEnabled);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const alertTimeoutRef = useRef<number | null>(null);
 
   const displayName = admin?.name || admin?.username || 'admin';
   const initial = displayName.trim().charAt(0).toUpperCase();
@@ -71,11 +81,67 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
     if (!hasNotifAccess) return;
     try {
       const res = await notificationsApi.getNotifications(30);
-      setNotifications(res.notifications || []);
+      const latestNotifications = res.notifications || [];
+      const knownIds = knownNotificationIdsRef.current;
+      if (knownIds) {
+        const arriving = latestNotifications.filter((notification) => !knownIds.has(notification._id) && !notification.is_read);
+        if (arriving.length > 0) {
+          const newest = arriving[0];
+          setActiveAlert(newest);
+          if (alertTimeoutRef.current !== null) window.clearTimeout(alertTimeoutRef.current);
+          alertTimeoutRef.current = window.setTimeout(() => setActiveAlert(null), 12000);
+          playNotificationSound();
+        }
+        latestNotifications.forEach((notification) => knownIds.add(notification._id));
+        knownNotificationIdsRef.current = new Set(latestNotifications.map((notification) => notification._id));
+      } else {
+        // Establish a baseline on first load; do not sound for old notifications.
+        knownNotificationIdsRef.current = new Set(latestNotifications.map((notification) => notification._id));
+      }
+      setNotifications(latestNotifications);
       setUnreadCount(res.unread_count || 0);
     } catch {
       // silently ignore if offline
     }
+  };
+
+  const playNotificationSound = (force = false) => {
+    if (!force && !soundEnabledRef.current) return;
+    try {
+      const AudioContextConstructor = window.AudioContext;
+      if (!AudioContextConstructor) return;
+      const context = audioContextRef.current || new AudioContextConstructor();
+      audioContextRef.current = context;
+      if (context.state === 'suspended') void context.resume();
+
+      // A short, two-part alert: assertive enough to notice without being continuous.
+      const notes = [880, 1175, 988, 784];
+      const startAt = context.currentTime + 0.04;
+      notes.forEach((frequency, index) => {
+        const start = startAt + index * 0.2;
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.32, start + 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.16);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(start);
+        oscillator.stop(start + 0.17);
+      });
+    } catch (error) {
+      console.warn('Notification audio is unavailable in this browser:', error);
+    }
+  };
+
+  const toggleNotificationSound = () => {
+    const nextEnabled = !soundEnabledRef.current;
+    soundEnabledRef.current = nextEnabled;
+    setSoundEnabled(nextEnabled);
+    try { window.localStorage.setItem('admin-notification-sound', nextEnabled ? 'on' : 'off'); } catch { /* storage is optional */ }
+    if (nextEnabled) playNotificationSound(true);
   };
 
   useEffect(() => {
@@ -84,6 +150,29 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
     const interval = setInterval(fetchNotifications, 45000);
     return () => clearInterval(interval);
   }, [hasNotifAccess]);
+
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (!soundEnabledRef.current || !window.AudioContext) return;
+      try {
+        const context = audioContextRef.current || new window.AudioContext();
+        audioContextRef.current = context;
+        if (context.state === 'suspended') void context.resume();
+      } catch { /* browser may not support Web Audio */ }
+    };
+    window.addEventListener('pointerdown', unlockAudio, { passive: true });
+    window.addEventListener('keydown', unlockAudio);
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+      if (alertTimeoutRef.current !== null) window.clearTimeout(alertTimeoutRef.current);
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') void audioContextRef.current.close();
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -299,6 +388,16 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={toggleNotificationSound}
+                      aria-pressed={soundEnabled}
+                      title={soundEnabled ? 'إيقاف صوت الإشعارات' : 'تفعيل صوت الإشعارات'}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 8px', border: '1px solid var(--bdr-light, #e2e8f0)', borderRadius: '8px', background: soundEnabled ? '#ecfdf5' : '#fff', color: soundEnabled ? '#047857' : '#64748b', fontSize: '11px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                      {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                      {soundEnabled ? 'الصوت مفعّل' : 'تفعيل الصوت'}
+                    </button>
                     {unreadCount > 0 && (
                       <button
                         type="button"
@@ -560,6 +659,34 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onOpenMobileMen
           </button>
         </div>
       </header>
+
+      {activeAlert && createPortal(
+        <div
+          role="alert"
+          aria-live="assertive"
+          dir="rtl"
+          style={{ position: 'fixed', zIndex: 10050, bottom: 24, left: 20, width: 'min(420px, calc(100vw - 40px))', padding: '16px', borderRadius: '16px', border: '1px solid #fca5a5', background: 'linear-gradient(135deg, #fff 0%, #fff7ed 100%)', boxShadow: '0 18px 55px rgba(127, 29, 29, .24)', fontFamily: 'inherit', animation: 'admin-notif-enter .28s ease-out' }}
+        >
+          <style>{`@keyframes admin-notif-enter{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes admin-notif-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.32)}50%{box-shadow:0 0 0 7px rgba(239,68,68,0)}}`}</style>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 13, display: 'grid', placeItems: 'center', color: '#fff', background: activeAlert.type === 'danger' ? '#dc2626' : activeAlert.type === 'warning' ? '#d97706' : '#2563eb', animation: 'admin-notif-pulse 1.5s ease-out 2' }}>
+              <Bell size={20} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: '#991b1b', fontSize: 11, fontWeight: 900, marginBottom: 4 }}>تنبيه جديد</div>
+              <div style={{ color: '#172033', fontSize: 14, fontWeight: 900, lineHeight: 1.5 }}>{activeAlert.title}</div>
+              <div style={{ color: '#475569', fontSize: 12, lineHeight: 1.6, marginTop: 3 }}>{activeAlert.message}</div>
+              <button type="button" onClick={() => { const selected = activeAlert; setActiveAlert(null); if (alertTimeoutRef.current !== null) window.clearTimeout(alertTimeoutRef.current); void handleNotificationClick(selected); }} style={{ marginTop: 11, border: 0, borderRadius: 9, padding: '8px 12px', color: '#fff', background: '#b91c1c', font: 'inherit', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
+                فتح الإشعار والتفاصيل
+              </button>
+            </div>
+            <button type="button" onClick={() => { setActiveAlert(null); if (alertTimeoutRef.current !== null) window.clearTimeout(alertTimeoutRef.current); }} aria-label="إغلاق التنبيه" style={{ border: 0, background: 'transparent', color: '#64748b', padding: 3, cursor: 'pointer' }}>
+              <X size={17} />
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Logout confirmation — portalled */}
       {confirmOpen && createPortal(

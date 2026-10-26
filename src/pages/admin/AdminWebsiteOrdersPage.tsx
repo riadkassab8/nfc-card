@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShoppingCart,
   Phone,
@@ -7,18 +7,20 @@ import {
   Calendar,
   Search,
   Filter,
-  CheckCircle2,
   Trash2,
   Edit2,
   Loader2,
-  AlertCircle,
   CreditCard,
   Eye,
   ExternalLink,
   Download,
   Image as ImageIcon,
+  Volume2,
+  VolumeX,
   X,
 } from 'lucide-react';
+import Swal from 'sweetalert2';
+import { Button } from '../../components/ui/Button';
 import { websiteApi } from '../../services';
 import {
   WebsiteOrder,
@@ -40,11 +42,19 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try { return window.localStorage.getItem('admin-notification-sound') !== 'off'; } catch { return true; }
+  });
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const knownOrderIdsRef = useRef<Set<string> | null>(null);
+  const loadInProgressRef = useRef(false);
+  const soundEnabledRef = useRef(soundEnabled);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
   const [selectedReceiptTitle, setSelectedReceiptTitle] = useState<string>('صورة إيصال التحويل');
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [editingOrder, setEditingOrder] = useState<WebsiteOrder | null>(null);
   const [editFormData, setEditFormData] = useState<any>({});
   const [savingEdit, setSavingEdit] = useState(false);
@@ -77,37 +87,181 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
   };
 
   const showToast = (msg: string, type: 'success' | 'error') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3500);
+    void Swal.fire({
+      toast: true,
+      position: 'top',
+      icon: type === 'success' ? 'success' : 'error',
+      title: msg,
+      showConfirmButton: false,
+      timer: 3500,
+      timerProgressBar: true,
+    });
   };
 
-  const loadData = async () => {
+  const playOrderChime = async (): Promise<boolean> => {
+    const audioContext = audioContextRef.current;
+    if (!soundEnabledRef.current || !audioContext) return false;
+
     try {
-      setLoading(true);
-      const [ordersRes, statsRes] = await Promise.all([
+      if (audioContext.state !== 'running') await audioContext.resume();
+      if (audioContext.state !== 'running') return false;
+
+      const startAt = audioContext.currentTime + 0.03;
+      [660, 880, 660].forEach((frequency, index) => {
+        const start = startAt + index * 0.28;
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.001, start);
+        gain.gain.exponentialRampToValueAtTime(0.42, start + 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.23);
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start(start);
+        oscillator.stop(start + 0.24);
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const toggleOrderAlerts = async () => {
+    const nextEnabled = !soundEnabledRef.current;
+    if (nextEnabled) {
+      try {
+        const AudioContextConstructor = window.AudioContext ||
+          (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextConstructor) throw new Error('AudioContext is unavailable');
+        const audioContext = audioContextRef.current || new AudioContextConstructor();
+        audioContextRef.current = audioContext;
+        await audioContext.resume();
+      } catch {
+        showToast('تعذر تشغيل الصوت في هذا المتصفح. ستظل التنبيهات المرئية تعمل.', 'error');
+        return;
+      }
+      soundEnabledRef.current = true;
+      setSoundEnabled(true);
+      try { window.localStorage.setItem('admin-notification-sound', 'on'); } catch { /* storage is optional */ }
+      if (!(await playOrderChime())) {
+        soundEnabledRef.current = false;
+        setSoundEnabled(false);
+        try { window.localStorage.setItem('admin-notification-sound', 'off'); } catch { /* storage is optional */ }
+        showToast('لم يبدأ الصوت. تحقق من صوت الجهاز أو من كتم تبويب المتصفح ثم أعد المحاولة.', 'error');
+        return;
+      }
+      if ('Notification' in window && Notification.permission === 'default') {
+        void Notification.requestPermission();
+      }
+      return;
+    }
+
+    soundEnabledRef.current = false;
+    setSoundEnabled(false);
+    try { window.localStorage.setItem('admin-notification-sound', 'off'); } catch { /* storage is optional */ }
+  };
+
+  const testOrderAlertSound = async () => {
+    if (!(await playOrderChime())) {
+      showToast('لم يعمل الصوت. اضغط «تفعيل تنبيه الطلبات» أولاً وتحقق من مستوى الصوت.', 'error');
+    }
+  };
+
+  const notifyNewOrders = (newOrders: WebsiteOrder[]) => {
+    const newestOrder = newOrders[0];
+    const customerName = newestOrder?.customer?.name || 'عميل جديد';
+    const orderCountText = newOrders.length > 1 ? ` (${newOrders.length} طلبات جديدة)` : '';
+
+    void Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'info',
+      title: `وصل طلب جديد${orderCountText}`,
+      text: `${customerName} — رقم الطلب #${newestOrder?.orderId || ''}`,
+      showConfirmButton: false,
+      timer: 6500,
+      timerProgressBar: true,
+    });
+
+    void playOrderChime();
+
+    if (soundEnabledRef.current && 'Notification' in window && Notification.permission === 'granted' && document.hidden) {
+      new Notification('طلب جديد من الموقع', {
+        body: `${customerName} — رقم الطلب #${newestOrder?.orderId || ''}`,
+        tag: `website-order-${newestOrder?.orderId || Date.now()}`,
+      });
+    }
+  };
+
+  const loadData = async (options: { silent?: boolean; detectNew?: boolean } = {}) => {
+    if (loadInProgressRef.current) return;
+    loadInProgressRef.current = true;
+    try {
+      if (!options.silent) setLoading(true);
+      const [ordersRes, statsRes, latestOrdersRes] = await Promise.all([
         websiteApi.getOrders({
-          search: search || undefined,
+          search: appliedSearch || undefined,
           status: statusFilter || undefined,
           limit: 50,
         }),
         websiteApi.getOrderStats(),
+        appliedSearch || statusFilter ? websiteApi.getOrders({ limit: 50 }) : Promise.resolve(null),
       ]);
+
+      const latestOrders = latestOrdersRes?.orders || ordersRes.orders || [];
+      const knownOrderIds = knownOrderIdsRef.current;
+      if (options.detectNew && knownOrderIds) {
+        const newOrders = latestOrders.filter((order) => !knownOrderIds.has(order.orderId));
+        if (newOrders.length > 0) notifyNewOrders(newOrders);
+      }
+      knownOrderIdsRef.current = new Set(latestOrders.map((order) => order.orderId));
       setOrders(ordersRes.orders || []);
       setStats(statsRes);
+      setLastUpdated(new Date());
     } catch (err: any) {
-      showToast('تعذر تحميل الطلبات: ' + (err.message || 'خطأ'), 'error');
+      if (!options.silent) showToast('تعذر تحميل الطلبات: ' + (err.message || 'خطأ'), 'error');
     } finally {
-      setLoading(false);
+      if (!options.silent) setLoading(false);
+      loadInProgressRef.current = false;
     }
   };
 
   useEffect(() => {
     loadData();
-  }, [statusFilter]);
+    const intervalId = window.setInterval(() => {
+      void loadData({ silent: true, detectNew: true });
+    }, 15000);
+    return () => window.clearInterval(intervalId);
+  }, [statusFilter, appliedSearch]);
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (!soundEnabledRef.current) return;
+      try {
+        const AudioContextConstructor = window.AudioContext ||
+          (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextConstructor) return;
+        const audioContext = audioContextRef.current || new AudioContextConstructor();
+        audioContextRef.current = audioContext;
+        if (audioContext.state === 'suspended') void audioContext.resume();
+      } catch { /* Audio is optional when the browser disallows it. */ }
+    };
+
+    unlockAudio();
+    window.addEventListener('pointerdown', unlockAudio, { passive: true });
+    window.addEventListener('keydown', unlockAudio);
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+      const audioContext = audioContextRef.current;
+      if (audioContext && audioContext.state !== 'closed') void audioContext.close();
+    };
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    loadData();
+    setAppliedSearch(search);
   };
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
@@ -180,9 +334,17 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
   };
 
   const handleDeleteOrder = async (orderId: string) => {
-    if (!window.confirm(`هل أنت متأكد من حذف الطلب ${orderId} نهائياً؟`)) {
-      return;
-    }
+    const confirmation = await Swal.fire({
+      title: 'حذف الطلب؟',
+      text: `هل أنت متأكد من حذف الطلب ${orderId} نهائياً؟`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'حذف نهائي',
+      cancelButtonText: 'إلغاء',
+      confirmButtonColor: '#dc2626',
+      reverseButtons: true,
+    });
+    if (!confirmation.isConfirmed) return;
     try {
       await websiteApi.deleteOrder(orderId);
       showToast('تم حذف الطلب بنجاح', 'success');
@@ -202,32 +364,6 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Toast Notification */}
-      {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '24px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 99999,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '12px 24px',
-            borderRadius: '12px',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)',
-            borderRight: toast.type === 'success' ? '4px solid #10b981' : '4px solid #ef4444',
-            direction: 'rtl',
-            fontFamily: 'inherit',
-          }}
-        >
-          {toast.type === 'success' ? <CheckCircle2 size={20} color="#10b981" /> : <AlertCircle size={20} color="#ef4444" />}
-          <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>{toast.msg}</span>
-        </div>
-      )}
-
       {/* Header Banner */}
       <div
         style={{
@@ -253,7 +389,27 @@ export const AdminWebsiteOrdersPage: React.FC = () => {
           <p style={{ margin: '6px 0 0', fontSize: '0.92rem', opacity: 0.9, color: '#e0f2fe' }}>
             متابعة فورية لطلبات العملاء من الموقع، التواصل عبر الواتساب بنقرة واحدة، وتحديث حالات الشحن.
           </p>
+          <p style={{ margin: '8px 0 0', fontSize: '0.78rem', color: '#bae6fd' }}>
+            تحديث تلقائي كل 15 ثانية{lastUpdated ? ` · آخر تحديث ${lastUpdated.toLocaleTimeString('ar-EG')}` : ''}
+          </p>
         </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={toggleOrderAlerts}
+          aria-pressed={soundEnabled}
+          title="تفعيل صوت وإشعارات الطلبات الجديدة"
+          style={{ backgroundColor: '#ffffff', color: '#075985', border: '1px solid #bae6fd' }}
+        >
+          {soundEnabled ? <Volume2 size={17} /> : <VolumeX size={17} />}
+          {soundEnabled ? 'تنبيهات الطلبات مفعّلة' : 'تفعيل تنبيه الطلبات'}
+        </Button>
+        {soundEnabled && (
+          <Button type="button" variant="outline" size="sm" onClick={testOrderAlertSound}>
+            <Volume2 size={16} /> اختبار الصوت
+          </Button>
+        )}
       </div>
 
       {/* Stats Cards */}

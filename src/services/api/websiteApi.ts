@@ -279,20 +279,40 @@ export const websiteApi = {
     }),
 
   // Products
+  // Exclude database metadata from write DTOs. productId belongs in create only;
+  // updates identify the product through the URL parameter.
+  toProductWritePayload: (product: Partial<WebsiteProduct>, includeProductId: boolean): Record<string, unknown> => {
+    const payload: Record<string, unknown> = {
+      name: product.name,
+      description: product.description,
+      basePrice: product.basePrice,
+      currency: product.currency,
+      features: product.features,
+      options: product.options,
+      visualType: product.visualType,
+      defaultImage: product.defaultImage,
+      gallery: product.gallery,
+      isAvailable: product.isAvailable,
+      order: product.order,
+    };
+    if (includeProductId) payload.productId = product.productId;
+    return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+  },
+
   getProducts: () =>
     apiClient<WebsiteProduct[]>('/admin/website/products', { requiresAuth: true }),
 
   createProduct: (product: Partial<WebsiteProduct>) =>
     apiClient<WebsiteProduct>('/admin/website/products', {
       method: 'POST',
-      body: product,
+      body: websiteApi.toProductWritePayload(product, true),
       requiresAuth: true,
     }),
 
   updateProduct: (productId: string, product: Partial<WebsiteProduct>) =>
     apiClient<WebsiteProduct>(`/admin/website/products/${productId}`, {
       method: 'PUT',
-      body: product,
+      body: websiteApi.toProductWritePayload(product, false),
       requiresAuth: true,
     }),
 
