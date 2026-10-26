@@ -188,6 +188,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   const [phoneModalOpen, setPhoneModalOpen] = useState(false);
   const [wifiModalOpen, setWifiModalOpen] = useState(false);
   const [wifiQrCode, setWifiQrCode] = useState<string | null>(null);
+  const [vodafoneQrOpen, setVodafoneQrOpen] = useState(false);
   const biz = card.business_data;
   const wifiSsid = String(biz?.wifi_ssid ?? (card as any).wifi_ssid ?? '').trim();
   const wifiPassword = String(biz?.wifi_password ?? (card as any).wifi_password ?? '').trim();
@@ -426,7 +427,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
       id: 'vc',
       platform: 'vodafone_cash',
       title: 'Vodafone Cash',
-      subtitle: 'حول بسهولة وأمان',
+      subtitle: 'اضغط لعرض QR أو نسخ الرقم',
       url: `tel:${val}`,
       icon: <VodafoneCashIcon size={60} />,
       brandColor: '#E60000',
@@ -486,7 +487,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   // 5. CONTACT (وسائل الاتصال)
   // ═══════════════════════════════════════════════════════════
   const availablePhones = getAvailablePhones();
-  if (availablePhones.length > 0 || !biz) {
+  if (biz?.show_call_button !== false && (availablePhones.length > 0 || !biz)) {
     links.push({
       id: 'ph',
       platform: 'phone',
@@ -577,7 +578,10 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
               if (link.platform === 'wifi') {
                 e.preventDefault();
                 setWifiModalOpen(true);
-              } else if (link.copyValue && (link.platform === 'vodafone_cash' || (link.platform === 'instapay' && !link.url.startsWith('http')))) {
+              } else if (link.platform === 'vodafone_cash') {
+                e.preventDefault();
+                setVodafoneQrOpen(true);
+              } else if (link.copyValue && link.platform === 'instapay' && !link.url.startsWith('http')) {
                 e.preventDefault();
                 copyToClipboard(link.copyValue, link.copyMessage);
               } else if (link.onClick) {
@@ -1161,6 +1165,26 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
             >
               إغلاق
             </button>
+          </div>
+        </div>
+      )}
+
+      {vodafoneQrOpen && (
+        <div dir="rtl" onClick={() => setVodafoneQrOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 100001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(15, 23, 42, .68)', backdropFilter: 'blur(4px)' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '370px', padding: '22px', borderRadius: '22px', background: '#fff', boxShadow: '0 24px 70px rgba(0,0,0,.3)', textAlign: 'center', fontFamily: 'Tajawal, sans-serif' }}>
+            <VodafoneCashIcon size={42} />
+            <h3 style={{ margin: '10px 0 5px', color: '#7f1d1d', fontSize: '20px', fontWeight: 900 }}>التحويل عبر فودافون كاش</h3>
+            <p style={{ margin: '0 0 16px', color: '#64748b', fontSize: '13px' }}>امسح رمز QR من تطبيق المحفظة، أو انسخ الرقم للتحويل يدويًا</p>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '220px', marginBottom: '14px', padding: '12px', border: '1px solid #fee2e2', borderRadius: '16px', background: '#fffafa' }}>
+              {biz?.vodafone_cash_qr ? (
+                <img src={biz.vodafone_cash_qr} alt="رمز QR لمحفظة فودافون كاش" style={{ display: 'block', width: '220px', maxWidth: '100%', aspectRatio: '1', objectFit: 'contain', borderRadius: '10px' }} />
+              ) : (
+                <span style={{ color: '#64748b', fontSize: '13px' }}>لم تُرفع صورة QR لهذه المحفظة.</span>
+              )}
+            </div>
+            <div dir="ltr" style={{ marginBottom: '12px', color: '#111827', fontSize: '19px', fontWeight: 900, letterSpacing: '.5px' }}>{biz?.vodafone_cash}</div>
+            <button type="button" onClick={() => copyToClipboard(String(biz?.vodafone_cash || ''), `تم نسخ رقم محفظة فودافون كاش (${biz?.vodafone_cash || ''}) بنجاح ✓`)} style={{ width: '100%', minHeight: '46px', border: 0, borderRadius: '12px', background: '#b91c1c', color: '#fff', fontSize: '14px', fontWeight: 800, cursor: 'pointer', fontFamily: 'Tajawal, sans-serif' }}>نسخ رقم المحفظة</button>
+            <button type="button" onClick={() => setVodafoneQrOpen(false)} style={{ width: '100%', minHeight: '42px', marginTop: '8px', border: 0, borderRadius: '12px', background: '#f1f5f9', color: '#475569', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Tajawal, sans-serif' }}>إغلاق</button>
           </div>
         </div>
       )}

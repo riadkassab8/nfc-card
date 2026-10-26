@@ -73,7 +73,7 @@ export const PublicCardLandingPage: React.FC = () => {
       if (biz.facebook?.trim()) links.push(biz.facebook.trim());
       if (biz.tiktok?.trim()) links.push(biz.tiktok.trim());
       if (biz.google_maps?.trim()) links.push(biz.google_maps.trim());
-      if (biz.phone?.trim()) links.push(`tel:${biz.phone.trim()}`);
+      if (biz.show_call_button !== false && biz.phone?.trim()) links.push(`tel:${biz.phone.trim()}`);
       if (biz.email?.trim()) links.push(`mailto:${biz.email.trim()}`);
       if (biz.website?.trim()) links.push(biz.website.trim());
       if (biz.instapay?.trim()) links.push(biz.instapay.trim());

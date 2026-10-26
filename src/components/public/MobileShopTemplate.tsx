@@ -47,6 +47,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
   // State for copy feedback
   const [copiedInstaPay, setCopiedInstaPay] = useState(false);
   const [copiedVodafone, setCopiedVodafone] = useState(false);
+  const [showVodafoneQr, setShowVodafoneQr] = useState(false);
   const [shareToast, setShareToast] = useState(false);
 
   // Review gate state
@@ -527,7 +528,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
               flexWrap: 'wrap',
             }}
           >
-            {biz.phone && (
+            {biz.phone && biz.show_call_button !== false && (
               <a
                 href={`tel:${biz.phone}`}
                 className="touch-action-btn"
@@ -900,8 +901,9 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                   )}
                 </button>
 
-                <a
-                  href={`tel:${rawVodafoneCash}`}
+                <button
+                  type="button"
+                  onClick={() => setShowVodafoneQr((show) => !show)}
                   className="touch-action-btn"
                   style={{
                     display: 'flex',
@@ -912,17 +914,27 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                     borderRadius: '12px',
                     backgroundColor: 'rgba(255, 255, 255, 0.18)',
                     color: '#ffffff',
-                    textDecoration: 'none',
+                    cursor: 'pointer',
                     fontSize: '13.5px',
                     fontWeight: 700,
                     border: '1px solid rgba(255, 255, 255, 0.25)',
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  <PhoneCall size={16} />
-                  <span>اتصال / تحويل</span>
-                </a>
+                  <Smartphone size={16} />
+                  <span>{showVodafoneQr ? 'إخفاء QR' : 'عرض QR للتحويل'}</span>
+                </button>
               </div>
+              {showVodafoneQr && (
+                <div style={{ marginTop: '12px', padding: '14px', borderRadius: '12px', background: '#fff', color: '#1f2937', textAlign: 'center' }}>
+                  {biz.vodafone_cash_qr ? (
+                    <img src={biz.vodafone_cash_qr} alt="رمز QR للتحويل إلى محفظة فودافون كاش" style={{ display: 'block', width: 'min(220px, 100%)', aspectRatio: '1', objectFit: 'contain', margin: '0 auto 10px' }} />
+                  ) : (
+                    <div style={{ fontSize: '12px', lineHeight: 1.6, marginBottom: '8px' }}>لم يرفع صاحب المحل صورة QR بعد. امسح الرمز من تطبيق فودافون كاش أو انسخ رقم المحفظة.</div>
+                  )}
+                  <div dir="rtl" style={{ fontSize: '12px', color: '#64748b' }}>رقم المحفظة: <strong dir="ltr" style={{ color: '#b80000' }}>{formatPhoneNumber(rawVodafoneCash)}</strong></div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1124,7 +1136,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
             )}
 
             {/* Direct Phone Call */}
-            {biz.phone && (
+            {biz.phone && biz.show_call_button !== false && (
               <a
                 href={`tel:${biz.phone}`}
                 className="touch-action-btn"

@@ -129,8 +129,8 @@ export const RestaurantCafeTemplate: React.FC<Props> = ({ data }) => {
           <p>{biz.description || 'اكتشف أطباقنا المختارة، قهوتنا المميزة، وتجربة ضيافة مصممة لتبقى في ذاكرتك.'}</p>
           <div className="restaurant-actions">
             {hasMenu && <a className="restaurant-btn restaurant-btn-primary" href={menuUrl} target="_blank" rel="noreferrer"><Utensils size={16} /> تصفح المنيو</a>}
-            {primaryPhone && <a className="restaurant-btn restaurant-btn-ghost" href={phoneHref(primaryPhone)}><Phone size={16} /> احجز طاولتك</a>}
-            {!hasMenu && !primaryPhone && <button className="restaurant-btn restaurant-btn-primary" onClick={() => scrollTo('restaurant-contact')}><ArrowLeft size={16} /> اكتشف المكان</button>}
+          {primaryPhone && biz.show_call_button !== false && <a className="restaurant-btn restaurant-btn-ghost" href={phoneHref(primaryPhone)}><Phone size={16} /> احجز طاولتك</a>}
+          {!hasMenu && !(primaryPhone && biz.show_call_button !== false) && <button className="restaurant-btn restaurant-btn-primary" onClick={() => scrollTo('restaurant-contact')}><ArrowLeft size={16} /> اكتشف المكان</button>}
           </div>
         </section>
 
@@ -173,7 +173,7 @@ export const RestaurantCafeTemplate: React.FC<Props> = ({ data }) => {
         {locations.length > 0 && <section id="restaurant-locations" className="restaurant-section"><div className="restaurant-section-heading"><h2>زورنا في أقرب فرع</h2><span>{locations.length} فروع</span></div><div className="restaurant-hours">{locations.map((location, index) => <a className="restaurant-location" href={normalizeUrl(location.google_maps_url)} target="_blank" rel="noreferrer" key={`${location.name}-${index}`}><span className="restaurant-location-name"><MapPin className="restaurant-info-icon" size={20} /><span>{location.name}<small>الموقع على خرائط Google</small></span></span><span className="restaurant-link">الاتجاهات <ChevronLeft size={14} /></span></a>)}</div></section>}
 
         <section id="restaurant-contact" className="restaurant-section"><div className="restaurant-section-heading"><h2>نحن قريبون منك</h2><span>تواصل واحجز بسهولة</span></div><div className="restaurant-info-grid">
-          {primaryPhone && <a className="restaurant-info-card" href={phoneHref(primaryPhone)} style={{ textDecoration: 'none' }}><Phone className="restaurant-info-icon" size={20} /><strong>اتصل بنا</strong><span dir="ltr">{primaryPhone}</span></a>}
+          {primaryPhone && biz.show_call_button !== false && <a className="restaurant-info-card" href={phoneHref(primaryPhone)} style={{ textDecoration: 'none' }}><Phone className="restaurant-info-icon" size={20} /><strong>اتصل بنا</strong><span dir="ltr">{primaryPhone}</span></a>}
           {biz.whatsapp && <a className="restaurant-info-card" href={normalizeUrl(biz.whatsapp)} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}><MessageCircle className="restaurant-info-icon" size={20} /><strong>واتساب الحجز</strong><span>رد سريع على استفسارك</span></a>}
           {mapsUrl && <a className="restaurant-info-card" href={mapsUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}><MapPin className="restaurant-info-icon" size={20} /><strong>الموقع الرئيسي</strong><span>افتح الاتجاهات الآن</span></a>}
           {biz.website && <a className="restaurant-info-card" href={normalizeUrl(biz.website)} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}><Globe2 className="restaurant-info-icon" size={20} /><strong>اطلب أونلاين</strong><span>زور موقعنا الإلكتروني</span></a>}

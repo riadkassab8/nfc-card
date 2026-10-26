@@ -9,7 +9,9 @@ import { websiteApi } from '../../services/api/websiteApi';
 import { SelectCustomerModal } from '../../components/admin/SelectCustomerModal';
 import { RestaurantMenuFormStep } from '../../components/admin/RestaurantMenuFormStep';
 import { GymTemplateDataStep } from '../../components/admin/GymTemplateDataStep';
+import { VodafoneCashQrField } from '../../components/admin/VodafoneCashQrField';
 import { appendGymLists, serializeGymList } from '../../utils/gymTemplate';
+import { buildWhatsappBulkPatch } from '../../utils/whatsappBulkEdit';
 import {
   ApiCategory,
   ApiCustomer,
@@ -214,6 +216,7 @@ export const AdminEditCardPage: React.FC = () => {
     wifi_password: '',
     wifi_security: 'WPA',
     wifi_hidden: 'false',
+    show_call_button: 'true',
     phone: '',
     phone1: '',
     phone2: '',
@@ -227,6 +230,7 @@ export const AdminEditCardPage: React.FC = () => {
     website: '',
     instapay: '',
     vodafone_cash: '',
+    vodafone_cash_qr: '',
     maintenance_whatsapp: '',
     offers_url: '',
     telegram_group: '',
@@ -241,6 +245,9 @@ export const AdminEditCardPage: React.FC = () => {
   });
 
   const [whatsappContacts, setWhatsappContacts] = useState<WhatsappContact[]>([]);
+  const bulkWhatsappTouched = useRef(false);
+  const bulkWhatsappContactsTouched = useRef(false);
+  const bulkCallButtonTouched = useRef(false);
 
   /* Multiple Locations state */
   interface Location {
@@ -258,14 +265,23 @@ export const AdminEditCardPage: React.FC = () => {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
   const updateBiz = (key: string, val: string) => {
+    if (bulkMode && key === 'whatsapp') bulkWhatsappTouched.current = true;
+    if (bulkMode && key === 'show_call_button') bulkCallButtonTouched.current = true;
     setBizData((prev) => ({ ...prev, [key]: val }));
   };
 
-  const addWhatsappContact = () => setWhatsappContacts((prev) => [...prev, { name: '', number: '' }]);
+  const addWhatsappContact = () => {
+    if (bulkMode) bulkWhatsappContactsTouched.current = true;
+    setWhatsappContacts((prev) => [...prev, { name: '', number: '' }]);
+  };
   const updateWhatsappContact = (index: number, field: keyof WhatsappContact, value: string) => {
+    if (bulkMode) bulkWhatsappContactsTouched.current = true;
     setWhatsappContacts((prev) => prev.map((contact, i) => i === index ? { ...contact, [field]: value } : contact));
   };
-  const removeWhatsappContact = (index: number) => setWhatsappContacts((prev) => prev.filter((_, i) => i !== index));
+  const removeWhatsappContact = (index: number) => {
+    if (bulkMode) bulkWhatsappContactsTouched.current = true;
+    setWhatsappContacts((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const addLocation = () => {
     const newId = `loc-${Date.now()}`;
@@ -381,6 +397,9 @@ export const AdminEditCardPage: React.FC = () => {
 
   /* Initialize form for bulk edit mode - populate common data from cards */
   const initializeFormForBulkMode = useCallback((cards: ApiCard[]) => {
+    bulkWhatsappTouched.current = false;
+    bulkWhatsappContactsTouched.current = false;
+    bulkCallButtonTouched.current = false;
     // Set current step to 2 for bulk mode (skip step 1)
     setCurrentStep(2);
     
@@ -407,6 +426,8 @@ export const AdminEditCardPage: React.FC = () => {
         const values = businessDataList.map((b: any) => b[field] || '');
         return values.every((v: string) => v === values[0]) ? values[0] : '';
       };
+      const callButtonValues = businessDataList.map((b: any) => b.show_call_button !== false);
+      const hasCommonCallButtonValue = callButtonValues.every((value) => value === callButtonValues[0]);
 
       // Populate business data with common values
       setBizData({
@@ -418,6 +439,7 @@ export const AdminEditCardPage: React.FC = () => {
         wifi_password: getCommonValue('wifi_password'),
         wifi_security: getCommonValue('wifi_security') || 'WPA',
         wifi_hidden: getCommonValue('wifi_hidden') || 'false',
+        show_call_button: hasCommonCallButtonValue ? (callButtonValues[0] ? 'true' : 'false') : '',
         phone: getCommonValue('phone'),
         phone1: getCommonValue('phone1'),
         phone2: getCommonValue('phone2'),
@@ -431,6 +453,7 @@ export const AdminEditCardPage: React.FC = () => {
         website: getCommonValue('website'),
         instapay: getCommonValue('instapay'),
         vodafone_cash: getCommonValue('vodafone_cash'),
+        vodafone_cash_qr: getCommonValue('vodafone_cash_qr'),
         maintenance_whatsapp: getCommonValue('maintenance_whatsapp'),
         offers_url: getCommonValue('offers_url'),
         telegram_group: getCommonValue('telegram_group'),
@@ -685,6 +708,7 @@ export const AdminEditCardPage: React.FC = () => {
       wifi_password: b.wifi_password || '',
       wifi_security: b.wifi_security || 'WPA',
       wifi_hidden: b.wifi_hidden ? 'true' : 'false',
+      show_call_button: b.show_call_button === false ? 'false' : 'true',
       phone: b.phone || '',
       phone1: b.phone1 || '',
       phone2: b.phone2 || '',
@@ -1002,11 +1026,16 @@ export const AdminEditCardPage: React.FC = () => {
       let hasBiz = false;
       
       for (const [k, v] of Object.entries(bizData)) {
-        if (k === 'wifi_security' || k === 'wifi_hidden' || ['gym_services', 'gym_plans', 'gym_trainers', 'gym_classes'].includes(k)) continue;
+        if (k === 'wifi_security' || k === 'wifi_hidden' || k === 'show_call_button' || ['gym_services', 'gym_plans', 'gym_trainers', 'gym_classes'].includes(k)) continue;
         if (typeof v === 'string' && v.trim()) {
           (business as any)[k] = v.trim();
           hasBiz = true;
         }
+      }
+
+      if (bulkCallButtonTouched.current) {
+        business.show_call_button = bizData.show_call_button === 'true';
+        hasBiz = true;
       }
 
       if (isGymTemplate) hasBiz = appendGymLists(business, bizData) || hasBiz;
@@ -1034,8 +1063,12 @@ export const AdminEditCardPage: React.FC = () => {
       }
 
       const validWhatsappContacts = whatsappContacts.filter((contact) => contact.name.trim() && contact.number.trim()).map((contact) => ({ name: contact.name.trim(), number: contact.number.trim() }));
-      if (validWhatsappContacts.length > 0) {
-        (business as any).whatsapp_contacts = validWhatsappContacts;
+      const whatsappPatch = buildWhatsappBulkPatch(bizData.whatsapp || '', validWhatsappContacts, {
+        whatsapp: bulkWhatsappTouched.current,
+        contacts: bulkWhatsappContactsTouched.current || validWhatsappContacts.length > 0,
+      });
+      Object.assign(business, whatsappPatch);
+      if (Object.keys(whatsappPatch).length > 0) {
         hasBiz = true;
       }
 
@@ -1161,12 +1194,17 @@ export const AdminEditCardPage: React.FC = () => {
     let hasBiz = false;
     if (isBusinessProfileCategory) {
       for (const [k, v] of Object.entries(bizData)) {
-        if (k === 'wifi_security' || k === 'wifi_hidden' || ['gym_services', 'gym_plans', 'gym_trainers', 'gym_classes'].includes(k)) continue;
+        if (k === 'wifi_security' || k === 'wifi_hidden' || k === 'show_call_button' || ['gym_services', 'gym_plans', 'gym_trainers', 'gym_classes'].includes(k)) continue;
         if (typeof v === 'string' && v.trim()) {
           (business as any)[k] = v.trim();
           hasBiz = true;
         }
       }
+
+      // An empty WhatsApp field is an explicit removal, not an omitted update.
+      business.whatsapp = bizData.whatsapp?.trim() || '';
+      business.show_call_button = bizData.show_call_button !== 'false';
+      hasBiz = true;
 
       if (isGymTemplate) hasBiz = appendGymLists(business, bizData) || hasBiz;
 
@@ -1194,8 +1232,8 @@ export const AdminEditCardPage: React.FC = () => {
     }
 
     const validWhatsappContacts = whatsappContacts.filter((contact) => contact.name.trim() && contact.number.trim()).map((contact) => ({ name: contact.name.trim(), number: contact.number.trim() }));
-    if (validWhatsappContacts.length > 0) {
-      (business as any).whatsapp_contacts = validWhatsappContacts;
+    if (validWhatsappContacts.length > 0 || Array.isArray(currentCard.business_data?.whatsapp_contacts)) {
+      business.whatsapp_contacts = validWhatsappContacts;
       hasBiz = true;
     }
 
@@ -2328,6 +2366,28 @@ export const AdminEditCardPage: React.FC = () => {
           />
         )}
 
+        {currentStep === 2 && (
+          <div className="form-group" style={{ backgroundColor: '#fff', border: '1px solid var(--bdr-light)', borderRadius: '14px', padding: '16px 18px', boxShadow: 'var(--shadow-xs)' }}>
+            <label className="form-label" htmlFor="show-call-button" style={{ fontWeight: 800, fontSize: '14px', marginBottom: '7px' }}>
+              إظهار زر الاتصال في البطاقة
+            </label>
+            <select
+              id="show-call-button"
+              className="form-input"
+              value={bizData.show_call_button ?? 'true'}
+              onChange={(e) => updateBiz('show_call_button', e.target.value)}
+              style={{ maxWidth: '360px' }}
+            >
+              {bulkMode && <option value="">اترك إعداد كل بطاقة كما هو</option>}
+              <option value="true">إظهار زر الاتصال</option>
+              <option value="false">إخفاء زر الاتصال</option>
+            </select>
+            <small style={{ display: 'block', marginTop: '6px', color: 'var(--txt-muted)', fontSize: '12px' }}>
+              عند الإخفاء يظل رقم الهاتف محفوظًا، لكن لن يظهر زر الاتصال في صفحة البطاقة.
+            </small>
+          </div>
+        )}
+
         {currentStep === shiftStep && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Multi-Shift Payment Builder (For Mobile Shop and Restaurant Templates) */}
@@ -2641,9 +2701,12 @@ export const AdminEditCardPage: React.FC = () => {
                       style={{ fontSize: '13.5px', fontWeight: 600 }}
                     />
                     <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
-                      زر نسخ مباشر وفتح تطبيق المحفظة لتحويل الفاتورة
+                      زر نسخ للرقم؛ التحويل نفسه يتم من تطبيق المحفظة
                     </span>
                   </div>
+                </div>
+                <div style={{ marginTop: '16px' }}>
+                  <VodafoneCashQrField value={bizData.vodafone_cash_qr || ''} onChange={(value) => updateBiz('vodafone_cash_qr', value)} />
                 </div>
               </div>
             )}

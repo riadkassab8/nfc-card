@@ -25,8 +25,9 @@ export const GymTemplate: React.FC<Props> = ({ data, preview = false }) => {
   const headline = biz.gym_tagline || 'قوتك تبدأ من هنا';
   const description = biz.description || (preview ? 'مساحة متكاملة للتدريب، بإشراف مدربين محترفين وبرامج تناسب كل مستوى.' : '');
   const primaryPhone = biz.phone || biz.phone1 || '';
+  const showCallButton = biz.show_call_button !== false;
   const contacts = [
-    { label: 'اتصل بالجيم', href: phoneLink(primaryPhone), icon: <Phone size={17} /> },
+    ...(showCallButton ? [{ label: 'اتصل بالجيم', href: phoneLink(primaryPhone), icon: <Phone size={17} /> }] : []),
     { label: 'احجز تجربة مجانية', href: safeUrl(biz.whatsapp), icon: <MessageCircle size={17} />, external: true },
     { label: 'اعرف موقعنا', href: safeUrl(biz.google_maps), icon: <MapPin size={17} />, external: true },
   ].filter((item) => item.href);
@@ -44,7 +45,7 @@ export const GymTemplate: React.FC<Props> = ({ data, preview = false }) => {
       `}</style>
       <main className="gym-shell">
         <header className="gym-top"><div className="gym-brand">{biz.logo ? <img className="gym-logo" src={biz.logo} alt="" /> : <div className="gym-mark"><Dumbbell size={21} /></div>}<div><small>FITNESS CLUB</small><strong>{biz.business_name || (preview ? 'أطلس فتنس' : 'نادي اللياقة')}</strong></div></div><span className="gym-open"><i /> {preview ? 'مفتوح اليوم' : 'جاهزون لاستقبالك'}</span></header>
-        <section className="gym-hero" style={biz.gym_cover_image ? { backgroundImage: `url("${safeUrl(biz.gym_cover_image)}")` } : undefined}><div className="gym-hero-content"><span className="gym-eyebrow">تدريب أقوى. حياة أفضل.</span><h1>{headline}</h1>{description && <p>{description}</p>}<div className="gym-hero-actions">{biz.website && <a className="gym-cta" href={safeUrl(biz.website)} target="_blank" rel="noreferrer"><Activity size={16} /> استكشف برامجنا</a>}{primaryPhone && <a className="gym-cta secondary" href={phoneLink(primaryPhone)}><Phone size={16} /> تواصل معنا</a>}{!biz.website && !primaryPhone && <a className="gym-cta" href="#gym-memberships">اكتشف العضويات <ArrowUpLeft size={16} /></a>}</div></div></section>
+        <section className="gym-hero" style={biz.gym_cover_image ? { backgroundImage: `url("${safeUrl(biz.gym_cover_image)}")` } : undefined}><div className="gym-hero-content"><span className="gym-eyebrow">تدريب أقوى. حياة أفضل.</span><h1>{headline}</h1>{description && <p>{description}</p>}<div className="gym-hero-actions">{biz.website && <a className="gym-cta" href={safeUrl(biz.website)} target="_blank" rel="noreferrer"><Activity size={16} /> استكشف برامجنا</a>}{primaryPhone && showCallButton && <a className="gym-cta secondary" href={phoneLink(primaryPhone)}><Phone size={16} /> تواصل معنا</a>}{!biz.website && !(primaryPhone && showCallButton) && <a className="gym-cta" href="#gym-memberships">اكتشف العضويات <ArrowUpLeft size={16} /></a>}</div></div></section>
         <nav className="gym-nav"><a href="#gym-services">الخدمات</a><a href="#gym-memberships">العضويات</a>{trainers.length > 0 && <a href="#gym-trainers">المدربون</a>}{classes.length > 0 && <a href="#gym-classes">الحصص</a>}{biz.gym_opening_hours && <a href="#gym-hours">المواعيد</a>}<a href="#gym-contact">التواصل</a></nav>
 
         <section className="gym-section" id="gym-services"><div className="gym-section-head"><h2>مساحة <em>تتحدى فيها نفسك</em></h2><span>تجهيزات وخدمات</span></div>{services.length ? <div className="gym-services">{services.map((item, index) => <article className="gym-service" key={`service-${index}`}><div className="gym-service-icon"><Dumbbell size={19} /></div><h3>{item.title || 'خدمة تدريب'}</h3>{item.description && <p>{item.description}</p>}</article>)}</div> : <div className="gym-empty">أضف الخدمات والتجهيزات من بيانات القالب لتظهر هنا.</div>}</section>

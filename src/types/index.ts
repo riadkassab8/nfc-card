@@ -267,6 +267,7 @@ export interface BusinessData {
   wifi_password?: string | null;
   wifi_security?: 'WPA' | 'WEP' | '' | null;
   wifi_hidden?: boolean | null;
+  show_call_button?: boolean | null;
   whatsapp_contacts?: WhatsappContact[] | null;
   phone?: string | null;
   phone1?: string | null;
@@ -284,6 +285,7 @@ export interface BusinessData {
   instapay2?: string | null;
   instapay3?: string | null;
   vodafone_cash?: string | null;
+  vodafone_cash_qr?: string | null;
   offers_url?: string | null;
   maintenance_whatsapp?: string | null;
   telegram_group?: string | null;

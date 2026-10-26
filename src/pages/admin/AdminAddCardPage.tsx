@@ -21,6 +21,7 @@ import {
 import { SelectCustomerModal } from '../../components/admin/SelectCustomerModal';
 import { RestaurantMenuFormStep } from '../../components/admin/RestaurantMenuFormStep';
 import { GymTemplateDataStep } from '../../components/admin/GymTemplateDataStep';
+import { VodafoneCashQrField } from '../../components/admin/VodafoneCashQrField';
 import { appendGymLists, serializeGymList } from '../../utils/gymTemplate';
 import Swal from 'sweetalert2';
 import {
@@ -300,6 +301,7 @@ export const AdminAddCardPage: React.FC = () => {
     wifi_password: editCard?.business_data?.wifi_password || '',
     wifi_security: editCard?.business_data?.wifi_security || 'WPA',
     wifi_hidden: editCard?.business_data?.wifi_hidden ? 'true' : 'false',
+    show_call_button: editCard?.business_data?.show_call_button === false ? 'false' : 'true',
     phone: editCard?.business_data?.phone || '',
     email: editCard?.business_data?.email || '',
     whatsapp: editCard?.business_data?.whatsapp || '',
@@ -310,6 +312,7 @@ export const AdminAddCardPage: React.FC = () => {
     website: editCard?.business_data?.website || '',
     instapay: editCard?.business_data?.instapay || '',
     vodafone_cash: editCard?.business_data?.vodafone_cash || '',
+    vodafone_cash_qr: editCard?.business_data?.vodafone_cash_qr || '',
     maintenance_whatsapp: editCard?.business_data?.maintenance_whatsapp || '',
     offers_url: editCard?.business_data?.offers_url || '',
     telegram_group: editCard?.business_data?.telegram_group || '',
@@ -405,6 +408,7 @@ export const AdminAddCardPage: React.FC = () => {
             wifi_password: card.business_data?.wifi_password || '',
             wifi_security: card.business_data?.wifi_security || 'WPA',
             wifi_hidden: card.business_data?.wifi_hidden ? 'true' : 'false',
+            show_call_button: card.business_data?.show_call_button === false ? 'false' : 'true',
             phone: card.business_data?.phone || '',
             email: card.business_data?.email || '',
             whatsapp: card.business_data?.whatsapp || '',
@@ -415,6 +419,7 @@ export const AdminAddCardPage: React.FC = () => {
             website: card.business_data?.website || '',
             instapay: card.business_data?.instapay || '',
             vodafone_cash: card.business_data?.vodafone_cash || '',
+            vodafone_cash_qr: card.business_data?.vodafone_cash_qr || '',
             maintenance_whatsapp: card.business_data?.maintenance_whatsapp || '',
             offers_url: card.business_data?.offers_url || '',
             telegram_group: card.business_data?.telegram_group || '',
@@ -802,12 +807,15 @@ export const AdminAddCardPage: React.FC = () => {
     let hasBiz = false;
     if (isBusinessProfileCategory) {
       for (const [k, v] of Object.entries(bizData)) {
-        if (k === 'wifi_security' || k === 'wifi_hidden' || ['gym_services', 'gym_plans', 'gym_trainers', 'gym_classes'].includes(k)) continue;
+        if (k === 'wifi_security' || k === 'wifi_hidden' || k === 'show_call_button' || ['gym_services', 'gym_plans', 'gym_trainers', 'gym_classes'].includes(k)) continue;
         if (typeof v === 'string' && v.trim()) {
           (business as any)[k] = v.trim();
           hasBiz = true;
         }
       }
+
+      business.show_call_button = bizData.show_call_button !== 'false';
+      hasBiz = true;
 
       if (isGymTemplate) hasBiz = appendGymLists(business, bizData) || hasBiz;
 
@@ -2085,6 +2093,27 @@ export const AdminAddCardPage: React.FC = () => {
           />
         )}
 
+        {currentStep === 2 && (
+          <div className="form-group" style={{ backgroundColor: '#fff', border: '1px solid var(--bdr-light)', borderRadius: '14px', padding: '16px 18px', boxShadow: 'var(--shadow-xs)' }}>
+            <label className="form-label" htmlFor="add-show-call-button" style={{ fontWeight: 800, fontSize: '14px', marginBottom: '7px' }}>
+              إظهار زر الاتصال في البطاقة
+            </label>
+            <select
+              id="add-show-call-button"
+              className="form-input"
+              value={bizData.show_call_button ?? 'true'}
+              onChange={(e) => updateBiz('show_call_button', e.target.value)}
+              style={{ maxWidth: '360px' }}
+            >
+              <option value="true">إظهار زر الاتصال</option>
+              <option value="false">إخفاء زر الاتصال</option>
+            </select>
+            <small style={{ display: 'block', marginTop: '6px', color: 'var(--txt-muted)', fontSize: '12px' }}>
+              عند الإخفاء يظل رقم الهاتف محفوظًا، لكن لن يظهر زر الاتصال في صفحة البطاقة.
+            </small>
+          </div>
+        )}
+
         {currentStep === shiftStep && (
           <div
             style={{
@@ -2375,6 +2404,9 @@ export const AdminAddCardPage: React.FC = () => {
                     </div>
                   ))}
                 </div>
+                <div style={{ marginTop: '14px' }}>
+                  <VodafoneCashQrField value={bizData.vodafone_cash_qr || ''} onChange={(value) => updateBiz('vodafone_cash_qr', value)} />
+                </div>
               </div>
             )}
 
@@ -2407,6 +2439,9 @@ export const AdminAddCardPage: React.FC = () => {
                       {f.hint && <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>{f.hint}</span>}
                     </div>
                   ))}
+                </div>
+                <div style={{ marginTop: '14px' }}>
+                  <VodafoneCashQrField value={bizData.vodafone_cash_qr || ''} onChange={(value) => updateBiz('vodafone_cash_qr', value)} />
                 </div>
               </div>
             )}
