@@ -19,6 +19,7 @@ import { AdminWebsiteLinksPage } from './pages/admin/AdminWebsiteLinksPage';
 import { AdminAddCardPage } from './pages/admin/AdminAddCardPage';
 import { AdminEditCardPage } from './pages/admin/AdminEditCardPage';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
+import { AdminBusinessFieldsPage } from './pages/admin/AdminBusinessFieldsPage';
 import { AdminScanPage } from './pages/admin/AdminScanPage';
 import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
@@ -98,6 +99,18 @@ export const App: React.FC = () => (
             <ProtectedRoute requiredPage="cards">
               <AdminShell title="إدارة البطاقات">
                 <AdminInventoryPage />
+              </AdminShell>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Business Data Dynamic Fields Management */}
+        <Route
+          path="/admin/business-fields"
+          element={
+            <ProtectedRoute requiredPage="business_fields">
+              <AdminShell title="إدارة حقول البيانات">
+                <AdminBusinessFieldsPage />
               </AdminShell>
             </ProtectedRoute>
           }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { cardsApi } from '../../services/api/cardsApi';
+import { businessFieldsApi } from '../../services/api/businessFieldsApi';
 import { categoriesApi } from '../../services/api/categoriesApi';
 import { customersApi } from '../../services/api/customersApi';
 import { websiteApi } from '../../services/api/websiteApi';
@@ -22,6 +23,7 @@ import {
   WhatsappContact,
   isBulkMode,
   ApiBulkCardUpdateDto,
+  ApiBusinessField,
 } from '../../types';
 import {
   ArrowRight,
@@ -195,6 +197,7 @@ export const AdminEditCardPage: React.FC = () => {
     },
   ]);
   const [enableReviewGate, setEnableReviewGate] = useState<boolean>(true);
+  const [dynamicCustomFields, setDynamicCustomFields] = useState<ApiBusinessField[]>([]);
 
   /* Customer link state */
   const [selectedCustomer, setSelectedCustomer] = useState<ApiCustomer | null>(null);
@@ -667,8 +670,13 @@ export const AdminEditCardPage: React.FC = () => {
     }
 
     const b = card.business_data || {};
+    const dynamicVals: Record<string, string> = {};
+    Object.entries(b).forEach(([k, v]) => {
+      if (typeof v === 'string') dynamicVals[k] = v;
+    });
     setEnableReviewGate(b.enable_review_gate ?? true);
     setBizData({
+      ...dynamicVals,
       business_name: b.business_name || '',
       welcome_message: b.welcome_message || '',
       logo: b.logo || '',
@@ -783,7 +791,9 @@ export const AdminEditCardPage: React.FC = () => {
 
         if (!isMounted) return;
         setCategories(catsRes.data ?? []);
-
+        businessFieldsApi.getFields({ is_active: true }).then((fields: any[]) => {
+          setDynamicCustomFields(fields.filter((f: any) => !f.is_system));
+        }).catch(() => {});
         if (bulkMode && customerId) {
           // Bulk mode: Fetch all cards for customer
           try {
@@ -2199,6 +2209,45 @@ export const AdminEditCardPage: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            {/* Dynamic Custom Fields Section */}
+            {dynamicCustomFields.length > 0 && (
+              <div
+                style={{
+                  backgroundColor: '#faf5ff',
+                  borderRadius: '16px',
+                  border: '1px solid #e9d5ff',
+                  padding: '24px',
+                  boxShadow: 'var(--shadow-xs)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                  <Sparkles size={20} style={{ color: '#7e22ce' }} />
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#7e22ce' }}>
+                    حقول إضافية ومخصصة (Custom Business Fields)
+                  </h3>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                  {dynamicCustomFields.map((f) => (
+                    <div className="form-group" key={f.key}>
+                      <label className="form-label" style={{ fontWeight: 700, fontSize: '13px' }}>
+                        {f.label} {f.is_required && <span style={{ color: '#dc2626' }}>*</span>}
+                      </label>
+                      <input
+                        className="form-input"
+                        type={f.type === 'tel' ? 'tel' : f.type === 'email' ? 'email' : f.type === 'number' ? 'number' : 'text'}
+                        dir={f.type === 'url' || f.type === 'tel' || f.type === 'email' ? 'ltr' : undefined}
+                        value={bizData[f.key] || ''}
+                        onChange={(e) => updateBiz(f.key, e.target.value)}
+                        placeholder={f.placeholder || `أدخل ${f.label}`}
+                        style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
+                      />
+                      {f.hint && <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>{f.hint}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Multiple Locations */}
             <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>

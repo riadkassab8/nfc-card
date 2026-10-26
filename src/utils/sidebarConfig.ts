@@ -22,6 +22,7 @@ import {
   ShoppingCart,
   Globe,
   Link2,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { authApi } from '../services/api';
 import { SidebarNavItemConfig } from '../types';
@@ -45,6 +46,7 @@ export const ICON_MAP: Record<string, React.ElementType> = {
   ShoppingCart,
   Globe,
   Link2,
+  SlidersHorizontal,
 };
 
 export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
@@ -74,6 +76,15 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarNavItemConfig[] = [
     iconName: 'CreditCard',
     visible: true,
     order: 2,
+  },
+  {
+    id: 'business_fields',
+    path: '/admin/business-fields',
+    label: 'حقول البيانات (Fields)',
+    defaultLabel: 'حقول البيانات (Fields)',
+    iconName: 'SlidersHorizontal',
+    visible: true,
+    order: 3,
   },
   {
     id: 'website_content',

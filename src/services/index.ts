@@ -8,6 +8,7 @@ export {
   usersApi,
   userLogsApi,
   websiteApi,
+  businessFieldsApi,
   apiClient,
   ApiError,
   getApiBaseUrl,

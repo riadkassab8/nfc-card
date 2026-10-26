@@ -280,6 +280,9 @@ export interface BusinessData {
   website?: string | null;
   email?: string | null;
   instapay?: string | null;
+  instapay1?: string | null;
+  instapay2?: string | null;
+  instapay3?: string | null;
   vodafone_cash?: string | null;
   offers_url?: string | null;
   maintenance_whatsapp?: string | null;
@@ -972,3 +975,68 @@ export const buildBulkUpdateDto = (formData: {
 
   return dto;
 };
+
+
+// ==========================================
+// Business Data Dynamic Fields Management
+// ==========================================
+export type BusinessFieldType =
+  | 'text'
+  | 'tel'
+  | 'url'
+  | 'email'
+  | 'number'
+  | 'textarea'
+  | 'image';
+
+export type BusinessFieldSection =
+  | 'contact'
+  | 'social'
+  | 'payment'
+  | 'general'
+  | 'custom';
+
+export interface ApiBusinessField {
+  _id: string;
+  key: string;
+  label: string;
+  type: BusinessFieldType;
+  icon?: string;
+  section: BusinessFieldSection;
+  placeholder?: string;
+  hint?: string;
+  order: number;
+  is_active: boolean;
+  is_required: boolean;
+  is_system: boolean;
+  show_in_public: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateBusinessFieldDto {
+  key: string;
+  label: string;
+  type: BusinessFieldType;
+  icon?: string;
+  section?: BusinessFieldSection;
+  placeholder?: string;
+  hint?: string;
+  order?: number;
+  is_active?: boolean;
+  is_required?: boolean;
+  show_in_public?: boolean;
+}
+
+export interface UpdateBusinessFieldDto {
+  label?: string;
+  type?: BusinessFieldType;
+  icon?: string;
+  section?: BusinessFieldSection;
+  placeholder?: string;
+  hint?: string;
+  order?: number;
+  is_active?: boolean;
+  is_required?: boolean;
+  show_in_public?: boolean;
+}

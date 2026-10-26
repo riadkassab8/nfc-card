@@ -434,6 +434,36 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
       copyMessage: `تم نسخ رقم محفظة فودافون كاش (${val}) بنجاح ✓`,
     });
   }
+  if (biz?.instapay2?.trim()) {
+    const val = biz.instapay2.trim();
+    const isUrl = /^https?:\/\//i.test(val);
+    links.push({
+      id: 'ip2',
+      platform: 'instapay',
+      title: 'InstaPay 2',
+      subtitle: 'حساب تحويل إضافي',
+      url: isUrl ? val : `https://instapay.eg`,
+      icon: <InstaPayIcon size={60} />,
+      brandColor: '#49258E',
+      copyValue: val,
+      copyMessage: `تم نسخ معرّف إنستاباي الثاني (${val}) بنجاح ✓`,
+    });
+  }
+  if (biz?.instapay3?.trim()) {
+    const val = biz.instapay3.trim();
+    const isUrl = /^https?:\/\//i.test(val);
+    links.push({
+      id: 'ip3',
+      platform: 'instapay',
+      title: 'InstaPay 3',
+      subtitle: 'حساب تحويل إضافي',
+      url: isUrl ? val : `https://instapay.eg`,
+      icon: <InstaPayIcon size={60} />,
+      brandColor: '#49258E',
+      copyValue: val,
+      copyMessage: `تم نسخ معرّف إنستاباي الثالث (${val}) بنجاح ✓`,
+    });
+  }
 
   // ═══════════════════════════════════════════════════════════
   // 4. WIFI (بيانات شبكة الواي فاي)

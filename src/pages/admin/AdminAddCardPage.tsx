@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import { cardsApi, categoriesApi, customersApi } from '../../services';
+import { cardsApi, categoriesApi, customersApi, businessFieldsApi } from '../../services';
 import { websiteApi } from '../../services/api/websiteApi';
 import {
   ApiCard,
@@ -16,6 +16,7 @@ import {
   getCategoryId,
   CUSTOM_SLUG_REGEX,
   ApiCustomer,
+  ApiBusinessField,
 } from '../../types';
 import { SelectCustomerModal } from '../../components/admin/SelectCustomerModal';
 import { RestaurantMenuFormStep } from '../../components/admin/RestaurantMenuFormStep';
@@ -281,6 +282,9 @@ export const AdminAddCardPage: React.FC = () => {
 
   const [enableReviewGate, setEnableReviewGate] = useState<boolean>(editCard?.business_data?.enable_review_gate ?? true);
 
+  /* Dynamic Custom Fields */
+  const [dynamicCustomFields, setDynamicCustomFields] = useState<ApiBusinessField[]>([]);
+
   /* Customer link state */
   const [selectedCustomer, setSelectedCustomer] = useState<ApiCustomer | null>(null);
   const [initialCustomer, setInitialCustomer] = useState<ApiCustomer | null>(null);
@@ -386,8 +390,13 @@ export const AdminAddCardPage: React.FC = () => {
           setWhatsappContacts((card.business_data?.whatsapp_contacts || []).map((contact) => ({ name: contact.name || '', number: (contact.number || (contact as any).url || '').replace(/^https?:\/\/wa\.me\//i, '').replace(/[^0-9+]/g, '') })));
         
         if (card.business_data) {
+          const dynamicVals: Record<string, string> = {};
+          Object.entries(card.business_data).forEach(([k, v]) => {
+            if (typeof v === 'string') dynamicVals[k] = v;
+          });
           setBizData((prev) => ({
             ...prev,
+            ...dynamicVals,
             business_name: card.business_data?.business_name || '',
             welcome_message: card.business_data?.welcome_message || '',
             logo: card.business_data?.logo || '',
@@ -521,8 +530,11 @@ export const AdminAddCardPage: React.FC = () => {
 
       const activeCats = catsRes.data ?? [];
       setCategories(activeCats);
-
-      // Auto-select Business Profile category if available
+      try {
+        const allFields = await businessFieldsApi.getFields({ is_active: true });
+        setDynamicCustomFields(allFields.filter((f: any) => !f.is_system));
+      } catch (err) {}
+            // Auto-select Business Profile category if available
       const bizCat = activeCats.find(
         (c) => c.name.includes('نشاط') || c.name.toLowerCase().includes('business')
       );
@@ -1909,6 +1921,35 @@ export const AdminAddCardPage: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            {/* Dynamic Custom Fields Section */}
+            {dynamicCustomFields.length > 0 && (
+              <div style={{ backgroundColor: '#faf5ff', borderRadius: '14px', padding: '18px 20px', border: '1px solid #e9d5ff' }}>
+                <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: '#7e22ce', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Sparkles size={16} />
+                  حقول إضافية ومخصصة (Custom Business Fields)
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '16px' }}>
+                  {dynamicCustomFields.map((f) => (
+                    <div key={f.key} className="form-group">
+                      <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
+                        {f.label} {f.is_required && <span style={{ color: '#dc2626' }}>*</span>}
+                      </label>
+                      <input
+                        className="form-input"
+                        type={f.type === 'tel' ? 'tel' : f.type === 'email' ? 'email' : f.type === 'number' ? 'number' : 'text'}
+                        dir={f.type === 'url' || f.type === 'tel' || f.type === 'email' ? 'ltr' : undefined}
+                        value={bizData[f.key] || ''}
+                        onChange={(e) => updateBiz(f.key, e.target.value)}
+                        placeholder={f.placeholder || `أدخل ${f.label}`}
+                        style={{ fontSize: '13px', backgroundColor: '#fff' }}
+                      />
+                      {f.hint && <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>{f.hint}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Multiple Locations */}
             <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>
