@@ -331,19 +331,17 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         })
         .filter((contact) => contact?.name?.trim() && contact.url !== 'https://wa.me/')
     : [];
-  if (whatsappContacts.length > 0) {
-    whatsappContacts.forEach((contact, index) => {
-      links.push({
-        id: `wa-${index}`,
-        platform: 'whatsapp',
-        title: contact.name.trim(),
-        subtitle: contact.url.trim(),
-        url: contact.url.trim(),
-        icon: <WhatsAppIcon size={60} />,
-        brandColor: '#25D366'
-      });
+  if (biz?.whatsapp?.trim()) {
+    links.push({
+      id: 'wa-direct',
+      platform: 'whatsapp',
+      title: 'واتساب مباشر',
+      subtitle: 'تواصل معنا مباشرة',
+      url: waUrl,
+      icon: <WhatsAppIcon size={60} />,
+      brandColor: '#25D366'
     });
-  } else if (biz?.whatsapp?.trim() || !biz) {
+  } else if (!biz && whatsappContacts.length === 0) {
     links.push({
       id: 'wa',
       platform: 'whatsapp',
@@ -352,6 +350,21 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
       url: waUrl,
       icon: <WhatsAppIcon size={60} />,
       brandColor: '#25D366'
+    });
+  }
+  if (whatsappContacts.length > 0) {
+    whatsappContacts.forEach((contact, index) => {
+      links.push({
+        id: `wa-${index}`,
+        platform: 'whatsapp',
+        title: contact.name.trim(),
+        subtitle: /(?:chat\.whatsapp\.com|whatsapp\.com\/channel)/i.test(contact.url)
+          ? 'انضم إلى مجموعة واتساب'
+          : 'ابدأ محادثة عبر واتساب',
+        url: contact.url.trim(),
+        icon: <WhatsAppIcon size={60} />,
+        brandColor: '#25D366'
+      });
     });
   }
   if (biz?.instagram?.trim() || !biz) {
@@ -708,9 +721,13 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
         }
 
         .nfc-booking-wrap {
-          position: fixed;
+          position: fixed !important;
           left: max(16px, env(safe-area-inset-left));
           bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+          top: auto !important;
+          right: auto !important;
+          transform: none !important;
+          animation: none !important;
           z-index: 900;
           display: flex;
           justify-content: flex-start;
@@ -722,6 +739,8 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
 
         .nfc-booking-cta {
           display: flex;
+          transform: none !important;
+          animation: none !important;
           align-items: center;
           justify-content: flex-start;
           gap: 10px;
@@ -1089,7 +1108,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
               </span>
             </a>
           </div>,
-          document.documentElement,
+          document.body,
         )}
 
       {/* Floating Copy Feedback Toast */}

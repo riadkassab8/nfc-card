@@ -462,7 +462,10 @@ export const AdminEditCardPage: React.FC = () => {
 
       const whatsappLists = businessDataList.map((businessData: any) => JSON.stringify(businessData.whatsapp_contacts || []));
       const commonWhatsappContacts = whatsappLists.every((value) => value === whatsappLists[0]) ? (businessDataList[0].whatsapp_contacts || []) : [];
-      setWhatsappContacts(commonWhatsappContacts.map((contact: any) => ({ name: contact.name || '', number: (contact.number || (contact as any).url || '').replace(/[^0-9+]/g, '') })));
+      setWhatsappContacts(commonWhatsappContacts.map((contact: any) => {
+        const value = String(contact.number || contact.url || '').trim();
+        return { name: contact.name || '', number: /^https?:\/\//i.test(value) ? value : value.replace(/[^0-9+]/g, '') };
+      }));
 
       // Check if all cards have enable_review_gate setting
       const reviewGateSettings = businessDataList.map((b: any) => b.enable_review_gate ?? true);
@@ -738,7 +741,10 @@ export const AdminEditCardPage: React.FC = () => {
     const loadedWhatsappContacts = Array.isArray(b.whatsapp_contacts)
       ? b.whatsapp_contacts
       : (b.whatsapp ? [{ name: 'واتساب', number: b.whatsapp }] : []);
-    setWhatsappContacts(loadedWhatsappContacts.map((contact: any) => ({ name: contact.name || '', number: (contact.number || contact.url || '').replace(/^https?:\/\/wa\.me\//i, '').replace(/[^0-9+]/g, '') })));
+    setWhatsappContacts(loadedWhatsappContacts.map((contact: any) => {
+      const value = String(contact.number || contact.url || '').trim();
+      return { name: contact.name || '', number: /^https?:\/\//i.test(value) ? value : value.replace(/^wa\.me\//i, '').replace(/[^0-9+]/g, '') };
+    }));
 
     // Load multiple locations, with a backwards-compatible fallback for the old single map field.
     if (Array.isArray(b.locations)) {
@@ -1195,7 +1201,7 @@ export const AdminEditCardPage: React.FC = () => {
     if (isBusinessProfileCategory) {
       for (const [k, v] of Object.entries(bizData)) {
         if (k === 'wifi_security' || k === 'wifi_hidden' || k === 'show_call_button' || ['gym_services', 'gym_plans', 'gym_trainers', 'gym_classes'].includes(k)) continue;
-        if (typeof v === 'string' && v.trim()) {
+        if (typeof v === 'string') {
           (business as any)[k] = v.trim();
           hasBiz = true;
         }
@@ -2192,17 +2198,17 @@ export const AdminEditCardPage: React.FC = () => {
             {/* WhatsApp Contacts */}
             <div style={{ backgroundColor: '#f0fdf4', borderRadius: '16px', padding: '20px 24px', border: '1px solid #bbf7d0', boxShadow: 'var(--shadow-xs)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}><MessageCircle size={20} /> أرقام واتساب</h3>
-                <button type="button" onClick={addWhatsappContact} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', border: 'none', borderRadius: '8px', backgroundColor: '#16a34a', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}><Plus size={14} /> إضافة رقم</button>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}><MessageCircle size={20} /> أرقام وروابط واتساب</h3>
+                <button type="button" onClick={addWhatsappContact} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', border: 'none', borderRadius: '8px', backgroundColor: '#16a34a', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}><Plus size={14} /> إضافة جهة اتصال</button>
               </div>
               {whatsappContacts.length === 0 ? (
-                <div style={{ color: '#64748b', fontSize: '13px', textAlign: 'center', padding: '10px' }}>لم تتم إضافة أرقام واتساب بعد.</div>
+                <div style={{ color: '#64748b', fontSize: '13px', textAlign: 'center', padding: '10px' }}>لم تتم إضافة أرقام أو روابط واتساب بعد.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {whatsappContacts.map((contact, index) => (
                     <div key={index} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr)) auto', gap: '10px', alignItems: 'end', backgroundColor: '#fff', border: '1px solid #dcfce7', borderRadius: '10px', padding: '12px' }}>
                       <div className="form-group"><label className="form-label" style={{ fontSize: '12px', fontWeight: 700 }}>اسم جهة الاتصال</label><input className="form-input" value={contact.name} onChange={(e) => updateWhatsappContact(index, 'name', e.target.value)} placeholder="مثال: خدمة العملاء" /></div>
-                      <div className="form-group"><label className="form-label" style={{ fontSize: '12px', fontWeight: 700 }}>رقم واتساب</label><input className="form-input" dir="ltr" type="tel" value={contact.number} onChange={(e) => updateWhatsappContact(index, 'number', e.target.value)} placeholder="201098277229" /></div>
+                      <div className="form-group"><label className="form-label" style={{ fontSize: '12px', fontWeight: 700 }}>رقم واتساب أو رابط دعوة المجموعة</label><input className="form-input" dir="ltr" type="text" value={contact.number} onChange={(e) => updateWhatsappContact(index, 'number', e.target.value)} placeholder="201098277229 أو https://chat.whatsapp.com/..." /></div>
                       <button type="button" onClick={() => removeWhatsappContact(index)} aria-label="حذف رقم واتساب" style={{ height: '38px', padding: '0 10px', border: '1px solid #fecaca', borderRadius: '8px', backgroundColor: '#fff', color: '#dc2626', cursor: 'pointer' }}><Trash2 size={15} /></button>
                     </div>
                   ))}
