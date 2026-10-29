@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { ApiCard } from '../../types';
 import { ProfileHero } from './ProfileHero';
@@ -449,7 +448,7 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
       id: 'vc',
       platform: 'vodafone_cash',
       title: 'Vodafone Cash',
-      subtitle: 'اضغط لعرض QR أو نسخ الرقم',
+      subtitle: biz.vodafone_cash_qr ? 'اضغط لعرض QR أو نسخ الرقم' : 'اضغط لنسخ رقم المحفظة',
       url: `tel:${val}`,
       icon: <VodafoneCashIcon size={60} />,
       brandColor: '#E60000',
@@ -611,7 +610,14 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
                 setWifiModalOpen(true);
               } else if (link.platform === 'vodafone_cash') {
                 e.preventDefault();
-                setVodafoneQrOpen(true);
+                if (biz?.vodafone_cash_qr) {
+                  setVodafoneQrOpen(true);
+                } else {
+                  copyToClipboard(
+                    String(biz?.vodafone_cash || ''),
+                    `تم نسخ رقم محفظة فودافون كاش (${biz?.vodafone_cash || ''}) بنجاح ✓`,
+                  );
+                }
               } else if (link.copyValue && link.platform === 'instapay' && !link.url.startsWith('http')) {
                 e.preventDefault();
                 copyToClipboard(link.copyValue, link.copyMessage);
@@ -1076,40 +1082,6 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
           </div>
         </div>
       </div>
-
-      {typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            className="nfc-booking-wrap"
-            data-template={card.template || 'default'}
-            dir="rtl"
-            style={{
-              position: 'fixed',
-              left: 'max(16px, env(safe-area-inset-left))',
-              bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
-              right: 'auto',
-              top: 'auto',
-              transform: 'none',
-              zIndex: 2147483647,
-            }}
-          >
-            <a
-              className="nfc-booking-cta"
-              href="https://wa.me/201098277229"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="احجز كارتك على واتساب 01098277229"
-            >
-              <span className="nfc-booking-icon" aria-hidden="true">
-                <WhatsAppIcon size={26} />
-              </span>
-              <span className="nfc-booking-copy" dir="rtl">
-                <span className="nfc-booking-label">احجز كارتك</span>
-              </span>
-            </a>
-          </div>,
-          document.body,
-        )}
 
       {/* Floating Copy Feedback Toast */}
       {toastMsg && (
