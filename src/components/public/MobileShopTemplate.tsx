@@ -130,6 +130,11 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
   // ── 2. Effective Payment Details for Active Shift ─────────────────────
   // Prioritize active shift payment credentials, with fallback to business_data
   const rawInstaPay = activeShift?.instapay?.trim() || biz.instapay?.trim() || '';
+  const instaPayAccounts = [
+    { value: rawInstaPay, label: biz.instapay_label?.trim() || 'حساب إنستاباي المعتمد' },
+    { value: biz.instapay2?.trim() || '', label: biz.instapay2_label?.trim() || 'حساب إنستاباي إضافي' },
+    { value: biz.instapay3?.trim() || '', label: biz.instapay3_label?.trim() || 'حساب إنستاباي إضافي' },
+  ].filter((account) => account.value);
   const rawVodafoneCash = activeShift?.vodafone_cash?.trim() || biz.vodafone_cash?.trim() || '';
 
   // Extract clean username from InstaPay IPN URL if present:
@@ -153,9 +158,12 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
   };
 
   const getInstaPayOpenUrl = (val: string) => {
-    if (!val) return 'https://ipn.eg';
-    if (/^https?:\/\//i.test(val)) return val;
-    return 'https://ipn.eg';
+    const normalized = val.trim();
+    if (/^https?:\/\//i.test(normalized)) return normalized;
+    if (/^(?:www\.)?(?:ipn\.eg|instapay\.eg)(?:\/|$)/i.test(normalized)) {
+      return `https://${normalized.replace(/^www\./i, '')}`;
+    }
+    return '';
   };
 
   // Copy helper with Haptic Feedback
@@ -666,7 +674,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
           </div>
 
           {/* InstaPay Card */}
-          {rawInstaPay && (
+          {instaPayAccounts.map((account) => (
             <div
               style={{
                 background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
@@ -699,7 +707,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                   <InstaPayIcon size={46} style={{ borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }} />
                   <div>
                     <div style={{ fontSize: '12px', color: '#e5e7eb', fontWeight: 600 }}>
-                      حساب إنستاباي المعتمد
+                      حساب إنستا باي
                     </div>
                     <div
                       style={{
@@ -712,7 +720,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                         letterSpacing: '0.2px',
                       }}
                     >
-                      {getInstaPayDisplay(rawInstaPay)}
+                      {getInstaPayDisplay(account.value)}
                     </div>
                   </div>
                 </div>
@@ -735,7 +743,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <button
                   type="button"
-                  onClick={() => handleCopy(getInstaPayCopyValue(rawInstaPay), 'instapay')}
+                  onClick={() => handleCopy(getInstaPayCopyValue(account.value), 'instapay')}
                   className="touch-action-btn"
                   style={{
                     display: 'flex',
@@ -769,8 +777,9 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                   )}
                 </button>
 
+                {getInstaPayOpenUrl(account.value) ? (
                 <a
-                  href={getInstaPayOpenUrl(rawInstaPay)}
+                  href={getInstaPayOpenUrl(account.value)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="touch-action-btn"
@@ -791,11 +800,19 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
                   }}
                 >
                   <ArrowUpRight size={16} />
-                  <span>فتح إنستاباي</span>
+                  <span>فتح رابط إنستاباي</span>
                 </a>
+                ) : (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px 12px', color: '#fff', fontSize: '12px', textAlign: 'center' }}>
+                    افتح التطبيق والصق المعرّف بعد نسخه
+                  </span>
+                )}
+              </div>
+              <div style={{ textAlign: 'center', color: '#ffffff', fontSize: '13px', fontWeight: 800, paddingTop: '1px' }}>
+                {account.label}
               </div>
             </div>
-          )}
+          ))}
 
           {/* Vodafone Cash Card */}
           {rawVodafoneCash && (
@@ -939,7 +956,7 @@ export const MobileShopTemplate: React.FC<MobileShopTemplateProps> = ({ data }) 
           )}
 
           {/* Cashier payment reminder notice */}
-          {(rawInstaPay || rawVodafoneCash) && (
+          {(instaPayAccounts.length > 0 || rawVodafoneCash) && (
             <div
               style={{
                 display: 'flex',

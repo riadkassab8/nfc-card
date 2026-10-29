@@ -68,6 +68,7 @@ interface BizFieldDef {
   type?: string;
   icon: React.ReactNode;
   hint?: string;
+  labelKey?: string;
   gridFull?: boolean;
 }
 
@@ -141,12 +142,17 @@ const SOCIAL_FIELDS: BizFieldDef[] = [
 
 const PAYMENT_FIELDS: BizFieldDef[] = [
   {
-    key: 'instapay',
-    label: 'رابط أو اسم المستخدم على انستا باي (InstaPay)',
-    placeholder: 'https://instapay.eg/name أو username@instapay',
-    type: 'text',
-    icon: <CreditCard size={16} />,
-    hint: 'لتسهيل استقبال التحويلات البنكية الفورية',
+    key: 'instapay', labelKey: 'instapay_label', label: 'حساب إنستا باي الأول',
+    placeholder: 'https://instapay.eg/name أو username@instapay', type: 'text',
+    icon: <CreditCard size={16} />, hint: 'لتسهيل استقبال التحويلات البنكية الفورية',
+  },
+  {
+    key: 'instapay2', labelKey: 'instapay2_label', label: 'حساب إنستا باي الثاني',
+    placeholder: 'username@instapay أو رابط الحساب', type: 'text', icon: <CreditCard size={16} />,
+  },
+  {
+    key: 'instapay3', labelKey: 'instapay3_label', label: 'حساب إنستا باي الثالث',
+    placeholder: 'username@instapay أو رابط الحساب', type: 'text', icon: <CreditCard size={16} />,
   },
   {
     key: 'vodafone_cash',
@@ -2411,7 +2417,7 @@ export const AdminAddCardPage: React.FC = () => {
             )}
 
             {/* Fast Payment Options (Only for default template) */}
-            {template !== 'mobile_shop' && (
+            {(
               <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: '14px', padding: '18px 20px', border: '1px solid var(--bdr-light)' }}>
                 <h3 style={{ margin: '0 0 14px', fontSize: '14.5px', fontWeight: 800, color: 'var(--txt-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CreditCard size={16} style={{ color: '#7c3aed' }} />
@@ -2437,6 +2443,15 @@ export const AdminAddCardPage: React.FC = () => {
                         style={{ fontSize: '13.5px', backgroundColor: '#fff' }}
                       />
                       {f.hint && <span style={{ fontSize: '11.5px', color: 'var(--txt-muted)', marginTop: '3px', display: 'block' }}>{f.hint}</span>}
+                      {f.labelKey && (
+                        <div style={{ marginTop: '9px' }}>
+                          <label className="form-label" style={{ fontSize: '11.5px', marginBottom: '4px' }}>الاسم الظاهر أسفل الحساب (Label)</label>
+                          <input className="form-input" type="text" value={bizData[f.labelKey] || ''}
+                            onChange={(e) => updateBiz(f.labelKey!, e.target.value)}
+                            placeholder={f.key === 'instapay' ? 'مثال: حساب المحل' : 'مثال: حساب صاحب النشاط'}
+                            style={{ fontSize: '12.5px', backgroundColor: '#fff' }} />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

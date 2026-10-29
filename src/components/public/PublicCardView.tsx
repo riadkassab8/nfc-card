@@ -176,7 +176,7 @@ const PremiumTile = ({ link, onClick }: { link: any, onClick: (e: React.MouseEve
       </div>
       <div className="nfc-tile-content" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px', position: 'relative', zIndex: 1 }}>
         <span ref={titleRef} className="nfc-tile-label" style={{ fontSize: '1.05rem', textAlign: 'center', lineHeight: '1.2', display: 'block' }}>{link.title}</span>
-        <span ref={subtitleRef} className="nfc-tile-subtitle" style={{ fontSize: '0.8rem', color: '#9ca3af', textAlign: 'center', display: 'block' }}>{link.subtitle}</span>
+        <span ref={subtitleRef} className="nfc-tile-subtitle" style={{ fontSize: '0.82rem', color: link.platform === 'instapay' ? '#ffffff' : '#9ca3af', fontWeight: link.platform === 'instapay' ? 700 : 400, textAlign: 'center', display: 'block' }}>{link.subtitle}</span>
       </div>
     </a>
   );
@@ -307,6 +307,15 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   const igUrl = biz?.instagram?.trim() || 'https://www.instagram.com/nasma.brand';
   const fbUrl = biz?.facebook?.trim() || 'https://www.facebook.com/nasma.brand.official';
   const ttUrl = biz?.tiktok?.trim() || 'https://www.tiktok.com/@nasma.brand';
+  const resolveInstaPayUrl = (value: string) => {
+    const normalized = value.trim();
+    if (/^https?:\/\//i.test(normalized)) return normalized;
+    if (/^(?:www\.)?(?:ipn\.eg|instapay\.eg)(?:\/|$)/i.test(normalized)) {
+      return `https://${normalized.replace(/^www\./i, '')}`;
+    }
+    // Usernames and phone numbers are identifiers, not links; click copies them instead.
+    return '#instapay-copy';
+  };
 
   // ═══════════════════════════════════════════════════════════
   // 1. SOCIAL MEDIA (الشبكات الاجتماعية)
@@ -408,13 +417,13 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   // ═══════════════════════════════════════════════════════════
   if (biz?.instapay?.trim()) {
     const val = biz.instapay.trim();
-    const isUrl = /^https?:\/\//i.test(val);
+
     links.push({
       id: 'ip',
       platform: 'instapay',
       title: 'InstaPay',
-      subtitle: 'للدفع والتحويل',
-      url: isUrl ? val : `https://instapay.eg`,
+      subtitle: biz.instapay_label?.trim() || 'للدفع والتحويل',
+      url: resolveInstaPayUrl(val),
       icon: <InstaPayIcon size={60} />,
       brandColor: '#49258E',
       copyValue: val,
@@ -437,13 +446,13 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   }
   if (biz?.instapay2?.trim()) {
     const val = biz.instapay2.trim();
-    const isUrl = /^https?:\/\//i.test(val);
+
     links.push({
       id: 'ip2',
       platform: 'instapay',
       title: 'InstaPay 2',
-      subtitle: 'حساب تحويل إضافي',
-      url: isUrl ? val : `https://instapay.eg`,
+      subtitle: biz.instapay2_label?.trim() || 'حساب تحويل إضافي',
+      url: resolveInstaPayUrl(val),
       icon: <InstaPayIcon size={60} />,
       brandColor: '#49258E',
       copyValue: val,
@@ -452,13 +461,13 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   }
   if (biz?.instapay3?.trim()) {
     const val = biz.instapay3.trim();
-    const isUrl = /^https?:\/\//i.test(val);
+
     links.push({
       id: 'ip3',
       platform: 'instapay',
       title: 'InstaPay 3',
-      subtitle: 'حساب تحويل إضافي',
-      url: isUrl ? val : `https://instapay.eg`,
+      subtitle: biz.instapay3_label?.trim() || 'حساب تحويل إضافي',
+      url: resolveInstaPayUrl(val),
       icon: <InstaPayIcon size={60} />,
       brandColor: '#49258E',
       copyValue: val,
@@ -509,6 +518,15 @@ export const PublicCardView: React.FC<{ card: ApiCard }> = ({ card }) => {
   if (biz?.website?.trim()) {
     links.push({ id: 'ws', platform: 'website', title: 'Website', subtitle: 'تصفح موقعنا', url: biz.website, icon: <GlobeIcon size={60} />, brandColor: '#3B82F6' });
   }
+
+  // Keep the public buttons grouped in the order requested: social, payment, maps, then everything else.
+  const linkGroupOrder = (platform: string) => {
+    if (['whatsapp', 'instagram', 'facebook', 'tiktok'].includes(platform)) return 0;
+    if (['instapay', 'vodafone_cash'].includes(platform)) return 1;
+    if (['google_maps', 'location'].includes(platform)) return 2;
+    return 3;
+  };
+  links.sort((a, b) => linkGroupOrder(a.platform) - linkGroupOrder(b.platform));
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

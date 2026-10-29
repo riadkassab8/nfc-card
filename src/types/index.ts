@@ -284,6 +284,9 @@ export interface BusinessData {
   instapay1?: string | null;
   instapay2?: string | null;
   instapay3?: string | null;
+  instapay_label?: string | null;
+  instapay2_label?: string | null;
+  instapay3_label?: string | null;
   vodafone_cash?: string | null;
   vodafone_cash_qr?: string | null;
   offers_url?: string | null;

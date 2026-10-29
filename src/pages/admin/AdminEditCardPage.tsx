@@ -2648,7 +2648,7 @@ export const AdminEditCardPage: React.FC = () => {
             )}
 
             {/* Fast Payment Wallets (Only for default template) */}
-            {template !== 'mobile_shop' && (
+            {(
               <div
                 style={{
                   backgroundColor: '#fff',
@@ -2670,22 +2670,22 @@ export const AdminEditCardPage: React.FC = () => {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                   {/* InstaPay */}
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>
-                      عنوان الدفع اللحظي إنستاباي (InstaPay GPA)
-                    </label>
-                    <input
-                      className="form-input"
-                      dir="ltr"
-                      value={bizData.instapay || ''}
-                      onChange={(e) => updateBiz('instapay', e.target.value)}
-                      placeholder="ahmed@instapay أو رقم التليفون"
-                      style={{ fontSize: '13.5px', fontWeight: 600 }}
-                    />
-                    <span style={{ fontSize: '11px', color: 'var(--txt-muted)', marginTop: '4px', display: 'block' }}>
-                      يُمكّن العميل من نسخ الحساب فورياً بلمسة واحدة
-                    </span>
-                  </div>
+                  {([
+                    { key: 'instapay', labelKey: 'instapay_label', title: 'حساب إنستا باي الأول' },
+                    { key: 'instapay2', labelKey: 'instapay2_label', title: 'حساب إنستا باي الثاني' },
+                    { key: 'instapay3', labelKey: 'instapay3_label', title: 'حساب إنستا باي الثالث' },
+                  ] as const).map((account) => (
+                    <div className="form-group" key={account.key}>
+                      <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '5px' }}>{account.title} (InstaPay)</label>
+                      <input className="form-input" dir="ltr" value={bizData[account.key] || ''}
+                        onChange={(e) => updateBiz(account.key, e.target.value)}
+                        placeholder="username@instapay أو رابط الحساب" style={{ fontSize: '13.5px', fontWeight: 600 }} />
+                      <label className="form-label" style={{ fontSize: '11.5px', margin: '9px 0 4px' }}>الاسم الظاهر أسفل الحساب (Label)</label>
+                      <input className="form-input" type="text" value={bizData[account.labelKey] || ''}
+                        onChange={(e) => updateBiz(account.labelKey, e.target.value)}
+                        placeholder="مثال: حساب المحل" style={{ fontSize: '12.5px', fontWeight: 500 }} />
+                    </div>
+                  ))}
 
                   {/* Vodafone Cash */}
                   <div className="form-group">
